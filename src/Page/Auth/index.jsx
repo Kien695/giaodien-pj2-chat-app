@@ -137,6 +137,7 @@ export function Auth() {
       }
     }
   };
+
   return (
     <div className="w-[100vw] h-[100vh] flex flex-col gap-4 items-center justify-center bg-gray-100">
       <div className="flex flex-col items-center">
@@ -287,6 +288,9 @@ export function Auth() {
           }}
           fullWidth
           variant="outlined"
+          onClick={() => {
+            window.open("http://localhost:3000/auth/google", "_self");
+          }}
         >
           <FcGoogle className="text-[20px]" />
           Đăng nhập với Google
