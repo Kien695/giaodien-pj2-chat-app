@@ -13,18 +13,11 @@ export default function AuthSuccess() {
       const accessToken = params.get("token");
       if (accessToken) {
         localStorage.setItem("accessToken", accessToken);
-        try {
-          const res = await getData("/auth/me");
-          if (res.success) {
-            toast.success("Đăng nhập thành công");
-            navigate("/chat");
-          }
-        } catch (error) {
-          console.error("Lỗi:", error);
-        }
+
+        toast.success("Đăng nhập thành công");
+        navigate("/");
       }
     };
     authSuccess();
   });
-  return <div></div>;
 }

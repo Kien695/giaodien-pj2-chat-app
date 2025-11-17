@@ -12,3 +12,10 @@ body {
 .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline {
   border-color: red !important;
 }
+::-webkit-scrollbar {
+  width: 7px !important;
+  height: 7px !important;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #ff5252;
+}

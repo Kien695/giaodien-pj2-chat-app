@@ -100,7 +100,7 @@ export function Auth() {
         localStorage.setItem("accessToken", res?.data?.accessToken);
         localStorage.setItem("refreshToken", res?.data?.refreshToken);
         setFormLogin({ email: "", password: "" });
-        navigate("/chat");
+        navigate("/");
       }
     } catch (error) {
       if (error.response) {
