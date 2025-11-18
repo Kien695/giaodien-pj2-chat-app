@@ -5,7 +5,7 @@ import { AiOutlineUserAdd } from "react-icons/ai";
 import { AiOutlineUsergroupAdd } from "react-icons/ai";
 function SideBar() {
   return (
-    <div className="w-[28%] bg-gray-50 border border-r ">
+    <div className="w-[33%] bg-gray-50 border border-r ">
       <div className="flex h-[10%] items-center justify-between px-3 py-3">
         <TextField
           variant="outlined"
@@ -13,7 +13,7 @@ function SideBar() {
           size="small"
           sx={{
             "& .MuiInputBase-input": {
-              padding: "4px 8px", // thu nhỏ chiều cao
+              padding: "5px 10px", // thu nhỏ chiều cao
               fontSize: "14px",
             },
             "& .MuiInputBase-root": {
@@ -30,7 +30,7 @@ function SideBar() {
             },
           }}
         />
-        <div className="flex gap-1">
+        <div className="flex gap-3">
           <Tooltip title="Thêm bạn bè" placement="top-end">
             <AiOutlineUserAdd className="text-[20px]" />
           </Tooltip>

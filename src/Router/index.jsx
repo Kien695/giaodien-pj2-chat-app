@@ -6,8 +6,10 @@ import Verify from "../Page/verify";
 import ResetPassword from "../Page/resetPassword";
 import AuthSuccess from "../Page/AuthSuccess";
 import ProtectedRouter from "../Components/protectedRouter";
-import Home from "../Page/Home";
+
 import Layout from "../Layout";
+import Chat from "../Page/Chat";
+import Home from "../Page/Home";
 
 export const routes = [
   { path: "/auth", element: <Auth /> },
@@ -22,7 +24,8 @@ export const routes = [
       </ProtectedRouter>
     ),
     children: [
-      { path: "chat/:id", element: <Home /> }, // /123, /456, ...
+      { path: "/", element: <Home /> },
+      { path: "chat/:id", element: <Chat /> }, // /123, /456, ...
     ],
   },
 

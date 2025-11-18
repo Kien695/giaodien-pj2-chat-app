@@ -19,3 +19,7 @@ body {
 ::-webkit-scrollbar-thumb {
   background-color: #ff5252;
 }
+
+.MuiOutlinedInput-notchedOutline {
+  border: none !important;
+}
