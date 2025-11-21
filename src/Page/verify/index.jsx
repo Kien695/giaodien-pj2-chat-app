@@ -24,7 +24,7 @@ export default function Verify() {
         if (res.success) {
           toast.success("Xác thực Email thành công!");
           localStorage.removeItem("userEmail");
-          navigate("/login");
+          navigate("/auth");
         }
       } catch (error) {
         if (error.response) {

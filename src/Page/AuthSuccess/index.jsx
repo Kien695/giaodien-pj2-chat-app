@@ -3,8 +3,11 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getData } from "../../utils/api";
 import { toast } from "react-toastify";
+import { useDispatch } from "react-redux";
+import { setLogin } from "../../redux/userSlice";
 
 export default function AuthSuccess() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   useEffect(() => {
     const authSuccess = async () => {
@@ -15,7 +18,8 @@ export default function AuthSuccess() {
         localStorage.setItem("accessToken", accessToken);
 
         toast.success("Đăng nhập thành công");
-        navigate("/");
+        dispatch(setLogin(true));
+        navigate("/chat");
       }
     };
     authSuccess();

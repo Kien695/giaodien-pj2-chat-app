@@ -11,6 +11,9 @@ const initialState = {
   date_of_birth: "",
   createdAt: "",
   _id: "",
+  isLogin: false,
+  onlineUser: [],
+  socketConnection: null,
 };
 
 export const userSlice = createSlice({
@@ -20,11 +23,34 @@ export const userSlice = createSlice({
     setUser: (state, action) => {
       Object.assign(state, action.payload);
     },
-    logout: () => initialState,
+    setLogin: (state, action) => {
+      state.isLogin = action.payload; // true/false
+    },
+    logout: (state) => {
+      state.name = "";
+      state.email = "";
+      state.avatar = "";
+      state.avatar_public_id = "";
+      state.background = "";
+      state.background_public_id = "";
+      state.mobile = "";
+      state.date_of_birth = "";
+      state.createdAt = "";
+      state._id = "";
+      state.isLogin = false;
+      state.socketConnection = null;
+    },
+    setOnlineUser: (state, action) => {
+      state.onlineUser = action.payload;
+    },
+    setSocketConnection: (state, action) => {
+      state.socketConnection = action.payload;
+    },
   },
 });
 
 // Action creators are generated for each case reducer function
-export const { setUser, logout } = userSlice.actions;
+export const { setUser, logout, setLogin, setOnlineUser, setSocketConnection } =
+  userSlice.actions;
 
 export default userSlice.reducer;

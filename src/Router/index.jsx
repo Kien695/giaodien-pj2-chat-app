@@ -8,8 +8,11 @@ import AuthSuccess from "../Page/AuthSuccess";
 import ProtectedRouter from "../Components/protectedRouter";
 
 import Layout from "../Layout";
-import Chat from "../Page/Chat";
-import Home from "../Page/Home";
+
+import SideBar from "../Components/SidebarInfo";
+import ChatDetail from "../Page/ChatDetail";
+import Friend from "../Components/Friend";
+import Friends from "../Page/Friends";
 
 export const routes = [
   { path: "/auth", element: <Auth /> },
@@ -24,10 +27,17 @@ export const routes = [
       </ProtectedRouter>
     ),
     children: [
-      { path: "/", element: <Home /> },
-      { path: "chat/:id", element: <Chat /> }, // /123, /456, ...
+      {
+        path: "/chat",
+        element: <SideBar />,
+        children: [{ path: ":id", element: <ChatDetail /> }],
+      },
+
+      {
+        path: "friend",
+        element: <Friend />,
+        children: [{ path: ":id", element: <Friends /> }],
+      },
     ],
   },
-
-  { path: "*", element: <Navigate to="/auth" /> },
 ];

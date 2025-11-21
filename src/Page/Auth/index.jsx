@@ -5,8 +5,11 @@ import { FcGoogle } from "react-icons/fc";
 //toastyfy
 import { toast } from "react-toastify";
 import { postData } from "../../utils/api";
+import { useDispatch } from "react-redux";
+import { setLogin } from "../../redux/userSlice";
 
 export function Auth() {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
@@ -32,16 +35,19 @@ export function Auth() {
     if (!formRegister.name) {
       toast.error("Vui lòng nhập họ tên!");
       inputRefRegister.name.current.focus();
+      setLoading(false);
       return;
     }
     if (!formRegister.email) {
       toast.error("Vui lòng nhập email!");
       inputRefRegister.name.current.focus();
+      setLoading(false);
       return;
     }
     if (!formRegister.password) {
       toast.error("Vui lòng nhập mật khẩu!");
       inputRefRegister.name.current.focus();
+      setLoading(false);
       return;
     }
     try {
@@ -100,7 +106,8 @@ export function Auth() {
         localStorage.setItem("accessToken", res?.data?.accessToken);
         localStorage.setItem("refreshToken", res?.data?.refreshToken);
         setFormLogin({ email: "", password: "" });
-        navigate("/");
+        dispatch(setLogin(true));
+        navigate("/chat");
       }
     } catch (error) {
       if (error.response) {
