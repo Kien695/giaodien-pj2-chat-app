@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 //toastyfy
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 import "./App.css";
 import AllRouter from "./Components/AllRouter";
 import { useDispatch, useSelector } from "react-redux";
@@ -35,6 +36,7 @@ function App() {
         closeButton={true}
         hideProgressBar={false}
       />
+      
     </>
   );
 }
