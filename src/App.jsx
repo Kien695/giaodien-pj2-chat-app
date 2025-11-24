@@ -25,7 +25,7 @@ function App() {
     if (isLogin) {
       fetchData();
     }
-  }, [dispatch, isLogin]);
+  }, [dispatch]);
 
   return (
     <>
@@ -36,7 +36,6 @@ function App() {
         closeButton={true}
         hideProgressBar={false}
       />
-      
     </>
   );
 }

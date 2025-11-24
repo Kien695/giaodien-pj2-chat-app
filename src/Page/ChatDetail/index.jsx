@@ -15,6 +15,9 @@ import { getData } from "../../utils/api";
 import EmojiPicker from "emoji-picker-react";
 //image
 import ImageUploading from "react-images-uploading";
+//viewer image
+import { PhotoProvider, PhotoView } from "react-photo-view";
+import "react-photo-view/dist/react-photo-view.css";
 
 export default function ChatDetail() {
   const [openInfo, setOpenInfo] = useState(false);
@@ -213,7 +216,7 @@ export default function ChatDetail() {
           <MdDevicesFold className="text-[20px]" />
         </Button>
       </div>
-      <div className=" flex-1 px-5  bg-blue-50 flex flex-col gap-2 overflow-y-auto">
+      <div className=" flex-1 px-5 bg-blue-50 flex flex-col gap-2 overflow-y-auto pt-2">
         {chat.map((item, index) => {
           const isMe = item.user_id._id === state._id;
 
@@ -242,14 +245,16 @@ export default function ChatDetail() {
                 {/* HIỂN THỊ ẢNH */}
                 {item.images?.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {item.images.map((img, i) => (
-                      <img
-                        key={i}
-                        src={img.url}
-                        className="w-32 h-32 object-cover rounded-md"
-                        alt="image"
-                      />
-                    ))}
+                    <PhotoProvider>
+                      {item.images.map((img, i) => (
+                        <PhotoView key={i} src={img.url}>
+                          <img
+                            src={img.url}
+                            className="w-32 h-32 rounded-md object-cover"
+                          />
+                        </PhotoView>
+                      ))}
+                    </PhotoProvider>
                   </div>
                 )}
 

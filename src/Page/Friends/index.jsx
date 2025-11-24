@@ -3,7 +3,7 @@ import { SiIconify } from "react-icons/si";
 import { GrImage } from "react-icons/gr";
 import { FiPaperclip } from "react-icons/fi";
 import { IoSend } from "react-icons/io5";
-import React from "react";
+import React, { useState } from "react";
 import { FaRegSmile } from "react-icons/fa";
 import { MdDevicesFold } from "react-icons/md";
 import { LuUserRoundCheck } from "react-icons/lu";
@@ -13,6 +13,7 @@ import ListFriend from "../ListFriend";
 import ListGroup from "../ListGroup";
 import AddFriend from "../ListAddFriend";
 import AddGroup from "../ListAddGroup";
+import Function from "../../Components/Function";
 
 export default function Friends() {
   const { id } = useParams();
