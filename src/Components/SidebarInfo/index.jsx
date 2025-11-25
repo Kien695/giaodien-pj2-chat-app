@@ -24,7 +24,7 @@ function SideBar() {
   const [searchText, setSearchText] = useState("");
   const [text, setText] = useState("");
   const [user, setUser] = useState([]);
-  const [friendStatus, setFriendStatus] = useState("");
+  const [friendStatus, setFriendStatus] = useState({});
   const navigate = useNavigate();
   const { id } = useParams();
   //dialog
@@ -42,19 +42,24 @@ function SideBar() {
     setOpen(false);
     socketConnection.emit("CLIENT_ADD_FRIEND", { userId, text });
   };
-  const handleCancelRequire=(userId)=>{
-    console.log(userId)
-  }
+  const handleCancelRequire = (userId) => {
+    socketConnection.emit("CLIENT_CANCEL_FRIEND", userId);
+  };
   //server trả về
   useEffect(() => {
     if (!socketConnection) return;
+
     const handleStatus = (data) => {
-      setFriendStatus(data.status);
+      setFriendStatus((prev) => ({
+        ...prev,
+        [data.userId]: data.status,
+      }));
     };
 
-    socketConnection.on("SERVER_ADD_FRIEND_STATUS", handleStatus);
+    socketConnection.on("SERVER_FRIEND_STATUS", handleStatus);
+
     return () => {
-      socketConnection.off("SERVER_ADD_FRIEND_STATUS", handleStatus);
+      socketConnection.off("SERVER_FRIEND_STATUS", handleStatus);
     };
   }, [socketConnection]);
 
@@ -90,8 +95,8 @@ function SideBar() {
                           >
                             Nhắn tin
                           </Button>
-                          {item.friendStatus == "pending" ||
-                          friendStatus == "pending" ? (
+                          {friendStatus[item._id] === "pending" ||
+                          item.friendStatus === "pending" ? (
                             <Button
                               size="small"
                               sx={{

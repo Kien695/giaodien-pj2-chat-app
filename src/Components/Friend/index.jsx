@@ -18,27 +18,29 @@ function Friend() {
           <>
             {user.length > 0 ? (
               <div className="h-[89%]  flex py-4">
-                {user.map((item, index) => (
-                  <div className="flex gap-3 mx-3 rounded-md  items-center cursor-pointer bg-gray-100 border px-3 py-4 w-full h-[70px]">
-                    <img
-                      src={item.avatar}
-                      alt="avatar"
-                      className="w-[40px] h-[40px] rounded-full"
-                    />
+                <div className="flex flex-col gap-3">
+                  {user.map((item, index) => (
+                    <div className="flex gap-3 mx-3 rounded-md  items-center cursor-pointer bg-gray-100 border px-3 py-4 w-full h-[70px]">
+                      <img
+                        src={item.avatar}
+                        alt="avatar"
+                        className="w-[40px] h-[40px] rounded-full"
+                      />
 
-                    <div className="ml-4">
-                      <div className="text-[14px] font-[500] ml-1">
-                        {item.name}
-                      </div>
-                      <div>
-                        <Button size="small">Từ chối</Button>
-                        <Button color="error" size="small">
-                          Đồng ý
-                        </Button>
+                      <div className="ml-4">
+                        <div className="text-[14px] font-[500] ml-1">
+                          {item.name}
+                        </div>
+                        <div>
+                          <Button size="small">Từ chối</Button>
+                          <Button color="error" size="small">
+                            Đồng ý
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             ) : (
               <div className="h-[89%] flex  items-center justify-center">
