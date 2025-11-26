@@ -1,15 +1,15 @@
-import React, { use, useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import { LuMessageSquareText } from "react-icons/lu";
 import { GrDocumentUser } from "react-icons/gr";
 import { IoMdCloudOutline } from "react-icons/io";
 import { IoSettingsOutline } from "react-icons/io5";
-import { Box, Divider, Menu, MenuItem, Tooltip } from "@mui/material";
+import { Badge, Box, Divider, Menu, MenuItem, Tooltip } from "@mui/material";
 import InfoUser from "../infoUser";
 import Setting from "../Setting";
 import { useDispatch, useSelector } from "react-redux";
 import { postData } from "../../utils/api";
 import { toast } from "react-toastify";
-import { logout } from "../../redux/userSlice";
+import { logout, setLengthAcceptFriend } from "../../redux/userSlice";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 export default function SideBarUser() {
   const dispatch = useDispatch();
@@ -17,8 +17,28 @@ export default function SideBarUser() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [openInfo, setOpenInfo] = useState(false);
   const [openSetting, setOpenSetting] = useState(false);
+  const [lengthAccept, setLengthAccept] = useState(0);
   const open = Boolean(anchorEl);
   const user = useSelector((state) => state.user);
+  const socketConnection = user.socketConnection;
+
+  //server return lengthAccept
+  useEffect(() => {
+    if (!socketConnection) return;
+    const handleAccept = (data) => {
+      if (user._id === data?.userId) {
+        dispatch(setLengthAcceptFriend(data.lengthAcceptFriend));
+      }
+    };
+    socketConnection.on("SEVER_RETURN_LENGTH_ACCEPT_FRIEND", handleAccept);
+    return () => {
+      socketConnection.off("SEVER_RETURN_LENGTH_ACCEPT_FRIEND", handleAccept);
+    };
+  }, [socketConnection, user._id]);
+
+  const total =
+    (user.lengthAcceptFriend ?? 0) + (user?.acceptFriends?.length ?? 0);
+
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
@@ -121,7 +141,7 @@ export default function SideBarUser() {
           to="/chat"
           end={false}
           className={({ isActive }) =>
-            `p-2 rounded ${isActive ? "bg-red-400" : ""}`
+            `p-2 rounded ${isActive ? "bg-gray-700" : ""}`
           }
         >
           <Tooltip title="Tin nhắn" placement="right-start">
@@ -131,11 +151,17 @@ export default function SideBarUser() {
         <NavLink
           to="/friend"
           className={({ isActive }) =>
-            `p-2 rounded ${isActive ? "bg-red-400" : ""}`
+            `p-2 rounded ${isActive ? "bg-gray-700" : ""}`
           }
         >
           <Tooltip title="Danh bạ" placement="right-start">
-            <GrDocumentUser className="text-[26px] text-white" />
+            <div className="relative">
+              <GrDocumentUser className="text-[26px] text-white" />
+
+              {total > 0 && (
+                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
+              )}
+            </div>
           </Tooltip>
         </NavLink>
       </div>

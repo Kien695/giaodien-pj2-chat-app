@@ -14,6 +14,7 @@ const initialState = {
   isLogin: false,
   onlineUser: [],
   socketConnection: null,
+  lengthAcceptFriend: 0,
 };
 
 export const userSlice = createSlice({
@@ -39,6 +40,7 @@ export const userSlice = createSlice({
       state._id = "";
       state.isLogin = false;
       state.socketConnection = null;
+      state.lengthAcceptFriend = 0;
     },
     setOnlineUser: (state, action) => {
       state.onlineUser = action.payload;
@@ -46,11 +48,20 @@ export const userSlice = createSlice({
     setSocketConnection: (state, action) => {
       state.socketConnection = action.payload;
     },
+    setLengthAcceptFriend: (state, action) => {
+      state.lengthAcceptFriend = action.payload;
+    },
   },
 });
 
 // Action creators are generated for each case reducer function
-export const { setUser, logout, setLogin, setOnlineUser, setSocketConnection } =
-  userSlice.actions;
+export const {
+  setUser,
+  logout,
+  setLogin,
+  setOnlineUser,
+  setSocketConnection,
+  setLengthAcceptFriend,
+} = userSlice.actions;
 
 export default userSlice.reducer;
