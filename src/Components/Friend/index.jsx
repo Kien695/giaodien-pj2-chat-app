@@ -6,16 +6,21 @@ import { FiUsers } from "react-icons/fi";
 import { AiOutlineUsergroupAdd } from "react-icons/ai";
 import { FcSearch } from "react-icons/fc";
 import { Badge, Button, Dialog, DialogActions } from "@mui/material";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { resetAcceptFriends } from "../../redux/userSlice";
 function Friend() {
+  const dispatch = useDispatch();
   const [friendStatus, setFriendStatus] = useState({});
   const state = useSelector((state) => state.user);
   const socketConnection = state.socketConnection;
   const totalAccept =
-    (state.lengthAcceptFriend ?? 0) + (state?.acceptFriends?.length ?? 0);
+    (state.lengthAcceptFriend ?? 0) +
+    Number(localStorage.getItem("lengthAcceptFriend") ?? 0);
+
   const [active, setActive] = useState(1);
   const [searchText, setSearchText] = useState("");
   const [user, setUser] = useState([]);
+  const [text, setText] = useState("");
   //dialog
   const [open, setOpen] = React.useState(false);
 
@@ -61,7 +66,10 @@ function Friend() {
               <div className="h-[89%]  flex py-4">
                 <div className="flex flex-col gap-3">
                   {user.map((item, index) => (
-                    <div className="flex  gap-3 mx-3 rounded-md  items-center cursor-pointer bg-gray-100 border px-3 py-4 w-full h-[70px]">
+                    <div
+                      className="flex  gap-3 mx-3 rounded-md  items-center cursor-pointer bg-gray-100 border px-3 py-4 w-full h-[70px]"
+                      key={index}
+                    >
                       <img
                         src={item.avatar}
                         alt="avatar"
@@ -181,7 +189,7 @@ function Friend() {
             <NavLink
               to="/friend/1"
               className={({ isActive }) =>
-                `cursor-pointer flex gap-4  hover:bg-gray-100 font-[500] px-4 py-4 items-center text-gray-800${
+                `cursor-pointer flex gap-4  hover:bg-gray-100 font-[500] px-4 py-4 items-center text-gray-800 ${
                   isActive ? "bg-gray-200 " : ""
                 }`
               }
@@ -192,7 +200,7 @@ function Friend() {
             <NavLink
               to="/friend/2"
               className={({ isActive }) =>
-                `cursor-pointer flex gap-4  hover:bg-gray-100 font-[500] px-4 py-4 items-center text-gray-800${
+                `cursor-pointer flex gap-4  hover:bg-gray-100 font-[500] px-4 py-4 items-center text-gray-800 ${
                   isActive ? "bg-gray-200 " : ""
                 }`
               }
@@ -203,10 +211,14 @@ function Friend() {
             <NavLink
               to="/friend/3"
               className={({ isActive }) =>
-                `cursor-pointer flex gap-4  hover:bg-gray-100 font-[500] px-4 py-4 items-center text-gray-800${
+                `cursor-pointer flex gap-4  hover:bg-gray-100 font-[500] px-4 py-4 items-center text-gray-800 ${
                   isActive ? "bg-gray-200 " : ""
                 }`
               }
+              onClick={() => {
+                dispatch(resetAcceptFriends());
+                localStorage.removeItem("lengthAcceptFriend");
+              }}
             >
               {totalAccept > 0 ? (
                 <>

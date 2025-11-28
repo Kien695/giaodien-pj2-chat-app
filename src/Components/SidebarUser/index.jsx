@@ -27,6 +27,10 @@ export default function SideBarUser() {
     if (!socketConnection) return;
     const handleAccept = (data) => {
       if (user._id === data?.userId) {
+        localStorage.setItem(
+          "lengthAcceptFriend",
+          JSON.stringify(data.lengthAcceptFriend)
+        );
         dispatch(setLengthAcceptFriend(data.lengthAcceptFriend));
       }
     };

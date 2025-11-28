@@ -51,6 +51,9 @@ export const userSlice = createSlice({
     setLengthAcceptFriend: (state, action) => {
       state.lengthAcceptFriend = action.payload;
     },
+    resetAcceptFriends: (state) => {
+      state.lengthAcceptFriend = 0;
+    },
   },
 });
 
@@ -62,6 +65,7 @@ export const {
   setOnlineUser,
   setSocketConnection,
   setLengthAcceptFriend,
+  resetAcceptFriends,
 } = userSlice.actions;
 
 export default userSlice.reducer;

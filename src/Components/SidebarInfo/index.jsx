@@ -26,7 +26,7 @@ function SideBar() {
   const [user, setUser] = useState([]);
   const [friendStatus, setFriendStatus] = useState({});
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { roomChatId } = useParams();
   //dialog
   const [open, setOpen] = React.useState(false);
 
@@ -61,7 +61,7 @@ function SideBar() {
     return () => {
       socketConnection.off("SERVER_FRIEND_STATUS", handleStatus);
     };
-  }, [socketConnection]);
+  }, [socketConnection, state._id]);
 
   return (
     <div className="flex">
@@ -468,7 +468,7 @@ function SideBar() {
         )}
       </div>
       <div className="flex-1">
-        {id ? (
+        {roomChatId ? (
           <Outlet />
         ) : (
           <div className="w-full">

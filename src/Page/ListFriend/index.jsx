@@ -1,4 +1,4 @@
-import { Button } from "@mui/material";
+import { Button, Menu, MenuItem } from "@mui/material";
 import { SiIconify } from "react-icons/si";
 import { GrImage } from "react-icons/gr";
 import { FiPaperclip } from "react-icons/fi";
@@ -9,7 +9,30 @@ import { MdDevicesFold } from "react-icons/md";
 import { LuUserRoundCheck } from "react-icons/lu";
 import { Link, useParams } from "react-router-dom";
 import { BsThreeDotsVertical } from "react-icons/bs";
+import { useEffect } from "react";
+import { getData } from "../../utils/api";
+import { useState } from "react";
 export default function ListFriend() {
+  const [friend, setFriend] = useState([]);
+  const [count, setCount] = useState(0);
+  const [anchorEl, setAnchorEl] = useState(null);
+  const openMenu = Boolean(anchorEl);
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+  useEffect(() => {
+    const fetchData = async () => {
+      const res = await getData("/auth/friendList");
+      if (res.success) {
+        setFriend(res.data);
+        setCount(res.count);
+      }
+    };
+    fetchData();
+  }, []);
   return (
     <div className="w-full h-screen flex flex-col px-5">
       <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0">
@@ -18,64 +41,62 @@ export default function ListFriend() {
           <div className="text-[16px]">Danh sách bạn bè</div>
         </div>
       </div>
-      <div className="text-[14px] font-[500] py-4">Bạn bè (100)</div>
+      <div className="text-[14px] font-[500] py-4">Bạn bè ({count})</div>
       <div className="bg-gray-50  rounded-md shadow-md">
-        <Link
-          to="/chat/691e855daf14807b287df949"
-          className="flex items-center border-1 border-b justify-between gap-3 cursor-pointer hover:bg-gray-100 px-3 py-3"
-        >
-          <div className="flex items-center gap-4">
-            <img
-              src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-              alt=""
-              className="w-[45px] rounded-full"
+        {friend.map((item, index) => (
+          <div
+            className="flex items-center border-1 border-b justify-between gap-3 cursor-pointer hover:bg-gray-100 px-3 py-3"
+            key={index}
+          >
+            <Link to={`/chat/${item?.infoFriend?.room_chat_id}`}>
+              <div className="flex items-center gap-4">
+                <img
+                  src={
+                    item.avatar ||
+                    "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                  }
+                  alt=""
+                  className="w-[45px] rounded-full"
+                />
+                <div className="text-[15px] font-[500]">{item.name}</div>
+              </div>
+            </Link>
+            <BsThreeDotsVertical
+              className="text-[20px]"
+              onClick={handleClick}
             />
-            <div className="text-[15px] font-[500]">Trương Tấn Kiên</div>
+            <Menu
+              anchorEl={anchorEl}
+              open={openMenu}
+              onClose={handleClose}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
+            >
+              <MenuItem
+                onClick={() => {
+                  handleClose();
+                }}
+                sx={{
+                  fontSize: "14px",
+                  padding: "5px 10px",
+                }}
+              >
+                Xem thông tin
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  handleClose();
+                }}
+                sx={{
+                  fontSize: "14px",
+                  padding: "5px 10px",
+                }}
+              >
+                Hủy kết bạn
+              </MenuItem>
+            </Menu>
           </div>
-          <BsThreeDotsVertical className="text-[20px]" />
-        </Link>
-        <Link
-          to="/chat/691e855daf14807b287df949"
-          className="flex items-center border-1 border-b justify-between gap-3 cursor-pointer hover:bg-gray-100 px-3 py-3"
-        >
-          <div className="flex items-center gap-4">
-            <img
-              src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-              alt=""
-              className="w-[45px] rounded-full"
-            />
-            <div className="text-[15px] font-[500]">Trương Tấn Kiên</div>
-          </div>
-          <BsThreeDotsVertical className="text-[20px]" />
-        </Link>
-        <Link
-          to="/chat/691e855daf14807b287df949"
-          className="flex items-center border-1 border-b justify-between gap-3 cursor-pointer hover:bg-gray-100 px-3 py-3"
-        >
-          <div className="flex items-center gap-4">
-            <img
-              src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-              alt=""
-              className="w-[45px] rounded-full"
-            />
-            <div className="text-[15px] font-[500]">Trương Tấn Kiên</div>
-          </div>
-          <BsThreeDotsVertical className="text-[20px]" />
-        </Link>
-        <Link
-          to="/chat/691e855daf14807b287df949"
-          className="flex items-center border-1 border-b justify-between gap-3 cursor-pointer hover:bg-gray-100 px-3 py-3"
-        >
-          <div className="flex items-center gap-4">
-            <img
-              src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-              alt=""
-              className="w-[45px] rounded-full"
-            />
-            <div className="text-[15px] font-[500]">Trương Tấn Kiên</div>
-          </div>
-          <BsThreeDotsVertical className="text-[20px]" />
-        </Link>
+        ))}
       </div>
     </div>
   );

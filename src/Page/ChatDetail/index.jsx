@@ -127,12 +127,14 @@ export default function ChatDetail() {
     fetChChat();
   }, []);
   // Gửi tin nhắn đến server
+  const { roomChatId } = useParams();
   const handleMessage = async () => {
     if (socketConnection) {
       const base64List = await convertImagesToBase64();
-      socketConnection.emit("CLIENT_SEND_MASSAGE", {
+      socketConnection.emit("CLIENT_SEND_MESSAGE", {
         message,
         images: base64List,
+        roomChatId: roomChatId || null,
       });
       // tắt typing ngay lập tức
       socketConnection.emit("CLIENT_SEND_TYPING", false);

@@ -30,7 +30,7 @@ export const routes = [
       {
         path: "chat",
         element: <SideBar />,
-        children: [{ path: ":id", element: <ChatDetail /> }],
+        children: [{ path: ":roomChatId", element: <ChatDetail /> }],
       },
 
       {
