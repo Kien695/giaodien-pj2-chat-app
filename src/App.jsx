@@ -7,7 +7,13 @@ import "./App.css";
 import AllRouter from "./Components/AllRouter";
 import { useDispatch, useSelector } from "react-redux";
 import { getData } from "./utils/api";
-import { setUser } from "./redux/userSlice";
+import {
+  setListFriend,
+  setUser,
+  setCountFriend,
+  setListGroup,
+  setCountGroup,
+} from "./redux/userSlice";
 
 function App() {
   const isLogin = useSelector((state) => state.user);
@@ -20,6 +26,16 @@ function App() {
       const resUser = await getData("/auth/getUser");
       if (resUser.success) {
         dispatch(setUser(resUser.data));
+      }
+      const resListFriend = await getData("/auth/friendList");
+      if (resListFriend.success) {
+        dispatch(setListFriend(resListFriend.data));
+        dispatch(setCountFriend(resListFriend.count));
+      }
+      const resListGroup = await getData("/auth/getRoom");
+      if (resListGroup.success) {
+        dispatch(setListGroup(resListGroup.data));
+        dispatch(setCountGroup(resListGroup.count));
       }
     };
     if (isLogin) {

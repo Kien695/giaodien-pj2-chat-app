@@ -12,9 +12,8 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import { useEffect } from "react";
 import { getData } from "../../utils/api";
 import { useState } from "react";
+import { useSelector } from "react-redux";
 export default function ListFriend() {
-  const [friend, setFriend] = useState([]);
-  const [count, setCount] = useState(0);
   const [anchorEl, setAnchorEl] = useState(null);
   const openMenu = Boolean(anchorEl);
   const handleClick = (event) => {
@@ -23,16 +22,18 @@ export default function ListFriend() {
   const handleClose = () => {
     setAnchorEl(null);
   };
-  useEffect(() => {
-    const fetchData = async () => {
-      const res = await getData("/auth/friendList");
-      if (res.success) {
-        setFriend(res.data);
-        setCount(res.count);
-      }
-    };
-    fetchData();
-  }, []);
+  const count = useSelector((state) => state.user.countFriend);
+  const friend = useSelector((state) => state.user.listFriend);
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     const res = await getData("/auth/friendList");
+  //     if (res.success) {
+  //       setFriend(res.data);
+  //       setCount(res.count);
+  //     }
+  //   };
+  //   fetchData();
+  // }, []);
   return (
     <div className="w-full h-screen flex flex-col px-5">
       <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0">

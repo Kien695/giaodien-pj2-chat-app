@@ -15,6 +15,10 @@ const initialState = {
   onlineUser: [],
   socketConnection: null,
   lengthAcceptFriend: 0,
+  listFriend: [],
+  countFriend: 0,
+  listGroup: [],
+  countGroup: 0,
 };
 
 export const userSlice = createSlice({
@@ -54,6 +58,18 @@ export const userSlice = createSlice({
     resetAcceptFriends: (state) => {
       state.lengthAcceptFriend = 0;
     },
+    setListFriend: (state, action) => {
+      state.listFriend = action.payload;
+    },
+    setCountFriend: (state, action) => {
+      state.countFriend = action.payload;
+    },
+    setListGroup: (state, action) => {
+      state.listGroup = action.payload;
+    },
+    setCountGroup: (state, action) => {
+      state.countGroup = action.payload;
+    },
   },
 });
 
@@ -66,6 +82,10 @@ export const {
   setSocketConnection,
   setLengthAcceptFriend,
   resetAcceptFriends,
+  setListFriend,
+  setCountFriend,
+  setListGroup,
+  setCountGroup,
 } = userSlice.actions;
 
 export default userSlice.reducer;

@@ -1,13 +1,17 @@
-import { InputAdornment, TextField, Tooltip } from "@mui/material";
+import { Button, InputAdornment, TextField, Tooltip } from "@mui/material";
 import { IoSearch } from "react-icons/io5";
 import { AiOutlineUserAdd } from "react-icons/ai";
 import { AiOutlineUsergroupAdd } from "react-icons/ai";
 import React, { useState } from "react";
 import { useEffect } from "react";
 import { getData } from "../../utils/api";
+import AddGroup from "../AddGroup";
+import AddFriend from "../AddFriend";
 
 export default function Function({ setSearchText, setUser }) {
   const [keyword, setKeyword] = useState("");
+  const [openGroup, setOpenGroup] = useState(false);
+  const [openSearchFriend, setOpenSearchFriend] = useState(false);
   const handleClick = () => {
     console.log("ok");
   };
@@ -24,7 +28,7 @@ export default function Function({ setSearchText, setUser }) {
     }
 
     const fetchData = async () => {
-      const res = await getData(`/auth/getAllUser?keyword=${keyword}`);
+      const res = await getData(`/auth/getUser?keyword=${keyword}`);
       if (res.success) {
         setUser(res.data);
       }
@@ -34,7 +38,7 @@ export default function Function({ setSearchText, setUser }) {
   }, [keyword]);
 
   return (
-    <div className="flex h-[10%] items-center justify-between px-3">
+    <div className="flex h-[10%] items-center justify-between px-3 gap-2">
       <TextField
         variant="outlined"
         placeholder="Tìm kiếm..."
@@ -60,14 +64,39 @@ export default function Function({ setSearchText, setUser }) {
           },
         }}
       />
-      <div className="flex gap-3">
+      <div className="flex gap-1">
         <Tooltip title="Thêm bạn bè" placement="top-end">
-          <AiOutlineUserAdd className="text-[20px]" />
+          <Button
+            sx={{
+              paddingX: "5px",
+              minWidth: 0,
+            }}
+            onClick={() => {
+              setOpenSearchFriend(true); // mở modal
+            }}
+          >
+            <AiOutlineUserAdd className="text-[20px]" />
+          </Button>
         </Tooltip>
         <Tooltip title="Tạo nhóm" placement="top-end">
-          <AiOutlineUsergroupAdd className="text-[20px]" />
+          <Button
+            sx={{
+              paddingX: "5px",
+              minWidth: 0,
+            }}
+            onClick={() => {
+              setOpenGroup(true); // mở modal
+            }}
+          >
+            <AiOutlineUsergroupAdd className="text-[20px]" />
+          </Button>
         </Tooltip>
       </div>
+      <AddGroup open={openGroup} onClose={() => setOpenGroup(false)} />
+      <AddFriend
+        open={openSearchFriend}
+        onClose={() => setOpenSearchFriend(false)}
+      />
     </div>
   );
 }
