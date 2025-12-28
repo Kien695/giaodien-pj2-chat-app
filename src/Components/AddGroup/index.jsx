@@ -93,7 +93,7 @@ export default function AddGroup({ open, onClose }) {
         PaperProps={{
           sx: {
             width: "450px",
-            height: "85vh",
+            height: "86vh",
             maxWidth: "90vw",
           },
         }}
@@ -285,7 +285,7 @@ export default function AddGroup({ open, onClose }) {
               backgroundColor: "gray",
               color: "#fff",
             }}
-             onClick={onClose}
+            onClick={onClose}
           >
             Hủy
           </Button>

@@ -13,15 +13,21 @@ import { useEffect } from "react";
 import { getData } from "../../utils/api";
 import { useState } from "react";
 import { useSelector } from "react-redux";
+import InfoUser from "../../Components/infoUser";
 export default function ListFriend() {
   const [anchorEl, setAnchorEl] = useState(null);
+  const [openInfo, setOpenInfo] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+
   const openMenu = Boolean(anchorEl);
-  const handleClick = (event) => {
+  const handleClick = (event, item) => {
     setAnchorEl(event.currentTarget);
+    setSelectedItem(item);
   };
   const handleClose = () => {
     setAnchorEl(null);
   };
+
   const count = useSelector((state) => state.user.countFriend);
   const friend = useSelector((state) => state.user.listFriend);
   // useEffect(() => {
@@ -64,7 +70,7 @@ export default function ListFriend() {
             </Link>
             <BsThreeDotsVertical
               className="text-[20px]"
-              onClick={handleClick}
+              onClick={(e) => handleClick(e, item)}
             />
             <Menu
               anchorEl={anchorEl}
@@ -76,6 +82,7 @@ export default function ListFriend() {
               <MenuItem
                 onClick={() => {
                   handleClose();
+                  setOpenInfo(true);
                 }}
                 sx={{
                   fontSize: "14px",
@@ -96,6 +103,11 @@ export default function ListFriend() {
                 Hủy kết bạn
               </MenuItem>
             </Menu>
+            <InfoUser
+              open={openInfo}
+              onClose={() => setOpenInfo(false)}
+              user={selectedItem}
+            />
           </div>
         ))}
       </div>

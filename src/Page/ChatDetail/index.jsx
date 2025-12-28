@@ -7,7 +7,7 @@ import React, { useEffect, useState } from "react";
 import { FaRegSmile, FaRegThumbsUp } from "react-icons/fa";
 import { MdDevicesFold, MdOutlineOndemandVideo } from "react-icons/md";
 import { useSelector } from "react-redux";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import InfoUser from "../../Components/infoUser";
 import { useRef } from "react";
 import { getData } from "../../utils/api";
@@ -23,28 +23,20 @@ export default function ChatDetail() {
   const [openInfo, setOpenInfo] = useState(false);
   const state = useSelector((state) => state.user);
   const socketConnection = state.socketConnection;
-
+  const navigate = useNavigate();
   const params = useParams();
+  const { roomChatId } = useParams();
+
   const input = useRef();
   const bottomRef = useRef(null);
-  const [dataUser, setDataUser] = useState({
-    _id: "",
-    name: "",
-    email: "",
-    avatar: "",
-    mobile: "",
-    date_of_birth: "",
-    background: "",
-    gender: "",
-    content: "",
-    online: false,
-  });
+  const [dataUser, setDataUser] = useState([]);
   const [message, setMessage] = useState("");
   const [showPicker, setShowPicker] = useState(false);
   const pickerRef = useRef(null);
   const pickerWrapperRef = useRef(null);
 
   const [chat, setChat] = useState([]);
+
   const [typing, setTyping] = useState("");
   const [images, setImages] = useState([]);
   const maxNumber = 5;
@@ -118,16 +110,25 @@ export default function ChatDetail() {
   }, []);
   // hiện chat ra UI
   useEffect(() => {
-    const fetChChat = async () => {
-      const res = await getData("/chat");
-      if (res.success) {
-        setChat(res.data);
+    const fetchChat = async () => {
+      try {
+        const res = await getData(`/chat/${roomChatId}`);
+        if (res.success) {
+          setChat(res.data);
+          setDataUser(res.users);
+        }
+      } catch (error) {
+        if (error.response?.data?.link) {
+          navigate(error.response.data.link);
+        }
       }
     };
-    fetChChat();
-  }, []);
+
+    fetchChat();
+  }, [roomChatId]);
+
   // Gửi tin nhắn đến server
-  const { roomChatId } = useParams();
+
   const handleMessage = async () => {
     if (socketConnection) {
       const base64List = await convertImagesToBase64();
@@ -181,44 +182,56 @@ export default function ChatDetail() {
     <div className="w-full h-screen flex flex-col">
       <div className="flex h-[11%] items-center justify-between px-5 py-1 border-b flex-shrink-0">
         <div className="flex gap-3 relative">
-          <img
-            src={
-              dataUser.avatar ||
-              "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-            }
-            alt="avatar"
-            className="w-[45px] rounded-full cursor-pointer"
-            onClick={() => {
-              setOpenInfo(true);
-            }}
-          />
-          <InfoUser
-            open={openInfo}
-            onClose={() => setOpenInfo(false)}
-            user={dataUser}
-            type="client"
-          />
-          <div className="flex flex-col justify-between">
-            <div className="text-[16px] font-[500]">
-              {dataUser.name || "Kiên"}
-            </div>
-            {dataUser.online == "true" ? (
-              <div className="text-[14px] text-gray-700">Đang hoạt động</div>
-            ) : (
-              <div className="text-[14px] text-gray-700">
-                Truy cập 30 phút trước
-              </div>
-            )}
-          </div>
-          {dataUser.online == "true" && (
-            <span className="w-2 h-2 p-1 bg-green-600 rounded-full left-9 bottom-1 absolute"></span>
+          {dataUser?.users?.map(
+            (item, index) =>
+              item.user_id._id !== state._id && (
+                <div key={item.user_id._id} className="flex gap-3 relative">
+                  <img
+                    src={
+                      item.user_id.avatar ||
+                      "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                    }
+                    alt="avatar"
+                    className="w-[45px] rounded-full cursor-pointer"
+                    onClick={() => setOpenInfo(true)}
+                  />
+
+                  <InfoUser
+                    open={openInfo}
+                    onClose={() => setOpenInfo(false)}
+                    user={item.user_id}
+                    type="client"
+                  />
+
+                  <div className="flex flex-col justify-between">
+                    <div className="text-[16px] font-[500]">
+                      {item.user_id.name || "Kiên"}
+                    </div>
+
+                    {item.user_id.online === "true" ? (
+                      <div className="text-[14px] text-gray-700">
+                        Đang hoạt động
+                      </div>
+                    ) : (
+                      <div className="text-[14px] text-gray-700">
+                        Truy cập 30 phút trước
+                      </div>
+                    )}
+                  </div>
+
+                  {item.user_id.online === "true" && (
+                    <span className="w-2 h-2 bg-green-600 rounded-full absolute left-9 bottom-1"></span>
+                  )}
+                </div>
+              )
           )}
         </div>
+
         <Button>
           <MdDevicesFold className="text-[20px]" />
         </Button>
       </div>
-      <div className=" flex-1 px-5 bg-blue-50 flex flex-col gap-2 overflow-y-auto pt-2">
+      <div className=" flex-1 px-5 bg-blue-50 flex flex-col  gap-2 overflow-y-auto pt-2">
         {chat.map((item, index) => {
           const isMe = item.user_id._id === state._id;
 
@@ -274,7 +287,7 @@ export default function ChatDetail() {
 
         {/* typing ui */}
         {typing.type == true && (
-          <div className=" flex gap-1 items-center">
+          <div className=" flex gap-1 mt-auto items-center">
             <div className="flex gap-2">
               <img
                 src={typing.avatar || "https://i.pravatar.cc/40"}
