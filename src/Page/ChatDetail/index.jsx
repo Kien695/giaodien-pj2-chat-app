@@ -1,11 +1,18 @@
-import { Button } from "@mui/material";
+import { Button, Tooltip } from "@mui/material";
 import { SiIconify } from "react-icons/si";
 import { GrImage } from "react-icons/gr";
-import { FiPaperclip } from "react-icons/fi";
+import { FiDelete, FiPaperclip } from "react-icons/fi";
 import { IoSend } from "react-icons/io5";
 import React, { useEffect, useState } from "react";
 import { FaRegSmile, FaRegThumbsUp } from "react-icons/fa";
-import { MdDevicesFold, MdOutlineOndemandVideo } from "react-icons/md";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
+import Fade from "@mui/material/Fade";
+import {
+  MdDevicesFold,
+  MdOutlineContentCopy,
+  MdOutlineOndemandVideo,
+} from "react-icons/md";
 import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import InfoUser from "../../Components/infoUser";
@@ -18,6 +25,7 @@ import ImageUploading from "react-images-uploading";
 //viewer image
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import "react-photo-view/dist/react-photo-view.css";
+import { BsThreeDots } from "react-icons/bs";
 
 export default function ChatDetail() {
   const [openInfo, setOpenInfo] = useState(false);
@@ -26,7 +34,16 @@ export default function ChatDetail() {
   const navigate = useNavigate();
   const params = useParams();
   const { roomChatId } = useParams();
-
+  //menu chat
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const open = Boolean(anchorEl);
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+  //end menu chat
   const input = useRef();
   const bottomRef = useRef(null);
   const [dataUser, setDataUser] = useState([]);
@@ -128,7 +145,6 @@ export default function ChatDetail() {
   }, [roomChatId]);
 
   // Gửi tin nhắn đến server
-
   const handleMessage = async () => {
     if (socketConnection) {
       const base64List = await convertImagesToBase64();
@@ -173,6 +189,52 @@ export default function ChatDetail() {
     };
   }, [socketConnection]);
 
+  //user online/offline
+  useEffect(() => {
+    socketConnection?.on("SERVER_USER_ONLINE", ({ userId }) => {
+      setDataUser((prev) => {
+        const updatedUsers = prev.users.map((item) => {
+          if (item.user_id._id === userId) {
+            return { ...item, user_id: { ...item.user_id, status: "online" } };
+          }
+          return item;
+        });
+        return { ...prev, users: updatedUsers };
+      });
+    });
+    socketConnection?.on("SERVER_USER_OFFLINE", ({ userId, lastActive }) => {
+      setDataUser((prev) => {
+        const updatedUsers = prev.users.map((item) => {
+          if (item.user_id._id === userId) {
+            return {
+              ...item,
+              user_id: { ...item.user_id, status: "offline" },
+              lastActive,
+            };
+          }
+          return item;
+        });
+        return { ...prev, users: updatedUsers };
+      });
+    });
+    return () => {
+      socketConnection?.off("SERVER_USER_ONLINE");
+      socketConnection?.off("SERVER_USER_OFFLINE");
+    };
+  }, [socketConnection]);
+
+  //thời gian hoạt động trước đó
+  const timeAgo = (date) => {
+    if (!date) return "";
+    const diff = Date.now() - new Date(date).getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    if (minutes < 1) return `Vừa xong`;
+    if (minutes < 60) return `Truy cập ${minutes} phút trước`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `Truy cập ${hours} giờ trước`;
+    const days = Math.floor(hours / 24);
+    return `Truy cập ${days} ngày trước`;
+  };
   //luôn cuộn xuống dưới
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -208,18 +270,18 @@ export default function ChatDetail() {
                       {item.user_id.name || "Kiên"}
                     </div>
 
-                    {item.user_id.online === "true" ? (
+                    {item.user_id.status === "online" ? (
                       <div className="text-[14px] text-gray-700">
                         Đang hoạt động
                       </div>
                     ) : (
                       <div className="text-[14px] text-gray-700">
-                        Truy cập 30 phút trước
+                        {timeAgo(item.user_id.lastActive)}
                       </div>
                     )}
                   </div>
 
-                  {item.user_id.online === "true" && (
+                  {item.user_id.status === "online" && (
                     <span className="w-2 h-2 bg-green-600 rounded-full absolute left-9 bottom-1"></span>
                   )}
                 </div>
@@ -248,14 +310,60 @@ export default function ChatDetail() {
               )}
 
               <div
-                className={`${
+                className={`group relative ${
                   isMe
                     ? "bg-blue-100 rounded-xl rounded-br-none"
                     : "bg-white rounded-xl rounded-bl-none"
                 } p-2 max-w-[60%]`}
               >
                 {/* Nội dung text */}
+
                 {item.content && <div className="mb-1">{item.content}</div>}
+                <Tooltip title="Xem thêm" placement="bottom-start">
+                  <div
+                    className={`
+                    absolute top-1/2 -translate-y-1/2
+                    ${isMe ? "-left-10 " : "-right-10"}
+                    opacity-0 group-hover:opacity-100
+                    transition-opacity cursor-pointer
+                    rounded-full bg-white p-1 border border-gray-100
+                  `}
+                    aria-controls={open ? "fade-menu" : undefined}
+                    aria-haspopup="true"
+                    aria-expanded={open ? "true" : undefined}
+                    onClick={handleClick}
+                  >
+                    <BsThreeDots />
+                  </div>
+                </Tooltip>
+
+                <Menu
+                  id="fade-menu"
+                  slotProps={{
+                    list: {
+                      "aria-labelledby": "fade-button",
+                    },
+                  }}
+                  slots={{ transition: Fade }}
+                  anchorEl={anchorEl}
+                  open={open}
+                  onClose={handleClose}
+                >
+                  <MenuItem
+                    onClick={handleClose}
+                    className="flex items-center gap-3 !text-blue-500 !text-[14px]"
+                  >
+                    <MdOutlineContentCopy />
+                    Sao chép
+                  </MenuItem>
+                  <MenuItem
+                    onClick={handleClose}
+                    className="flex items-center gap-3 !text-red-600 !text-[14px]"
+                  >
+                    <FiDelete />
+                    Xóa tin nhắn
+                  </MenuItem>
+                </Menu>
 
                 {/* HIỂN THỊ ẢNH */}
                 {item.images?.length > 0 && (

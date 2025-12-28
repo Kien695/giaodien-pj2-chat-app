@@ -277,23 +277,25 @@ export default function InfoUser({ open, onClose, user, type }) {
                   <CircularProgress size={20} color="inherit" />
                 </div>
               ) : (
-                <div
-                  className="overlay rounded-full absolute top-0 left-0 w-full h-full
+                type == "personal" && (
+                  <div
+                    className="overlay rounded-full absolute top-0 left-0 w-full h-full
             z-50 bg-[rgba(0,0,0,0.7)] flex items-center justify-center
             cursor-pointer opacity-0 transition-all hover:opacity-80"
-                >
-                  <MdDriveFolderUpload className="text-white text-[25px]" />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    onChange={(e) => {
-                      if (e.target.files && e.target.files[0]) {
-                        handleUpload(e.target.files[0], "avatar");
-                      }
-                    }}
-                  />
-                </div>
+                  >
+                    <MdDriveFolderUpload className="text-white text-[25px]" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleUpload(e.target.files[0], "avatar");
+                        }
+                      }}
+                    />
+                  </div>
+                )
               )}
             </div>
             <div className="pt-3 ">
