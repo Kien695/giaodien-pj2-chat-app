@@ -65,7 +65,7 @@ export default function AddGroup({ open, onClose }) {
     }
 
     const fetchData = async () => {
-      const res = await getData(`/auth/getAllUser?keyword=${keyword}`);
+      const res = await getData(`/auth/searchUser?keyword=${keyword}`);
       if (res.success) {
         setUser(res.data);
       }

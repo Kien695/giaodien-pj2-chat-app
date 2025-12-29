@@ -28,7 +28,7 @@ export default function Function({ setSearchText, setUser }) {
     }
 
     const fetchData = async () => {
-      const res = await getData(`/auth/getUser?keyword=${keyword}`);
+      const res = await getData(`/auth/getUserFind?keyword=${keyword}`);
       if (res.success) {
         setUser(res.data);
       }

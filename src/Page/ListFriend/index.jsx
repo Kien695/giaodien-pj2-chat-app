@@ -18,7 +18,8 @@ export default function ListFriend() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [openInfo, setOpenInfo] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-
+  const state = useSelector((state) => state.user);
+  const socketConnection = state.socketConnection;
   const openMenu = Boolean(anchorEl);
   const handleClick = (event, item) => {
     setAnchorEl(event.currentTarget);
@@ -30,16 +31,10 @@ export default function ListFriend() {
 
   const count = useSelector((state) => state.user.countFriend);
   const friend = useSelector((state) => state.user.listFriend);
-  // useEffect(() => {
-  //   const fetchData = async () => {
-  //     const res = await getData("/auth/friendList");
-  //     if (res.success) {
-  //       setFriend(res.data);
-  //       setCount(res.count);
-  //     }
-  //   };
-  //   fetchData();
-  // }, []);
+  //gửi lên server
+  const handleUnFriend = (userId) => {
+    socketConnection.emit("CLIENT_UNFRIEND", userId);
+  };
   return (
     <div className="w-full h-screen flex flex-col px-5">
       <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0">
@@ -94,6 +89,7 @@ export default function ListFriend() {
               <MenuItem
                 onClick={() => {
                   handleClose();
+                  handleUnFriend(selectedItem._id);
                 }}
                 sx={{
                   fontSize: "14px",
