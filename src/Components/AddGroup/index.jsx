@@ -15,7 +15,7 @@ import {
 import { toast } from "react-toastify";
 import { styled } from "@mui/material/styles";
 import Dialog from "@mui/material/Dialog";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { IoClose, IoSearch } from "react-icons/io5";
 import { getData, postData } from "../../utils/api";
 import { FcSearch } from "react-icons/fc";
@@ -38,6 +38,9 @@ export default function AddGroup({ open, onClose }) {
     title: "",
     members: [],
   });
+  const ref = {
+    title: useRef(),
+  };
   const handleToggleMember = (userId) => {
     setFormData((prev) => {
       const alreadySelected = prev.members.includes(userId);
@@ -75,6 +78,11 @@ export default function AddGroup({ open, onClose }) {
   }, [keyword]);
   const handleCreateRoom = async () => {
     try {
+      if (!formData.title) {
+        toast.error("Vui lòng nhập tên nhóm");
+        ref.title.current?.focus();
+        return;
+      }
       const res = await postData("/auth/createRoom", formData);
       if (res.success) {
         toast.success("Tạo nhóm thành công");
@@ -121,6 +129,7 @@ export default function AddGroup({ open, onClose }) {
               name="title"
               label="Nhập tên nhóm"
               variant="standard"
+              inputRef={ref.title}
               size="small"
               onChange={(e) => {
                 setFormData({ ...formData, title: e.target.value });

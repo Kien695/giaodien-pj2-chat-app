@@ -65,20 +65,20 @@ function SideBar() {
     };
   }, [socketConnection, state._id]);
 
-  //get room chat
-  // useEffect(() => {
-  //   const fetchRoomChat = async () => {
-  //     try {
-  //       const response = await getData("/chat/getAllRoomChat");
-  //       if (response.success) {
-  //         setRooms(response.data);
-  //       }
-  //     } catch (error) {
-  //       console.error("Lỗi khi lấy danh sách phòng chat:", error);
-  //     }
-  //   };
-  //   fetchRoomChat();
-  // }, []);
+  //get all room chat
+  useEffect(() => {
+    const fetchRoomChat = async () => {
+      try {
+        const response = await getData("/auth/getAllRoomChat");
+        if (response.success) {
+          setRooms(response.data);
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách phòng chat:", error);
+      }
+    };
+    fetchRoomChat();
+  }, []);
 
   //server trả về message
   // socketConnection.on("SERVER_RETURN_MASSAGE", (data) => {
@@ -256,7 +256,39 @@ function SideBar() {
               </div>
             </div>
             <div className="h-[95%] overflow-y-scroll">
-              <NavLink
+              {rooms.map((item, index) => (
+                <Link to={`/chat/${item._id}`} key={index}>
+                  <div className="flex gap-3 cursor-pointer hover:bg-gray-100 px-3 py-4">
+                    <img
+                      src={
+                        item.avatar ||
+                        item.users?.find((u) => u.user_id?._id !== state._id)
+                          ?.user_id?.avatar ||
+                        "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                      }
+                      alt=""
+                      className="w-[45px] rounded-full"
+                    />
+                    <div className="flex flex-col justify-between">
+                      <div className="flex justify-between">
+                        <div className="text-[15px]">
+                          {item.typeRoom == "group"
+                            ? item.title
+                            : item.users?.find(
+                                (u) => u.user_id?._id !== state._id
+                              )?.user_id?.name}
+                        </div>
+                        <span className="text-[13px] text-gray-600">3 giờ</span>
+                      </div>
+
+                      <div className="line-clamp-1 text-[13px] text-gray-600">
+                        Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+              {/* <NavLink
                 to="/chat/456"
                 className={({ isActive }) =>
                   `flex gap-3 cursor-pointer hover:bg-gray-100 px-3 py-4 ${
@@ -508,7 +540,7 @@ function SideBar() {
                     Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
                   </div>
                 </div>
-              </div>
+              </div> */}
             </div>
           </div>
         )}

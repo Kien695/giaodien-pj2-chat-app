@@ -1,15 +1,27 @@
-import { Button, Tooltip } from "@mui/material";
+import {
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogTitle,
+  Divider,
+  IconButton,
+  TextField,
+  Tooltip,
+} from "@mui/material";
+
 import { SiIconify } from "react-icons/si";
 import { GrImage } from "react-icons/gr";
 import { FiDelete, FiPaperclip } from "react-icons/fi";
 import { IoSend } from "react-icons/io5";
 import React, { useEffect, useState } from "react";
-import { FaRegSmile, FaRegThumbsUp } from "react-icons/fa";
+import { FaRegSmile, FaRegThumbsUp, FaRegUser } from "react-icons/fa";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Fade from "@mui/material/Fade";
 import {
   MdDevicesFold,
+  MdDriveFolderUpload,
   MdOutlineContentCopy,
   MdOutlineOndemandVideo,
 } from "react-icons/md";
@@ -26,6 +38,7 @@ import ImageUploading from "react-images-uploading";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import "react-photo-view/dist/react-photo-view.css";
 import { BsThreeDots } from "react-icons/bs";
+import { AiOutlineEdit } from "react-icons/ai";
 
 export default function ChatDetail() {
   const [openInfo, setOpenInfo] = useState(false);
@@ -34,6 +47,19 @@ export default function ChatDetail() {
   const navigate = useNavigate();
   const params = useParams();
   const { roomChatId } = useParams();
+  //online/offline user
+  const onlineUsers = useSelector((state) => state.online.users);
+  //update time- render mỗi phút
+  const [, forceRender] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      forceRender((v) => v + 1);
+    }, 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   //menu chat
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
@@ -44,6 +70,19 @@ export default function ChatDetail() {
     setAnchorEl(null);
   };
   //end menu chat
+  //dialog edit chat info
+  const [openDialog, setOpenDialog] = React.useState(false);
+
+  const handleClickOpen = () => {
+    setOpenDialog(true);
+  };
+
+  const handleCloseOpen = () => {
+    setOpenDialog(false);
+  };
+  //end dialog
+  const [buttonActive, setButtonActive] = useState(false);
+  const [loadingAvatar, setLoadingAvatar] = useState(false);
   const input = useRef();
   const bottomRef = useRef(null);
   const [dataUser, setDataUser] = useState([]);
@@ -53,7 +92,7 @@ export default function ChatDetail() {
   const pickerWrapperRef = useRef(null);
 
   const [chat, setChat] = useState([]);
-
+  const [roomInfo, setRoomInfo] = useState({});
   const [typing, setTyping] = useState("");
   const [images, setImages] = useState([]);
   const maxNumber = 5;
@@ -133,6 +172,7 @@ export default function ChatDetail() {
         if (res.success) {
           setChat(res.data);
           setDataUser(res.users);
+          setRoomInfo(res.room);
         }
       } catch (error) {
         if (error.response?.data?.link) {
@@ -190,38 +230,51 @@ export default function ChatDetail() {
   }, [socketConnection]);
 
   //user online/offline
-  useEffect(() => {
-    socketConnection?.on("SERVER_USER_ONLINE", ({ userId }) => {
-      setDataUser((prev) => {
-        const updatedUsers = prev.users.map((item) => {
-          if (item.user_id._id === userId) {
-            return { ...item, user_id: { ...item.user_id, status: "online" } };
-          }
-          return item;
-        });
-        return { ...prev, users: updatedUsers };
-      });
-    });
-    socketConnection?.on("SERVER_USER_OFFLINE", ({ userId, lastActive }) => {
-      setDataUser((prev) => {
-        const updatedUsers = prev.users.map((item) => {
-          if (item.user_id._id === userId) {
-            return {
-              ...item,
-              user_id: { ...item.user_id, status: "offline" },
-              lastActive,
-            };
-          }
-          return item;
-        });
-        return { ...prev, users: updatedUsers };
-      });
-    });
-    return () => {
-      socketConnection?.off("SERVER_USER_ONLINE");
-      socketConnection?.off("SERVER_USER_OFFLINE");
-    };
-  }, [socketConnection]);
+  // useEffect(() => {
+  //   if (!socketConnection) return;
+
+  //   const handleOnline = ({ userId }) => {
+  //     console.log("USER ONLINE:", userId);
+
+  //     setDataUser((prev) =>
+  //       prev.map((item) =>
+  //         item.user_id._id === userId
+  //           ? {
+  //               ...item,
+  //               user_id: { ...item.user_id, status: "online" },
+  //             }
+  //           : item
+  //       )
+  //     );
+  //   };
+
+  //   const handleOffline = ({ userId, lastActive }) => {
+  //     console.log("USER OFFLINE:", userId);
+
+  //     setDataUser((prev) =>
+  //       prev.map((item) =>
+  //         item.user_id._id === userId
+  //           ? {
+  //               ...item,
+  //               user_id: {
+  //                 ...item.user_id,
+  //                 status: "offline",
+  //                 lastActive,
+  //               },
+  //             }
+  //           : item
+  //       )
+  //     );
+  //   };
+
+  //   socketConnection.on("SERVER_USER_ONLINE", handleOnline);
+  //   socketConnection.on("SERVER_USER_OFFLINE", handleOffline);
+
+  //   return () => {
+  //     socketConnection.off("SERVER_USER_ONLINE", handleOnline);
+  //     socketConnection.off("SERVER_USER_OFFLINE", handleOffline);
+  //   };
+  // }, [socketConnection]);
 
   //thời gian hoạt động trước đó
   const timeAgo = (date) => {
@@ -240,17 +293,26 @@ export default function ChatDetail() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat, typing]);
 
+  //button info chat
+  const handleClickInfoChat = () => {
+    setButtonActive(!buttonActive);
+  };
+
   return (
-    <div className="w-full h-screen flex flex-col">
-      <div className="flex h-[11%] items-center justify-between px-5 py-1 border-b flex-shrink-0">
-        <div className="flex gap-3 relative">
-          {dataUser?.users?.map(
-            (item, index) =>
-              item.user_id._id !== state._id && (
-                <div key={item.user_id._id} className="flex gap-3 relative">
+    <div className="w-full h-screen flex">
+      <div
+        className={`flex flex-col h-full ${
+          buttonActive ? "w-2/3" : "w-full"
+        } border-r`}
+      >
+        <div className="flex h-[11%] items-center justify-between px-5 py-1 border-b flex-shrink-0">
+          <div className="flex gap-3 relative">
+            {roomInfo.typeRoom === "group" ? (
+              <>
+                <div className="flex gap-3 relative">
                   <img
                     src={
-                      item.user_id.avatar ||
+                      roomInfo.avatar ||
                       "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
                     }
                     alt="avatar"
@@ -258,257 +320,376 @@ export default function ChatDetail() {
                     onClick={() => setOpenInfo(true)}
                   />
 
-                  <InfoUser
-                    open={openInfo}
-                    onClose={() => setOpenInfo(false)}
-                    user={item.user_id}
-                    type="client"
-                  />
-
                   <div className="flex flex-col justify-between">
-                    <div className="text-[16px] font-[500]">
-                      {item.user_id.name || "Kiên"}
+                    <div className="text-[16px] font-[500] flex gap-2 items-center group">
+                      <span className="cursor-pointer">{roomInfo.title}</span>
+
+                      <AiOutlineEdit
+                        onClick={handleClickOpen}
+                        className=" text-[18px] opacity-0  group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                      />
+                      <Dialog
+                        open={openDialog}
+                        onClose={handleCloseOpen}
+                        aria-labelledby="alert-dialog-title"
+                        aria-describedby="alert-dialog-description"
+                      >
+                        <div className="flex p-3 cursor-pointer text-[17px] font-[500]">
+                          Chỉnh sửa thông tin nhóm
+                        </div>
+                        <Divider sx={{ my: 0.2 }} />
+                        <div className="px-6 pb-4 py-5">
+                          <div className="text-[15px] text-gray-700 text-center mb-3">
+                            Bạn chắc muốn sửa thông tin nhóm chứ? Thông tin sau
+                            khi chỉnh sửa sẽ được hiển thị với tất cả thành
+                            viên.
+                          </div>
+                          <TextField
+                            id="standard-basic"
+                            label="Tên nhóm"
+                            variant="standard"
+                            size="small"
+                            className=" w-full"
+                          />
+                          <div className="flex gap-4 items-center  py-4">
+                            <div className="text-[15px] text-gray-600">
+                              Ảnh đại diện nhóm:
+                            </div>
+                            <div className="relative">
+                              <img
+                                src={
+                                  "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                                }
+                                alt="avatar"
+                                className=" block rounded-full w-[90px] border-2"
+                              />
+                              {loadingAvatar ? (
+                                <div className="absolute inset-0 bg-[rgba(0,0,0,0.7)] flex items-center justify-center">
+                                  <CircularProgress size={20} color="inherit" />
+                                </div>
+                              ) : (
+                                <div
+                                  className="overlay rounded-full absolute top-0 left-0 w-full h-full
+            z-50 bg-[rgba(0,0,0,0.7)] flex items-center justify-center
+            cursor-pointer opacity-0 transition-all hover:opacity-80"
+                                >
+                                  <MdDriveFolderUpload className="text-white text-[25px]" />
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="absolute inset-0 opacity-0 cursor-pointer"
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <Divider sx={{ my: 0.2 }} />
+                        <DialogActions>
+                          <Button onClick={handleCloseOpen}>Hủy</Button>
+                          <Button onClick={handleCloseOpen} autoFocus>
+                            Xác nhận
+                          </Button>
+                        </DialogActions>
+                      </Dialog>
                     </div>
 
-                    {item.user_id.status === "online" ? (
-                      <div className="text-[14px] text-gray-700">
-                        Đang hoạt động
-                      </div>
-                    ) : (
-                      <div className="text-[14px] text-gray-700">
-                        {timeAgo(item.user_id.lastActive)}
-                      </div>
-                    )}
+                    <div className="text-[14px] text-gray-700 flex gap-1 cursor-pointer items-center hover:text-blue-500">
+                      <FaRegUser />
+                      {dataUser.length} thành viên
+                    </div>
                   </div>
-
-                  {item.user_id.status === "online" && (
-                    <span className="w-2 h-2 bg-green-600 rounded-full absolute left-9 bottom-1"></span>
-                  )}
                 </div>
-              )
-          )}
+              </>
+            ) : (
+              <>
+                {dataUser?.map((item) => {
+                  const presence = onlineUsers[item.user_id._id];
+
+                  const isOnline = presence?.status === "online";
+                  const lastActive = presence?.lastActive;
+                  return (
+                    <div className="flex gap-3 relative">
+                      <img
+                        src={
+                          item.user_id.avatar ||
+                          "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                        }
+                        alt="avatar"
+                        className="w-[45px] rounded-full cursor-pointer"
+                        onClick={() => setOpenInfo(true)}
+                      />
+
+                      <InfoUser
+                        open={openInfo}
+                        onClose={() => setOpenInfo(false)}
+                        user={item.user_id}
+                        type="client"
+                      />
+
+                      <div className="flex flex-col justify-between">
+                        <div className="text-[16px] font-[500]">
+                          {roomInfo.typeGroup === "group" ? (
+                            <>{roomInfo.title}</>
+                          ) : (
+                            item.user_id.name
+                          )}
+                        </div>
+
+                        {isOnline ? (
+                          <div className="text-[14px] text-gray-700">
+                            Đang hoạt động
+                          </div>
+                        ) : (
+                          <div className="text-[14px] text-gray-700">
+                            {lastActive ? timeAgo(lastActive) : ""}
+                          </div>
+                        )}
+                      </div>
+
+                      {isOnline && (
+                        <span className="w-2 h-2 bg-green-600 rounded-full absolute left-9 bottom-1"></span>
+                      )}
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+
+          <Button>
+            <MdDevicesFold
+              className={`text-[20px] ${
+                buttonActive ? "text-blue-500" : "text-gray-500"
+              }`}
+              onClick={handleClickInfoChat}
+            />
+          </Button>
         </div>
+        <div className=" flex-1 px-5 bg-blue-50 flex flex-col  gap-2 overflow-y-auto pt-2">
+          {chat.map((item, index) => {
+            const isMe = item.user_id._id === state._id;
 
-        <Button>
-          <MdDevicesFold className="text-[20px]" />
-        </Button>
-      </div>
-      <div className=" flex-1 px-5 bg-blue-50 flex flex-col  gap-2 overflow-y-auto pt-2">
-        {chat.map((item, index) => {
-          const isMe = item.user_id._id === state._id;
-
-          return (
-            <div
-              key={index}
-              className={`flex ${isMe ? "justify-end" : "gap-2"} mb-2`}
-            >
-              {!isMe && (
-                <img
-                  src={item.user_id.avatar || "https://i.pravatar.cc/40"}
-                  className="w-8 h-8 rounded-full"
-                />
-              )}
-
+            return (
               <div
-                className={`group relative ${
-                  isMe
-                    ? "bg-blue-100 rounded-xl rounded-br-none"
-                    : "bg-white rounded-xl rounded-bl-none"
-                } p-2 max-w-[60%]`}
+                key={index}
+                className={`flex ${isMe ? "justify-end" : "gap-2"} mb-2`}
               >
-                {/* Nội dung text */}
-
-                {item.content && <div className="mb-1">{item.content}</div>}
-                <Tooltip title="Xem thêm" placement="bottom-start">
-                  <div
-                    className={`
-                    absolute top-1/2 -translate-y-1/2
-                    ${isMe ? "-left-10 " : "-right-10"}
-                    opacity-0 group-hover:opacity-100
-                    transition-opacity cursor-pointer
-                    rounded-full bg-white p-1 border border-gray-100
-                  `}
-                    aria-controls={open ? "fade-menu" : undefined}
-                    aria-haspopup="true"
-                    aria-expanded={open ? "true" : undefined}
-                    onClick={handleClick}
-                  >
-                    <BsThreeDots />
-                  </div>
-                </Tooltip>
-
-                <Menu
-                  id="fade-menu"
-                  slotProps={{
-                    list: {
-                      "aria-labelledby": "fade-button",
-                    },
-                  }}
-                  slots={{ transition: Fade }}
-                  anchorEl={anchorEl}
-                  open={open}
-                  onClose={handleClose}
-                >
-                  <MenuItem
-                    onClick={handleClose}
-                    className="flex items-center gap-3 !text-blue-500 !text-[14px]"
-                  >
-                    <MdOutlineContentCopy />
-                    Sao chép
-                  </MenuItem>
-                  <MenuItem
-                    onClick={handleClose}
-                    className="flex items-center gap-3 !text-red-600 !text-[14px]"
-                  >
-                    <FiDelete />
-                    Xóa tin nhắn
-                  </MenuItem>
-                </Menu>
-
-                {/* HIỂN THỊ ẢNH */}
-                {item.images?.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    <PhotoProvider>
-                      {item.images.map((img, i) => (
-                        <PhotoView key={i} src={img.url}>
-                          <img
-                            src={img.url}
-                            className="w-32 h-32 rounded-md object-cover"
-                          />
-                        </PhotoView>
-                      ))}
-                    </PhotoProvider>
-                  </div>
+                {!isMe && (
+                  <img
+                    src={item.user_id.avatar || "https://i.pravatar.cc/40"}
+                    className="w-8 h-8 rounded-full"
+                  />
                 )}
 
-                {/* Thời gian */}
-                <div className="text-[11px] text-gray-500 mt-1 text-right">
-                  {new Date(item.createdAt).toLocaleTimeString("vi-VN", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                <div
+                  className={`group relative ${
+                    isMe
+                      ? "bg-blue-100 rounded-xl rounded-br-none"
+                      : "bg-white rounded-xl rounded-bl-none"
+                  } p-2 max-w-[60%]`}
+                >
+                  {/* Nội dung text */}
+
+                  {item.content && <div className="mb-1">{item.content}</div>}
+                  <Tooltip title="Xem thêm" placement="bottom-start">
+                    <div
+                      className={`
+                      absolute top-1/2 -translate-y-1/2
+                      ${isMe ? "-left-10 " : "-right-10"}
+                      opacity-0 group-hover:opacity-100
+                      transition-opacity cursor-pointer
+                      rounded-full bg-white p-1 border border-gray-100
+                    `}
+                      aria-controls={open ? "fade-menu" : undefined}
+                      aria-haspopup="true"
+                      aria-expanded={open ? "true" : undefined}
+                      onClick={handleClick}
+                    >
+                      <BsThreeDots />
+                    </div>
+                  </Tooltip>
+
+                  <Menu
+                    id="fade-menu"
+                    slotProps={{
+                      list: {
+                        "aria-labelledby": "fade-button",
+                      },
+                    }}
+                    slots={{ transition: Fade }}
+                    anchorEl={anchorEl}
+                    open={open}
+                    onClose={handleClose}
+                  >
+                    <MenuItem
+                      onClick={handleClose}
+                      className="flex items-center gap-3 !text-blue-500 !text-[14px]"
+                    >
+                      <MdOutlineContentCopy />
+                      Sao chép
+                    </MenuItem>
+                    <MenuItem
+                      onClick={handleClose}
+                      className="flex items-center gap-3 !text-red-600 !text-[14px]"
+                    >
+                      <FiDelete />
+                      Xóa tin nhắn
+                    </MenuItem>
+                  </Menu>
+
+                  {/* HIỂN THỊ ẢNH */}
+                  {item.images?.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      <PhotoProvider>
+                        {item.images.map((img, i) => (
+                          <PhotoView key={i} src={img.url}>
+                            <img
+                              src={img.url}
+                              className="w-32 h-32 rounded-md object-cover"
+                            />
+                          </PhotoView>
+                        ))}
+                      </PhotoProvider>
+                    </div>
+                  )}
+
+                  {/* Thời gian */}
+                  <div className="text-[11px] text-gray-500 mt-1 text-right">
+                    {new Date(item.createdAt).toLocaleTimeString("vi-VN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        {/* typing ui */}
-        {typing.type == true && (
-          <div className=" flex gap-1 mt-auto items-center">
-            <div className="flex gap-2">
-              <img
-                src={typing.avatar || "https://i.pravatar.cc/40"}
-                alt="avatar"
-                className="w-5 h-5 rounded-full"
-              />
-              <div className="text-[13px] text-gray-700">Đang soạn tin</div>
-            </div>
-            <div className=" dot-typing">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-          </div>
-        )}
-
-        {/* điểm cuộn đến */}
-        <div ref={bottomRef}></div>
-      </div>
-
-      <div className="flex flex-col border-t-2 h-[13%]">
-        <div
-          ref={pickerWrapperRef}
-          className="p-3 relative border-b-2 flex gap-6"
-        >
-          <SiIconify
-            className="text-[18px] cursor-pointer"
-            onClick={() => setShowPicker(!showPicker)}
-          />
-          {showPicker && (
-            <div className="absolute top-[-470px] left-3 z-50">
-              <EmojiPicker
-                open={showPicker}
-                onEmojiClick={onEmojiClick}
-                autoFocusSearch={false}
-                theme="dark"
-              />
+          {/* typing ui */}
+          {typing.type == true && (
+            <div className=" flex gap-1 mt-auto items-center">
+              <div className="flex gap-2">
+                <img
+                  src={typing.avatar || "https://i.pravatar.cc/40"}
+                  alt="avatar"
+                  className="w-5 h-5 rounded-full"
+                />
+                <div className="text-[13px] text-gray-700">Đang soạn tin</div>
+              </div>
+              <div className=" dot-typing">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
             </div>
           )}
-          <ImageUploading
-            multiple
-            value={images}
-            onChange={onChange}
-            maxNumber={maxNumber}
-            dataURLKey="data_url"
-          >
-            {({
-              imageList,
-              onImageUpload,
-              onImageUpdate,
-              onImageRemove,
-              dragProps,
-            }) => (
-              <div className="upload__image-wrapper">
-                {/* ICON chọn ảnh */}
-                <GrImage
-                  className="text-[18px] cursor-pointer relative"
-                  onClick={onImageUpload}
-                  {...dragProps}
-                />
-                {images.length > 0 && (
-                  <>
-                    {" "}
-                    {/* Hiển thị preview ảnh */}
-                    <div className="flex gap-2 mt-3 left-4 flex-wrap absolute top-[-100px] bg-gray-300 py-2 px-4 rounded-md">
-                      {imageList.map((image, index) => (
-                        <div key={index} className="relative">
-                          <img
-                            src={image.data_url}
-                            alt=""
-                            className="w-20 h-20 object-cover rounded-md"
-                          />
 
-                          {/* nút xóa */}
-                          <button
-                            onClick={() => onImageRemove(index)}
-                            className="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded"
-                          >
-                            X
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </>
-                )}
+          {/* điểm cuộn đến */}
+          <div ref={bottomRef}></div>
+        </div>
+
+        <div className="flex flex-col border-t-2 h-[13%]">
+          <div
+            ref={pickerWrapperRef}
+            className="p-3 relative border-b-2 flex gap-6"
+          >
+            <SiIconify
+              className="text-[18px] cursor-pointer"
+              onClick={() => setShowPicker(!showPicker)}
+            />
+            {showPicker && (
+              <div className="absolute top-[-470px] left-3 z-50">
+                <EmojiPicker
+                  open={showPicker}
+                  onEmojiClick={onEmojiClick}
+                  autoFocusSearch={false}
+                  theme="dark"
+                />
               </div>
             )}
-          </ImageUploading>
+            <ImageUploading
+              multiple
+              value={images}
+              onChange={onChange}
+              maxNumber={maxNumber}
+              dataURLKey="data_url"
+            >
+              {({
+                imageList,
+                onImageUpload,
+                onImageUpdate,
+                onImageRemove,
+                dragProps,
+              }) => (
+                <div className="upload__image-wrapper">
+                  {/* ICON chọn ảnh */}
+                  <GrImage
+                    className="text-[18px] cursor-pointer relative"
+                    onClick={onImageUpload}
+                    {...dragProps}
+                  />
+                  {images.length > 0 && (
+                    <>
+                      {" "}
+                      {/* Hiển thị preview ảnh */}
+                      <div className="flex gap-2 mt-3 left-4 flex-wrap absolute top-[-100px] bg-gray-300 py-2 px-4 rounded-md">
+                        {imageList.map((image, index) => (
+                          <div key={index} className="relative">
+                            <img
+                              src={image.data_url}
+                              alt=""
+                              className="w-20 h-20 object-cover rounded-md"
+                            />
 
-          <FiPaperclip className="text-[18px] cursor-pointer" />
-          <MdOutlineOndemandVideo className="text-[18px] cursor-pointer" />
-        </div>
+                            {/* nút xóa */}
+                            <button
+                              onClick={() => onImageRemove(index)}
+                              className="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded"
+                            >
+                              X
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </ImageUploading>
 
-        <div className="flex items-center gap-2 px-3 h-12">
-          <input
-            type="text"
-            placeholder="Nhập tin nhắn gửi đến A"
-            className="flex-1  border-none focus:outline-none"
-            ref={input}
-            onChange={handleInputChange}
-            onKeyDown={(e) => e.key === "Enter" && handleMessage()}
-            value={message}
-          />
-          {message.trim() !== "" || images.length > 0 ? (
-            <IoSend
-              className="text-blue-600 text-[23px]"
-              onClick={handleMessage}
+            <FiPaperclip className="text-[18px] cursor-pointer" />
+            <MdOutlineOndemandVideo className="text-[18px] cursor-pointer" />
+          </div>
+
+          <div className="flex items-center gap-2 px-3 h-12">
+            <input
+              type="text"
+              placeholder="Nhập tin nhắn gửi đến A"
+              className="flex-1  border-none focus:outline-none"
+              ref={input}
+              onChange={handleInputChange}
+              onKeyDown={(e) => e.key === "Enter" && handleMessage()}
+              value={message}
             />
-          ) : (
-            <FaRegThumbsUp className="text-blue-600 text-[25px] cursor-pointer" />
-          )}
+            {message.trim() !== "" || images.length > 0 ? (
+              <IoSend
+                className="text-blue-600 text-[23px]"
+                onClick={handleMessage}
+              />
+            ) : (
+              <FaRegThumbsUp className="text-blue-600 text-[25px] cursor-pointer" />
+            )}
+          </div>
         </div>
       </div>
+      {buttonActive && (
+        <div className="w-1/3 h-full">
+          <div className="flex h-[11%] items-center justify-between px-5 py-1 border-b flex-shrink-0">
+            Thông tin hội thoại
+          </div>
+        </div>
+      )}
     </div>
   );
 }

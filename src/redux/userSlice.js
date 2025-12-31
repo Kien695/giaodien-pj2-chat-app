@@ -19,6 +19,7 @@ const initialState = {
   countFriend: 0,
   listGroup: [],
   countGroup: 0,
+  currentRoomId: null,
 };
 
 export const userSlice = createSlice({
@@ -61,14 +62,26 @@ export const userSlice = createSlice({
     setListFriend: (state, action) => {
       state.listFriend = action.payload;
     },
+    // friendSlice.js
+    unfriendSuccess: (state, action) => {
+      const friendId = action.payload;
+      state.listFriend = state.listFriend.filter(
+        (item) => item._id !== friendId
+      );
+    },
+
     setCountFriend: (state, action) => {
       state.countFriend = action.payload;
     },
+
     setListGroup: (state, action) => {
       state.listGroup = action.payload;
     },
     setCountGroup: (state, action) => {
       state.countGroup = action.payload;
+    },
+    setCurrentRoom: (state, action) => {
+      state.currentRoomId = action.payload;
     },
   },
 });
@@ -86,6 +99,8 @@ export const {
   setCountFriend,
   setListGroup,
   setCountGroup,
+  unfriendSuccess,
+  setCurrentRoom,
 } = userSlice.actions;
 
 export default userSlice.reducer;

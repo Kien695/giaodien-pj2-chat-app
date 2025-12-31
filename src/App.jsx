@@ -13,35 +13,89 @@ import {
   setCountFriend,
   setListGroup,
   setCountGroup,
+  setCurrentRoom,
+  unfriendSuccess,
 } from "./redux/userSlice";
+import {
+  setOnlineUsers,
+  setUserOffline,
+  setUserOnline,
+} from "./redux/socketSlice";
 
 function App() {
-  const isLogin = useSelector((state) => state.user);
+  const state = useSelector((state) => state.user);
+  const socketConnection = state.socketConnection;
+  const isLogin = useSelector((state) => state.user.isLogin);
   const dispatch = useDispatch();
-
+  const currentRoomId = useSelector((state) => state.user.currentRoomId);
   useEffect(() => {
+    if (!socketConnection) return;
+
+    // 1️ Fetch initial data
     const fetchData = async () => {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
+
       const resUser = await getData("/auth/getUser");
-      if (resUser.success) {
-        dispatch(setUser(resUser.data));
-      }
+      if (resUser.success) dispatch(setUser(resUser.data));
+
       const resListFriend = await getData("/auth/friendList");
       if (resListFriend.success) {
         dispatch(setListFriend(resListFriend.data));
         dispatch(setCountFriend(resListFriend.count));
       }
+
       const resListGroup = await getData("/auth/getRoom");
       if (resListGroup.success) {
         dispatch(setListGroup(resListGroup.data));
         dispatch(setCountGroup(resListGroup.count));
       }
     };
-    if (isLogin) {
+
+    fetchData();
+
+    // 2️ Socket listener: unfriend
+    const handleUnfriend = ({ friendId, roomChatId }) => {
+      dispatch(unfriendSuccess(friendId));
+      console.log(
+        "Unfriend success received from server for friendId:",
+        friendId
+      );
+      console.log(
+        "Current room ID:",
+        currentRoomId,
+        "Room chat ID:",
+        roomChatId
+      );
+      if (currentRoomId === roomChatId) {
+        dispatch(setCurrentRoom(null));
+      }
+
+      // Tải lại list + count từ BE
       fetchData();
-    }
-  }, [dispatch]);
+    };
+    socketConnection.on("SERVER_UNFRIEND_SUCCESS", handleUnfriend);
+
+    //socket online/offline user
+
+    socketConnection.on("SERVER_ONLINE_USERS", (users) => {
+      dispatch(setOnlineUsers(users));
+    });
+
+    socketConnection.on("SERVER_USER_ONLINE", ({ userId }) => {
+      dispatch(setUserOnline(userId));
+    });
+
+    socketConnection.on("SERVER_USER_OFFLINE", ({ userId, lastActive }) => {
+      dispatch(setUserOffline({ userId, lastActive }));
+    });
+
+    return () => {
+      socketConnection.off("SERVER_UNFRIEND_SUCCESS", handleUnfriend);
+      socketConnection.off("SERVER_USER_ONLINE");
+      socketConnection.off("SERVER_USER_OFFLINE");
+    };
+  }, [dispatch, socketConnection]);
 
   return (
     <>

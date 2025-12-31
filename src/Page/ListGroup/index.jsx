@@ -31,8 +31,11 @@ export default function ListGroup() {
       <div className="text-[14px] font-[500] py-4">Hiện có ({count}) nhóm</div>
       <div className="bg-gray-50  rounded-md shadow-md">
         {room.map((item, index) => (
-          <div className="flex items-center border-1 border-b justify-between gap-3 cursor-pointer hover:bg-gray-100 px-3 py-3">
-            <Link to="/">
+          <div
+            className="flex items-center border-1 border-b justify-between gap-3 cursor-pointer hover:bg-gray-100 px-3 py-3"
+            key={index}
+          >
+            <Link to={`/chat/${item._id}`}>
               <div className="flex items-center gap-4">
                 <img
                   src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
@@ -60,7 +63,8 @@ export default function ListGroup() {
               anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
               transformOrigin={{ vertical: "top", horizontal: "right" }}
               sx={{
-                padding: 0,
+                paddingTop: "0px",
+                paddingBottom: "0px",
               }}
             >
               <MenuItem
@@ -71,7 +75,7 @@ export default function ListGroup() {
                   backgroundColor: "#ff5252",
                   color: "#fff",
                   "&:hover": {
-                    backgroundColor: "#ff5252",
+                    backgroundColor: "red",
                   },
                   "&.Mui-focusVisible": {
                     backgroundColor: "#ff5252",
@@ -85,6 +89,29 @@ export default function ListGroup() {
                 }}
               >
                 Rời nhóm
+              </MenuItem>
+              <MenuItem
+                onClick={handleClose}
+                sx={{
+                  fontSize: "14px",
+                  padding: "5px 10px",
+                  backgroundColor: "gray",
+                  color: "#fff",
+                  "&:hover": {
+                    backgroundColor: "#3c3c3c",
+                  },
+                  "&.Mui-focusVisible": {
+                    backgroundColor: "#ff5252",
+                  },
+                  "&.MuiMenuItem-root.Mui-selected": {
+                    backgroundColor: "#ff5252",
+                  },
+                  "&.MuiMenuItem-root.Mui-selected:hover": {
+                    backgroundColor: "#ff5252",
+                  },
+                }}
+              >
+                Giải tán nhóm
               </MenuItem>
             </Menu>
           </div>

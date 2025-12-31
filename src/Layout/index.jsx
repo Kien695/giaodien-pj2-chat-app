@@ -8,7 +8,7 @@ import { setOnlineUser, setSocketConnection } from "../redux/userSlice";
 export default function Layout() {
   const dispatch = useDispatch();
   const { roomChatId } = useParams();
-
+  const { socketConnection } = useSelector((state) => state.user);
   const socketRef = useRef(null);
 
   useEffect(() => {
@@ -21,21 +21,20 @@ export default function Layout() {
     socketRef.current = socket;
     dispatch(setSocketConnection(socket));
 
-    socket.on("onlineUser", (data) => {
-      dispatch(setOnlineUser(data));
-    });
-
     return () => {
       socket.disconnect();
     };
   }, []);
   useEffect(() => {
-    if (!socketRef.current || !roomChatId) return;
+    if (!socketConnection || !roomChatId) return;
 
-    socketRef.current.emit("JOIN_ROOM", {
-      roomChatId,
-    });
-  }, [roomChatId]);
+    // JOIN ROOM ngay lập tức
+    socketConnection.emit("JOIN_ROOM", { roomChatId });
+
+    return () => {
+      socketConnection.emit("LEAVE_ROOM", { roomChatId });
+    };
+  }, [socketConnection, roomChatId]);
 
   return (
     <div className="flex h-screen max-h-screen">

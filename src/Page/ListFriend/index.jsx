@@ -12,15 +12,18 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import { useEffect } from "react";
 import { getData } from "../../utils/api";
 import { useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import InfoUser from "../../Components/infoUser";
+import { setCurrentRoom } from "../../redux/userSlice";
 export default function ListFriend() {
   const [anchorEl, setAnchorEl] = useState(null);
   const [openInfo, setOpenInfo] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const dispatch = useDispatch();
   const state = useSelector((state) => state.user);
   const socketConnection = state.socketConnection;
   const openMenu = Boolean(anchorEl);
+
   const handleClick = (event, item) => {
     setAnchorEl(event.currentTarget);
     setSelectedItem(item);
@@ -31,10 +34,12 @@ export default function ListFriend() {
 
   const count = useSelector((state) => state.user.countFriend);
   const friend = useSelector((state) => state.user.listFriend);
+
   //gửi lên server
   const handleUnFriend = (userId) => {
     socketConnection.emit("CLIENT_UNFRIEND", userId);
   };
+
   return (
     <div className="w-full h-screen flex flex-col px-5">
       <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0">
@@ -60,7 +65,14 @@ export default function ListFriend() {
                   alt=""
                   className="w-[45px] rounded-full"
                 />
-                <div className="text-[15px] font-[500]">{item.name}</div>
+                <div
+                  className="text-[15px] font-[500]"
+                  onClick={() =>
+                    dispatch(setCurrentRoom(item?.infoFriend?.room_chat_id))
+                  }
+                >
+                  {item.name}
+                </div>
               </div>
             </Link>
             <BsThreeDotsVertical
