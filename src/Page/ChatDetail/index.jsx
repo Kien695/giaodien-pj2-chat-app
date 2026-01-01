@@ -9,7 +9,8 @@ import {
   TextField,
   Tooltip,
 } from "@mui/material";
-
+import { HiOutlineUserGroup } from "react-icons/hi2";
+import { RiDeleteBin6Line } from "react-icons/ri";
 import { SiIconify } from "react-icons/si";
 import { GrImage } from "react-icons/gr";
 import { FiDelete, FiPaperclip } from "react-icons/fi";
@@ -117,6 +118,7 @@ export default function ChatDetail() {
     // reset timeout 3s
     resetTyping();
   };
+  //typing input
   const handleInputChange = (e) => {
     const value = e.target.value;
     setMessage(value);
@@ -207,6 +209,7 @@ export default function ChatDetail() {
     if (!socketConnection) return;
 
     const handleMessage = (data) => {
+      console.log("Received message:", data);
       const formatted = {
         ...data,
         user_id:
@@ -228,53 +231,6 @@ export default function ChatDetail() {
       socketConnection.off("SERVER_RETURN_TYPING", handleTyping);
     };
   }, [socketConnection]);
-
-  //user online/offline
-  // useEffect(() => {
-  //   if (!socketConnection) return;
-
-  //   const handleOnline = ({ userId }) => {
-  //     console.log("USER ONLINE:", userId);
-
-  //     setDataUser((prev) =>
-  //       prev.map((item) =>
-  //         item.user_id._id === userId
-  //           ? {
-  //               ...item,
-  //               user_id: { ...item.user_id, status: "online" },
-  //             }
-  //           : item
-  //       )
-  //     );
-  //   };
-
-  //   const handleOffline = ({ userId, lastActive }) => {
-  //     console.log("USER OFFLINE:", userId);
-
-  //     setDataUser((prev) =>
-  //       prev.map((item) =>
-  //         item.user_id._id === userId
-  //           ? {
-  //               ...item,
-  //               user_id: {
-  //                 ...item.user_id,
-  //                 status: "offline",
-  //                 lastActive,
-  //               },
-  //             }
-  //           : item
-  //       )
-  //     );
-  //   };
-
-  //   socketConnection.on("SERVER_USER_ONLINE", handleOnline);
-  //   socketConnection.on("SERVER_USER_OFFLINE", handleOffline);
-
-  //   return () => {
-  //     socketConnection.off("SERVER_USER_ONLINE", handleOnline);
-  //     socketConnection.off("SERVER_USER_OFFLINE", handleOffline);
-  //   };
-  // }, [socketConnection]);
 
   //thời gian hoạt động trước đó
   const timeAgo = (date) => {
@@ -442,7 +398,9 @@ export default function ChatDetail() {
                           </div>
                         ) : (
                           <div className="text-[14px] text-gray-700">
-                            {lastActive ? timeAgo(lastActive) : ""}
+                            {lastActive
+                              ? timeAgo(lastActive)
+                              : timeAgo(item.user_id.lastActive)}
                           </div>
                         )}
                       </div>
@@ -492,6 +450,7 @@ export default function ChatDetail() {
                   {/* Nội dung text */}
 
                   {item.content && <div className="mb-1">{item.content}</div>}
+
                   <Tooltip title="Xem thêm" placement="bottom-start">
                     <div
                       className={`
@@ -685,9 +644,48 @@ export default function ChatDetail() {
       </div>
       {buttonActive && (
         <div className="w-1/3 h-full">
-          <div className="flex h-[11%] items-center justify-between px-5 py-1 border-b flex-shrink-0">
+          <div className="flex h-[11%] items-center justify-center  px-5 py-1 border-b font-[500] text-[17px] text-gray-700">
             Thông tin hội thoại
           </div>
+          {dataUser?.map((item) => (
+            <>
+              {" "}
+              <div className="flex flex-col gap-3 items-center justify-center py-5 border-b-8">
+                <img
+                  src={
+                    item.user_id.avatar ||
+                    "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                  }
+                  alt="avatar"
+                  className="w-[45px] rounded-full cursor-pointer"
+                  onClick={() => setOpenInfo(true)}
+                />
+                <InfoUser
+                  open={openInfo}
+                  onClose={() => setOpenInfo(false)}
+                  user={item.user_id}
+                  type="client"
+                />
+                <div className="text-[16px] font-[500]">
+                  {roomInfo.typeGroup === "group" ? (
+                    <>{roomInfo.title}</>
+                  ) : (
+                    item.user_id.name
+                  )}
+                </div>
+              </div>
+              <div className="flex item-center gap-2 px-5 py-4 text-gray-700 border-b-8">
+                <HiOutlineUserGroup className="text-[22px]" />
+                <span className="text-[15px]">1 nhóm chung</span>
+              </div>
+              <div className="px-5 py-4 text-gray-700 border-b-8">Ảnh</div>
+              <div className="px-5 py-4 text-gray-700 border-b-8">File</div>
+              <div className="px-5 py-4 flex items-center gap-2 text-[16px] text-red-700 ">
+                <RiDeleteBin6Line />
+                Xóa lịch sử trò chuyện
+              </div>
+            </>
+          ))}
         </div>
       )}
     </div>

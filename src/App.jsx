@@ -57,16 +57,7 @@ function App() {
     // 2️ Socket listener: unfriend
     const handleUnfriend = ({ friendId, roomChatId }) => {
       dispatch(unfriendSuccess(friendId));
-      console.log(
-        "Unfriend success received from server for friendId:",
-        friendId
-      );
-      console.log(
-        "Current room ID:",
-        currentRoomId,
-        "Room chat ID:",
-        roomChatId
-      );
+
       if (currentRoomId === roomChatId) {
         dispatch(setCurrentRoom(null));
       }

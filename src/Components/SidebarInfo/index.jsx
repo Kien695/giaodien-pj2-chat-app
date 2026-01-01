@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FcSearch } from "react-icons/fc";
 import {
   Link,
@@ -20,6 +20,7 @@ import { useSelector } from "react-redux";
 import { getData } from "../../utils/api";
 function SideBar() {
   const state = useSelector((state) => state.user);
+
   const socketConnection = state.socketConnection;
   const [active, setActive] = useState(1);
   const [searchText, setSearchText] = useState("");
@@ -27,8 +28,21 @@ function SideBar() {
   const [user, setUser] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [friendStatus, setFriendStatus] = useState({});
+
   const navigate = useNavigate();
+
   const { roomChatId } = useParams();
+  const [currentRoomId, setCurrentRoomId] = useState(roomChatId);
+  const currentRoomIdRef = useRef(roomChatId); // init luôn với roomChatId
+
+  useEffect(() => {
+    setCurrentRoomId(roomChatId); // cập nhật state
+    currentRoomIdRef.current = roomChatId; // cập nhật ref
+  }, [roomChatId]);
+
+  console.log("Current Room ID in Sidebar:", currentRoomIdRef.current);
+
+  console.log("Current Room ID in Sidebar:", currentRoomId);
   //dialog
   const [open, setOpen] = React.useState(false);
 
@@ -39,6 +53,17 @@ function SideBar() {
   const handleClose = () => {
     setOpen(false);
   };
+
+  //update time- render mỗi phút
+  const [, forceRender] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      forceRender((v) => v + 1);
+    }, 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
   //gửi lên server
   const handleSendRequire = (userId) => {
     setOpen(false);
@@ -80,11 +105,94 @@ function SideBar() {
     fetchRoomChat();
   }, []);
 
-  //server trả về message
-  // socketConnection.on("SERVER_RETURN_MASSAGE", (data) => {
-  //   updateSidebar(data);
-  // });
-  const updateSidebar = (data) => {};
+  //server trả về message hiện thị lên sidebar
+  useEffect(() => {
+    if (!socketConnection) return;
+
+    const handleMessage = (data) => {
+      updateSidebar(data);
+    };
+
+    socketConnection.on("SERVER_RETURN_SIDEBAR", handleMessage);
+
+    return () => {
+      socketConnection.off("SERVER_RETURN_SIDEBAR", handleMessage);
+    };
+  }, [socketConnection]);
+
+  const updateSidebar = (message) => {
+    setRooms((prev) => {
+      const updated = prev.map((room) => {
+        if (room._id === message.roomChatId) {
+          const currentUserId = state._id;
+          console.log("Current room ID:", currentRoomIdRef.current);
+          // Nếu đang ở phòng đó thì unread = 0, chữ không in đậm
+          const unread =
+            currentRoomIdRef.current === message.roomChatId
+              ? 0
+              : message.unreadCountForUsers?.[currentUserId] || 0;
+          return {
+            ...room,
+            lastMessage: {
+              content: message.content,
+              sender: message.user_id,
+              createdAt: message.createdAt,
+            },
+            unreadCount: {
+              ...room.unreadCount,
+              [currentUserId]: unread,
+            },
+            updatedAt: message.createdAt, // dùng để sort room lên đầu
+          };
+        }
+        return room;
+      });
+
+      // Sort room mới nhất lên đầu
+      updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+
+      return updated;
+    });
+  };
+
+  //update sidebar khi click vào tin nhắn mới
+  useEffect(() => {
+    if (!socketConnection) return;
+
+    const handleReadRoom = ({ roomChatId, userId }) => {
+      setRooms((prev) =>
+        prev.map((room) =>
+          room._id === roomChatId
+            ? {
+                ...room,
+                unreadCount: {
+                  ...room.unreadCount,
+                  [userId]: 0,
+                },
+              }
+            : room
+        )
+      );
+    };
+
+    socketConnection.on("SERVER_READ_ROOM", handleReadRoom);
+
+    return () => {
+      socketConnection.off("SERVER_READ_ROOM", handleReadRoom);
+    };
+  }, [socketConnection]);
+  // Hàm định format thời gian
+  const timeAgo = (date) => {
+    if (!date) return "";
+    const diff = Date.now() - new Date(date).getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    if (minutes < 1) return `Vừa xong`;
+    if (minutes < 60) return `${minutes} phút `;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} giờ `;
+    const days = Math.floor(hours / 24);
+    return `${days} ngày `;
+  };
   return (
     <div className="flex">
       <div className="w-[300px] bg-gray-50 border border-r h-screen">
@@ -256,291 +364,81 @@ function SideBar() {
               </div>
             </div>
             <div className="h-[95%] overflow-y-scroll">
-              {rooms.map((item, index) => (
-                <Link to={`/chat/${item._id}`} key={index}>
-                  <div className="flex gap-3 cursor-pointer hover:bg-gray-100 px-3 py-4">
-                    <img
-                      src={
-                        item.avatar ||
-                        item.users?.find((u) => u.user_id?._id !== state._id)
-                          ?.user_id?.avatar ||
-                        "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                      }
-                      alt=""
-                      className="w-[45px] rounded-full"
-                    />
-                    <div className="flex flex-col justify-between">
-                      <div className="flex justify-between">
-                        <div className="text-[15px]">
-                          {item.typeRoom == "group"
-                            ? item.title
-                            : item.users?.find(
-                                (u) => u.user_id?._id !== state._id
-                              )?.user_id?.name}
-                        </div>
-                        <span className="text-[13px] text-gray-600">3 giờ</span>
-                      </div>
+              {rooms.map((item, index) => {
+                const unread = item.unreadCount?.[state._id] || 0;
 
-                      <div className="line-clamp-1 text-[13px] text-gray-600">
-                        Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
+                return (
+                  <div
+                    key={index}
+                    onClick={() => {
+                      // 1️ Update local state ngay lập tức
+                      setRooms((prev) =>
+                        prev.map((room) =>
+                          room._id === item._id
+                            ? {
+                                ...room,
+                                unreadCount: {
+                                  ...room.unreadCount,
+                                  [state._id]: 0, // user hiện tại click vào
+                                },
+                              }
+                            : room
+                        )
+                      );
+
+                      // 2️ Emit cho server để cập nhật DB + broadcast
+                      socketConnection.emit("CLIENT_READ_ROOM", {
+                        roomChatId: item._id,
+                      });
+
+                      // 3️ Điều hướng sang phòng chat
+                      navigate(`/chat/${item._id}`);
+                    }}
+                  >
+                    <div
+                      className={`flex gap-3 cursor-pointer px-3 py-4
+                        hover:bg-gray-100
+                        ${unread > 0 ? "bg-blue-50" : ""}`}
+                    >
+                      <img
+                        src={
+                          item.avatar ||
+                          item.users?.find((u) => u.user_id?._id !== state._id)
+                            ?.user_id?.avatar ||
+                          "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                        }
+                        alt=""
+                        className="w-[45px] rounded-full"
+                      />
+                      <div className="flex-1 flex-col justify-between">
+                        <div className="flex justify-between">
+                          <div className="text-[15px]">
+                            {item.typeRoom == "group"
+                              ? item.title
+                              : item.users?.find(
+                                  (u) => u.user_id?._id !== state._id
+                                )?.user_id?.name}
+                          </div>
+                          <div className="text-[13px] text-gray-600">
+                            {timeAgo(item.lastMessage?.createdAt)}
+                          </div>
+                        </div>
+
+                        <div
+                          className={`line-clamp-1 text-[13px]
+                         ${
+                           unread > 0
+                             ? "font-semibold text-black"
+                             : "text-gray-600"
+                         }`}
+                        >
+                          {item.lastMessage?.content || "Chưa có tin nhắn"}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </Link>
-              ))}
-              {/* <NavLink
-                to="/chat/456"
-                className={({ isActive }) =>
-                  `flex gap-3 cursor-pointer hover:bg-gray-100 px-3 py-4 ${
-                    isActive ? "bg-gray-200 " : ""
-                  }`
-                }
-              >
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </NavLink>
-
-              <NavLink
-                to="/chat/123"
-                className={({ isActive }) =>
-                  `flex gap-3 cursor-pointer hover:bg-gray-100 px-3 py-4 ${
-                    isActive ? "bg-gray-200 " : ""
-                  }`
-                }
-              >
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </NavLink>
-              <div className="flex gap-3 cursor-pointer  hover:bg-gray-100 px-3 py-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 cursor-pointer  hover:bg-gray-200 px-3 py-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 cursor-pointer  hover:bg-gray-200 px-3 py-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 cursor-pointer  hover:bg-gray-200 px-3 py-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 cursor-pointer  hover:bg-gray-200 px-3 py-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 cursor-pointer  hover:bg-gray-200 px-3 py-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 cursor-pointer  hover:bg-gray-200 px-3 py-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 cursor-pointer  hover:bg-gray-200 px-3 py-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 cursor-pointer  hover:bg-gray-200 px-3 py-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 cursor-pointer py-2 hover:bg-gray-200 px-3 py-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 cursor-pointer py-2 hover:bg-gray-200 px-3 py-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </div>
-              <div className="flex gap-3 cursor-pointer py-2 hover:bg-gray-200 px-3 py-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div className="flex flex-col justify-between">
-                  <div className="flex justify-between">
-                    <div className="text-[15px]">Nguyễn Văn A</div>
-                    <span className="text-[13px] text-gray-600">3 giờ</span>
-                  </div>
-
-                  <div className="line-clamp-1 text-[13px] text-gray-600">
-                    Hôm nay bạn như thế nào rồi. Kể tôi nghe đi
-                  </div>
-                </div>
-              </div> */}
+                );
+              })}
             </div>
           </div>
         )}
