@@ -142,7 +142,7 @@ export default function SideBarUser() {
           type="personal"
         />
         <NavLink
-          to="/chat"
+          to="/chat/"
           end={false}
           className={({ isActive }) =>
             `p-2 rounded ${isActive ? "bg-gray-700" : ""}`
@@ -153,7 +153,7 @@ export default function SideBarUser() {
           </Tooltip>
         </NavLink>
         <NavLink
-          to="/friend"
+          to="/friend/"
           className={({ isActive }) =>
             `p-2 rounded ${isActive ? "bg-gray-700" : ""}`
           }

@@ -17,7 +17,7 @@ import { styled } from "@mui/material/styles";
 import Dialog from "@mui/material/Dialog";
 import React, { useEffect, useRef, useState } from "react";
 import { IoClose, IoSearch } from "react-icons/io5";
-import { getData, postData } from "../../utils/api";
+import { getData, patchData } from "../../utils/api";
 import { FcSearch } from "react-icons/fc";
 import { useSelector } from "react-redux";
 import { CgCloseO } from "react-icons/cg";
@@ -29,13 +29,14 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     padding: theme.spacing(1),
   },
 }));
-export default function AddGroup({ open, onClose }) {
+export default function AddMember({ open, onClose, roomChatId, dataUser }) {
+  const state = useSelector((state) => state.user);
+  const socketConnection = state.socketConnection;
   const friend = useSelector((state) => state.user.listFriend);
   const [user, setUser] = React.useState(null);
   const [keyword, setKeyword] = React.useState("");
   const [searchText, setSearchText] = useState("");
   const [formData, setFormData] = useState({
-    title: "",
     members: [],
   });
   const [memberUI, setMemberUI] = useState([]);
@@ -75,7 +76,7 @@ export default function AddGroup({ open, onClose }) {
     setKeyword(value);
     setSearchText(value);
   };
-
+  //search user
   useEffect(() => {
     if (!keyword.trim()) {
       setUser(null); // chưa tìm
@@ -91,24 +92,26 @@ export default function AddGroup({ open, onClose }) {
 
     fetchData();
   }, [keyword]);
-
-  const handleCreateRoom = async () => {
+  //api add member
+  const handleAddMember = async () => {
+    console.log("ok");
     try {
-      if (!formData.title) {
-        toast.error("Vui lòng nhập tên nhóm");
-        ref.title.current?.focus();
-        return;
-      }
-
-      const res = await postData("/auth/createRoom", formData);
+      const res = await patchData(`/auth/addMember/${roomChatId}`, formData);
       if (res.success) {
-        toast.success("Tạo nhóm thành công");
+        socketConnection.emit("CLIENT_ADD_MEMBER", {
+          roomChatId,
+          member: formData.members,
+          role: "member",
+        });
         onClose();
       }
     } catch (error) {
       console.error("Lỗi:", error);
     }
   };
+  //get id  data user
+  const groupMemberIds = dataUser.map((u) => u.user_id._id || u.user_id);
+
   return (
     <React.Fragment>
       <BootstrapDialog
@@ -124,7 +127,7 @@ export default function AddGroup({ open, onClose }) {
         }}
       >
         <div className="flex items-center justify-between px-5 py-2 ">
-          <div className="text-[16px] font-[500]">Tạo nhóm</div>
+          <div className="text-[16px] font-[500]">Thêm thành viên</div>
           <Button
             sx={{
               color: "black",
@@ -141,18 +144,8 @@ export default function AddGroup({ open, onClose }) {
           </Button>
         </div>
         <DialogContent dividers className="flex flex-col flex-1">
-          <div className="flex flex-col gap-4 h-[120px]">
-            <TextField
-              name="title"
-              label="Nhập tên nhóm"
-              variant="standard"
-              inputRef={ref.title}
-              size="small"
-              onChange={(e) => {
-                setFormData({ ...formData, title: e.target.value });
-              }}
-            />
-            <div className="relative mb-10">
+          <div className="flex flex-col gap-4 mb-8">
+            <div className="relative ">
               <TextField
                 fullWidth
                 variant="outlined"
@@ -189,11 +182,15 @@ export default function AddGroup({ open, onClose }) {
                         }}
                         control={
                           <Checkbox
+                            disabled={groupMemberIds.includes(user._id)}
                             onClick={() => {
                               setSearchText("");
                               setKeyword("");
                             }}
-                            checked={formData.members.includes(user?._id)}
+                            checked={
+                              !groupMemberIds.includes(user._id) &&
+                              formData.members.includes(user?._id)
+                            }
                             onChange={() => handleToggleMember(user)}
                           />
                         }
@@ -237,31 +234,37 @@ export default function AddGroup({ open, onClose }) {
                   Danh sách bạn bè
                 </div>
                 <FormGroup>
-                  {friend.map((item, index) => (
-                    <FormControlLabel
-                      key={index}
-                      sx={{ gap: 1, paddingY: "3px" }}
-                      control={
-                        <Checkbox
-                          checked={formData.members.includes(item._id)}
-                          onChange={() => handleToggleMember(item)}
-                        />
-                      }
-                      label={
-                        <div className="flex items-center gap-2">
-                          <img
-                            src={
-                              item.avatar ||
-                              "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                            }
-                            alt=""
-                            className="w-[35px] rounded-full"
+                  {friend.map((item, index) => {
+                    const isInGroup = groupMemberIds.includes(item._id);
+                    const isChecked = formData.members.includes(item._id);
+
+                    return (
+                      <FormControlLabel
+                        key={index}
+                        sx={{ gap: 1, paddingY: "3px" }}
+                        control={
+                          <Checkbox
+                            disabled={isInGroup} //  đã trong group → không cho chọn
+                            checked={!isInGroup && isChecked} // không tick nếu đã trong group
+                            onChange={() => handleToggleMember(item)}
                           />
-                          <div className="text-[15px]">{item.name}</div>
-                        </div>
-                      }
-                    />
-                  ))}
+                        }
+                        label={
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={
+                                item.avatar ||
+                                "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                              }
+                              alt=""
+                              className="w-[35px] rounded-full"
+                            />
+                            <div className="text-[15px]">{item.name}</div>
+                          </div>
+                        }
+                      />
+                    );
+                  })}
                 </FormGroup>
               </div>
 
@@ -326,10 +329,10 @@ export default function AddGroup({ open, onClose }) {
               textTransform: "none",
               color: "#fff",
             }}
-            disabled={formData.members.length > 1 ? false : true}
-            onClick={handleCreateRoom}
+            disabled={formData.members.length > 0 ? false : true}
+            onClick={handleAddMember}
           >
-            Tạo nhóm
+            Thêm thành viên
           </Button>
         </div>
       </BootstrapDialog>

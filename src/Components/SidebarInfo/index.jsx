@@ -18,6 +18,7 @@ import {
 } from "@mui/material";
 import { useSelector } from "react-redux";
 import { getData } from "../../utils/api";
+import { CiImageOn } from "react-icons/ci";
 function SideBar() {
   const state = useSelector((state) => state.user);
 
@@ -40,9 +41,6 @@ function SideBar() {
     currentRoomIdRef.current = roomChatId; // cập nhật ref
   }, [roomChatId]);
 
-  console.log("Current Room ID in Sidebar:", currentRoomIdRef.current);
-
-  console.log("Current Room ID in Sidebar:", currentRoomId);
   //dialog
   const [open, setOpen] = React.useState(false);
 
@@ -125,7 +123,7 @@ function SideBar() {
       const updated = prev.map((room) => {
         if (room._id === message.roomChatId) {
           const currentUserId = state._id;
-          console.log("Current room ID:", currentRoomIdRef.current);
+
           // Nếu đang ở phòng đó thì unread = 0, chữ không in đậm
           const unread =
             currentRoomIdRef.current === message.roomChatId
@@ -135,6 +133,7 @@ function SideBar() {
             ...room,
             lastMessage: {
               content: message.content,
+              images: message.images,
               sender: message.user_id,
               createdAt: message.createdAt,
             },
@@ -432,7 +431,16 @@ function SideBar() {
                              : "text-gray-600"
                          }`}
                         >
-                          {item.lastMessage?.content || "Chưa có tin nhắn"}
+                          {item.lastMessage?.images?.length > 0 ? (
+                            <div className="flex gap-1 items-center">
+                              <CiImageOn className="text-[17px]" />
+                              Hình ảnh
+                            </div>
+                          ) : item.lastMessage?.content ? (
+                            <span>{item.lastMessage.content}</span>
+                          ) : (
+                            "Chưa có tin nhắn"
+                          )}
                         </div>
                       </div>
                     </div>
