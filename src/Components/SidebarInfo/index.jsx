@@ -102,21 +102,46 @@ function SideBar() {
     };
     fetchRoomChat();
   }, []);
+  //server return all room
+  // useEffect(() => {
+  //   if (!socketConnection) return;
 
-  //server trả về message hiện thị lên sidebar
-  useEffect(() => {
-    if (!socketConnection) return;
+  //   const handleRoomremoveUser = ({
+  //     roomChatId,
+  //     users,
+  //     removedUserId,
+  //     action,
+  //   }) => {
+  //     if (action === "leave" && removedUserId === state._id) {
+  //       navigate("/chat");
+  //       setRooms((r) => r.filter((room) => room._id !== roomChatId));
+  //     }
 
-    const handleMessage = (data) => {
-      updateSidebar(data);
-    };
+  //     if (action === "remove" && removedUserId === state._id) {
+  //       navigate("/chat");
+  //       setRooms((r) => r.filter((room) => room._id !== roomChatId));
+  //     }
+  //   };
 
-    socketConnection.on("SERVER_RETURN_SIDEBAR", handleMessage);
+  //   socketConnection.on("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
+  //   return () => {
+  //     socketConnection.off("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
+  //   };
+  // }, [socketConnection]);
+  // //server trả về message hiện thị lên sidebar
+  // useEffect(() => {
+  //   if (!socketConnection) return;
 
-    return () => {
-      socketConnection.off("SERVER_RETURN_SIDEBAR", handleMessage);
-    };
-  }, [socketConnection]);
+  //   const handleMessage = (data) => {
+  //     updateSidebar(data);
+  //   };
+
+  //   socketConnection.on("SERVER_RETURN_SIDEBAR", handleMessage);
+
+  //   return () => {
+  //     socketConnection.off("SERVER_RETURN_SIDEBAR", handleMessage);
+  //   };
+  // }, [socketConnection]);
 
   const updateSidebar = (message) => {
     setRooms((prev) => {

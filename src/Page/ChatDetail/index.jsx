@@ -47,6 +47,9 @@ import AddMember from "../../Components/AddMember";
 
 export default function ChatDetail() {
   const [openInfo, setOpenInfo] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [openMenu, setOpenMenu] = useState(false);
+
   const state = useSelector((state) => state.user);
   const socketConnection = state.socketConnection;
   const navigate = useNavigate();
@@ -208,20 +211,31 @@ export default function ChatDetail() {
         return [...prev, ...newUsers];
       });
     };
+    const handleRoomremoveUser = ({ users, removedUserId, action }) => {
+      setDataUser(users);
+
+      if (action === "remove" && removedUserId === state._id) {
+        navigate("/chat");
+      }
+
+      if (action === "leave" && removedUserId === state._id) {
+        navigate("/chat");
+      }
+    };
 
     socketConnection.on("SERVER_NEW_MESSAGE", handleNewMessage);
     socketConnection.on("SERVER_ROOM_UPDATED", handleRoomUpdated);
     socketConnection.on("SERVER_ROOM_UPDATED_USER", handleRoomUpdateUser);
+    socketConnection.on("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
     return () => {
       socketConnection.off("SERVER_NEW_MESSAGE", handleNewMessage);
       socketConnection.off("SERVER_ROOM_UPDATED", handleRoomUpdated);
       socketConnection.off("SERVER_ROOM_UPDATED_USER", handleRoomUpdateUser);
+      socketConnection.off("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
     };
   }, [socketConnection]);
   //end
 
-  //server return add member
-  useEffect(() => {}, [socketConnection]);
   //end
   const renderSystemMessage = (msg) => {
     const isMe = msg.user_id._id === state._id;
@@ -241,8 +255,14 @@ export default function ChatDetail() {
       }
 
       case "leave_group":
-        return `${isMe ? "Bạn" : msg.user_id.name} đã rời khỏi nhóm`;
-
+        return `${msg.user_id.name} đã rời khỏi nhóm`;
+      case "remove_member":
+        const names = msg.content_user
+          ?.map((u) => (u._id === state._id ? "bạn" : u.name))
+          .join(", ");
+        return `${
+          isMe ? "Bạn" : msg.user_id.name
+        } đã xóa ${names} ra khỏi nhóm`;
       default:
         return "";
     }
@@ -387,7 +407,41 @@ export default function ChatDetail() {
   const handleShowMember = () => {
     setShowMember(!showMember);
   };
-
+  // Is Admin?
+  const isCurrentUserAdmin = dataUser.some(
+    (u) => u.user_id._id === state._id && u.role === "admin"
+  );
+  //remove member
+  const handleRemoveUser = async (item) => {
+    try {
+      const res = await patchData(`/auth/removeMember/${roomChatId}`, {
+        memberId: item.user_id._id,
+      });
+      if (res.success) {
+        socketConnection.emit("CLIENT_REMOVE_MEMBER", {
+          roomChatId,
+          member: item.user_id._id,
+        });
+      }
+    } catch (error) {
+      console.error("Lỗi:", error);
+    }
+  };
+  //leave group
+  const handleLeaveGroup = async (item) => {
+    try {
+      const res = await patchData(`/auth/leaveGroup/${roomChatId}`, {
+        memberId: item.user_id._id,
+      });
+      if (res.success) {
+        socketConnection.emit("CLIENT_LEAVE_GROUP", {
+          roomChatId,
+        });
+      }
+    } catch (error) {
+      console.error("Lỗi:", error);
+    }
+  };
   return (
     <div className="w-full h-screen flex">
       <div
@@ -833,78 +887,85 @@ export default function ChatDetail() {
               <div className="overflow-y-auto">
                 {dataUser?.map((item) => {
                   const isMyself = item.user_id._id === state._id;
-                  const isAdmin = item.role === "admin";
 
                   return (
                     <div
-                      className="flex gap-2 items-center mb-4 relative group cursor-pointer"
                       key={item._id}
+                      className="flex gap-2 items-center mb-4 relative group"
                     >
                       <img
                         src={
                           item.user_id.avatar ||
                           "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
                         }
-                        alt=""
                         className="w-[37px] rounded-full"
                       />
-                      <div className="flex flex-col ">
-                        <span className="text-[13px] font-[700] text-gray-800">
+
+                      <div className="flex flex-col">
+                        <span className="text-[13px] font-[700]">
                           {isMyself ? "Bạn" : item.user_id.name}
                         </span>
-                        <span className="text-[13px]">
-                          {isAdmin ? "Trưởng nhóm" : ""}
-                        </span>
+                        {item.role === "admin" && (
+                          <span className="text-[13px] text-gray-500">
+                            Trưởng nhóm
+                          </span>
+                        )}
                       </div>
-                      <Tooltip title="Xem thêm" placement="bottom-start">
+
+                      {/* NÚT 3 CHẤM */}
+                      {(isMyself || isCurrentUserAdmin) && (
                         <div
                           className="
-                              absolute top-1/2 -translate-y-1/2 right-2
-                              opacity-0 group-hover:opacity-100
-                              transition-opacity
-                              rounded-full bg-white p-1 border
-                            "
-                          aria-controls={openUser ? "fade-menu" : undefined}
-                          aria-haspopup="true"
-                          aria-expanded={openUser ? "true" : undefined}
-                          onClick={handleClickUser}
+            absolute right-2 top-1/2 -translate-y-1/2
+            opacity-0 group-hover:opacity-100
+            cursor-pointer rounded-full bg-white p-1 border
+          "
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(item.user_id._id);
+                            setOpenMenu(!openMenu);
+                          }}
                         >
                           <BsThreeDots />
                         </div>
-                      </Tooltip>
+                      )}
 
-                      <Menu
-                        id="fade-menu"
-                        slotProps={{
-                          list: {
-                            "aria-labelledby": "fade-button",
-                          },
-                        }}
-                        sx={{
-                          marginY: 0,
-                        }}
-                        slots={{ transition: Fade }}
-                        anchorEl={anchorElUser}
-                        open={openUser}
-                        onClose={handleCloseUser}
-                      >
-                        <MenuItem
-                          onClick={handleCloseUser}
-                          className="flex items-center gap-3 !text-blue-500 !text-[14px]"
+                      {/* MENU */}
+                      {openMenuId == item.user_id._id && openMenu && (
+                        <div
+                          className="
+            absolute right-2 top-6 mt-2 z-50
+            bg-white border rounded-md shadow-md
+            min-w-[140px]
+          "
                         >
-                          <MdOutlineContentCopy />
-                          Rời nhóm
-                        </MenuItem>
-                        {!isAdmin && (
-                          <MenuItem
-                            onClick={handleCloseUser}
-                            className="flex items-center gap-3 !text-blue-500 !text-[14px]"
-                          >
-                            <MdOutlineContentCopy />
-                            Xóa khỏi nhóm
-                          </MenuItem>
-                        )}
-                      </Menu>
+                          {/* RỜI NHÓM: chỉ cho chính mình */}
+                          {isMyself && (
+                            <div
+                              className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-[14px]"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                handleLeaveGroup(item);
+                              }}
+                            >
+                              Rời nhóm
+                            </div>
+                          )}
+
+                          {/* XÓA KHỎI NHÓM: chỉ admin & không xóa chính mình */}
+                          {isCurrentUserAdmin && !isMyself && (
+                            <div
+                              className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-[14px] text-red-500"
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                handleRemoveUser(item);
+                              }}
+                            >
+                              Xóa khỏi nhóm
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

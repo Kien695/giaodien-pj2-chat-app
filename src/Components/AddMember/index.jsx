@@ -94,7 +94,6 @@ export default function AddMember({ open, onClose, roomChatId, dataUser }) {
   }, [keyword]);
   //api add member
   const handleAddMember = async () => {
-    console.log("ok");
     try {
       const res = await patchData(`/auth/addMember/${roomChatId}`, formData);
       if (res.success) {
