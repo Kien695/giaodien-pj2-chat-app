@@ -14,13 +14,14 @@ import { RiDeleteBin6Line } from "react-icons/ri";
 import { SiIconify } from "react-icons/si";
 import { GrImage } from "react-icons/gr";
 import { FiDelete, FiPaperclip } from "react-icons/fi";
-import { IoSend } from "react-icons/io5";
+import { IoChevronDown, IoChevronDownSharp, IoSend } from "react-icons/io5";
 import React, { useEffect, useState } from "react";
 import { FaRegSmile, FaRegThumbsUp, FaRegUser } from "react-icons/fa";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Fade from "@mui/material/Fade";
 import {
+  MdAttachFile,
   MdDevicesFold,
   MdDriveFolderUpload,
   MdOutlineContentCopy,
@@ -32,7 +33,7 @@ import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import InfoUser from "../../Components/infoUser";
 import { useRef } from "react";
-import { getData, patchData } from "../../utils/api";
+import { getData, patchData, postData } from "../../utils/api";
 //emoji
 import EmojiPicker from "emoji-picker-react";
 //image
@@ -44,12 +45,13 @@ import { BsThreeDots } from "react-icons/bs";
 import { AiOutlineEdit, AiOutlineUsergroupAdd } from "react-icons/ai";
 import AddGroup from "../../Components/AddGroup";
 import AddMember from "../../Components/AddMember";
+import { toast } from "react-toastify";
 
 export default function ChatDetail() {
   const [openInfo, setOpenInfo] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [openMenu, setOpenMenu] = useState(false);
-
+  const [uploadingFiles, setUploadingFiles] = useState([]);
   const state = useSelector((state) => state.user);
   const socketConnection = state.socketConnection;
   const navigate = useNavigate();
@@ -108,7 +110,8 @@ export default function ChatDetail() {
   const [showPicker, setShowPicker] = useState(false);
   const pickerRef = useRef(null);
   const pickerWrapperRef = useRef(null);
-
+  const [openImages, setOpenImages] = useState(true);
+  const [openFiles, setOpenFiles] = useState(true);
   const [chat, setChat] = useState([]);
   const [roomInfo, setRoomInfo] = useState({});
   const [typing, setTyping] = useState("");
@@ -200,7 +203,7 @@ export default function ChatDetail() {
     const handleRoomUpdated = ({ title, avatar }) => {
       updateRoom({ title, avatar });
     };
-    const handleRoomUpdateUser = ({ users }) => {
+    const handleRoomUpdateUser = ({ roomChat, users }) => {
       setDataUser((prev) => {
         const existingIds = prev.map((u) => u.user_id._id);
 
@@ -211,16 +214,13 @@ export default function ChatDetail() {
         return [...prev, ...newUsers];
       });
     };
-    const handleRoomremoveUser = ({ users, removedUserId, action }) => {
+    const handleRoomremoveUser = ({
+      roomChatId,
+      users,
+      removedUserId,
+      action,
+    }) => {
       setDataUser(users);
-
-      if (action === "remove" && removedUserId === state._id) {
-        navigate("/chat");
-      }
-
-      if (action === "leave" && removedUserId === state._id) {
-        navigate("/chat");
-      }
     };
 
     socketConnection.on("SERVER_NEW_MESSAGE", handleNewMessage);
@@ -316,6 +316,60 @@ export default function ChatDetail() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  //upload file
+  const handleSendFile = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    // 1️ Thêm file vào state uploading
+    const tempFiles = files.map((file) => ({
+      id: file.name + "-" + Date.now(), // đảm bảo id duy nhất cho lần upload này
+      name: file.name,
+      status: "uploading",
+    }));
+
+    setUploadingFiles((prev) => [...prev, ...tempFiles]);
+
+    // 2️ Tạo FormData
+    const formData = new FormData();
+    files.forEach((file) => formData.append("files", file));
+
+    try {
+      const res = await postData(`/chat/${roomChatId}`, formData);
+
+      if (res.success) {
+        e.target.value = "";
+        // 3️ Xoá spinner khi upload xong
+        setUploadingFiles([]);
+
+        // 4️ Gửi message qua socket
+        socketConnection.emit("CLIENT_SEND_MESSAGE", {
+          message,
+          images: "",
+          roomChatId: roomChatId || null,
+          file: res.data,
+        });
+      } else {
+        // Nếu BE trả về lỗi, set status error
+        setUploadingFiles((prev) =>
+          prev.map((f) =>
+            tempFiles.some((t) => t.id === f.id) ? { ...f, status: "error" } : f
+          )
+        );
+      }
+    } catch (error) {
+      // Nếu upload lỗi, set status = error
+      setUploadingFiles((prev) =>
+        prev.map((f) =>
+          tempFiles.some((t) => t.id === f.id) ? { ...f, status: "error" } : f
+        )
+      );
+    }
+  };
+
+  //end upload file
+
   // hiện chat ra UI
   useEffect(() => {
     const fetchChat = async () => {
@@ -344,6 +398,7 @@ export default function ChatDetail() {
         message,
         images: base64List,
         roomChatId: roomChatId || null,
+        file: "",
       });
       // tắt typing ngay lập tức
       socketConnection.emit("CLIENT_SEND_TYPING", false);
@@ -361,15 +416,23 @@ export default function ChatDetail() {
     const handleMessage = (data) => {
       const formatted = {
         ...data,
+
         user_id:
           typeof data.user_id === "object"
             ? data.user_id
             : { _id: data.user_id, avatar: data.avatar },
-        _id: data._id || new Date().getTime(),
-        createdAt: new Date(),
+
+        // đảm bảo luôn là array
+        images: Array.isArray(data.images) ? data.images : [],
+        files: Array.isArray(data.files) ? data.files : [],
+
+        _id: data._id || Date.now(),
+        createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
       };
+
       setChat((prev) => [...prev, formatted]);
     };
+
     const handleTyping = (data) => {
       setTyping(data);
     };
@@ -424,7 +487,11 @@ export default function ChatDetail() {
         });
       }
     } catch (error) {
-      console.error("Lỗi:", error);
+      if (error.response) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Không thể kết nối server!");
+      }
     }
   };
   //leave group
@@ -439,7 +506,11 @@ export default function ChatDetail() {
         });
       }
     } catch (error) {
-      console.error("Lỗi:", error);
+      if (error.response) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Không thể kết nối server!");
+      }
     }
   };
   return (
@@ -452,105 +523,102 @@ export default function ChatDetail() {
         <div className="flex h-[11%] items-center justify-between px-5 py-1 border-b flex-shrink-0">
           <div className="flex gap-3 relative">
             {roomInfo.typeRoom === "group" ? (
-              <>
-                <div className="flex gap-3 relative">
-                  <img
-                    src={
-                      roomInfo.avatar ||
-                      "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                    }
-                    alt="avatar"
-                    className="w-[45px] rounded-full cursor-pointer"
-                    onClick={() => setOpenInfo(true)}
-                  />
+              <div className="flex gap-3 relative">
+                <img
+                  src={
+                    roomInfo.avatar ||
+                    "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                  }
+                  alt="avatar"
+                  className="w-[45px] rounded-full cursor-pointer"
+                  onClick={() => setOpenInfo(true)}
+                />
 
-                  <div className="flex flex-col justify-between">
-                    <div className="text-[16px] font-[500] flex gap-2 items-center group">
-                      <span className="cursor-pointer">{roomInfo.title}</span>
+                <div className="flex flex-col justify-between">
+                  <div className="text-[16px] font-[500] flex gap-2 items-center group">
+                    <span className="cursor-pointer">{roomInfo.title}</span>
 
-                      <AiOutlineEdit
-                        onClick={handleClickOpen}
-                        className=" text-[18px] opacity-0  group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
-                      />
-                      <Dialog
-                        open={openDialog}
-                        onClose={handleCloseOpen}
-                        aria-labelledby="alert-dialog-title"
-                        aria-describedby="alert-dialog-description"
-                      >
-                        <div className="flex p-3 cursor-pointer text-[17px] font-[500]">
-                          Chỉnh sửa thông tin nhóm
+                    <AiOutlineEdit
+                      onClick={handleClickOpen}
+                      className=" text-[18px] opacity-0  group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                    />
+                    <Dialog
+                      open={openDialog}
+                      onClose={handleCloseOpen}
+                      aria-labelledby="alert-dialog-title"
+                      aria-describedby="alert-dialog-description"
+                    >
+                      <div className="flex p-3 cursor-pointer text-[17px] font-[500]">
+                        Chỉnh sửa thông tin nhóm
+                      </div>
+                      <Divider sx={{ my: 0.2 }} />
+                      <div className="px-6 pb-4 py-5">
+                        <div className="text-[15px] text-gray-700 text-center mb-3">
+                          Bạn chắc muốn sửa thông tin nhóm chứ? Thông tin sau
+                          khi chỉnh sửa sẽ được hiển thị với tất cả thành viên.
                         </div>
-                        <Divider sx={{ my: 0.2 }} />
-                        <div className="px-6 pb-4 py-5">
-                          <div className="text-[15px] text-gray-700 text-center mb-3">
-                            Bạn chắc muốn sửa thông tin nhóm chứ? Thông tin sau
-                            khi chỉnh sửa sẽ được hiển thị với tất cả thành
-                            viên.
+                        <TextField
+                          name="title"
+                          id="standard-basic"
+                          label="Tên nhóm"
+                          variant="standard"
+                          size="small"
+                          className=" w-full"
+                          value={formInfo.title || roomInfo.title || ""}
+                          onChange={handleInputChangeRoom}
+                        />
+                        <div className="flex gap-4 items-center  py-4">
+                          <div className="text-[15px] text-gray-600">
+                            Ảnh đại diện nhóm:
                           </div>
-                          <TextField
-                            name="title"
-                            id="standard-basic"
-                            label="Tên nhóm"
-                            variant="standard"
-                            size="small"
-                            className=" w-full"
-                            value={formInfo.title || roomInfo.title || ""}
-                            onChange={handleInputChangeRoom}
-                          />
-                          <div className="flex gap-4 items-center  py-4">
-                            <div className="text-[15px] text-gray-600">
-                              Ảnh đại diện nhóm:
-                            </div>
-                            <div className="relative">
-                              <img
-                                src={
-                                  formInfo.image
-                                    ? URL.createObjectURL(formInfo.image)
-                                    : roomInfo.avatar ||
-                                      "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                                }
-                                alt="avatar"
-                                className=" block rounded-full w-[90px] border-2"
-                              />
+                          <div className="relative">
+                            <img
+                              src={
+                                formInfo.image
+                                  ? URL.createObjectURL(formInfo.image)
+                                  : roomInfo.avatar ||
+                                    "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                              }
+                              alt="avatar"
+                              className=" block rounded-full w-[90px] border-2"
+                            />
 
-                              <div
-                                className="overlay rounded-full absolute top-0 left-0 w-full h-full
+                            <div
+                              className="overlay rounded-full absolute top-0 left-0 w-full h-full
                                   z-50 bg-[rgba(0,0,0,0.7)] flex items-center justify-center
                                   cursor-pointer opacity-0 transition-all hover:opacity-80"
-                              >
-                                <MdDriveFolderUpload className="text-white text-[25px]" />
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  className="absolute inset-0 opacity-0 cursor-pointer"
-                                  name="image"
-                                  onChange={handleInputChangeRoom}
-                                />
-                              </div>
+                            >
+                              <MdDriveFolderUpload className="text-white text-[25px]" />
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                                name="image"
+                                onChange={handleInputChangeRoom}
+                              />
                             </div>
                           </div>
                         </div>
-                        <Divider sx={{ my: 0.2 }} />
-                        <DialogActions>
-                          <Button onClick={handleCloseOpen}>Hủy</Button>
-                          <Button onClick={handleConfirm} autoFocus>
-                            Xác nhận
-                          </Button>
-                        </DialogActions>
-                      </Dialog>
-                    </div>
+                      </div>
+                      <Divider sx={{ my: 0.2 }} />
+                      <DialogActions>
+                        <Button onClick={handleCloseOpen}>Hủy</Button>
+                        <Button onClick={handleConfirm} autoFocus>
+                          Xác nhận
+                        </Button>
+                      </DialogActions>
+                    </Dialog>
+                  </div>
 
-                    <div
-                      className="text-[14px] text-gray-700 flex gap-1 cursor-pointer items-center hover:text-blue-500"
-                      onClick={handleShowMember}
-                    >
-                      <FaRegUser />
-                      {dataUser.length} thành viên
-                    </div>
+                  <div
+                    className="text-[14px] text-gray-700 flex gap-1 cursor-pointer items-center hover:text-blue-500"
+                    onClick={handleShowMember}
+                  >
+                    <FaRegUser />
+                    {dataUser.length} thành viên
                   </div>
                 </div>
-              </>
+              </div>
             ) : (
               <>
                 {dataUser?.map((item) => {
@@ -715,6 +783,28 @@ export default function ChatDetail() {
                       </PhotoProvider>
                     </div>
                   )}
+                  {/* Hiển thị File */}
+
+                  {/* Hiển thị file đã gửi (item.files) */}
+                  {item?.files?.map((f, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+                    >
+                      <MdAttachFile className="text-blue-500" />
+                      <a
+                        href={f.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 underline break-all hover:text-blue-800"
+                      >
+                        {f.name}
+                      </a>
+                      <span className="text-gray-400 text-xs">
+                        ({(f.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                  ))}
 
                   {/* Thời gian */}
                   <div className="text-[11px] text-gray-500 mt-1 text-right">
@@ -727,7 +817,43 @@ export default function ChatDetail() {
               </div>
             );
           })}
+          {/* Hiển thị file đang upload */}
+          {uploadingFiles.map((file) => (
+            <div className="flex justify-end">
+              <div
+                key={file.id}
+                className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <MdAttachFile className="text-gray-500" />
+                <span className="text-sm text-gray-700 break-all">
+                  {file.name}
+                </span>
 
+                {/* Chỉ hiện spinner nếu đang upload */}
+                {file.status === "uploading" && (
+                  <svg
+                    className="animate-spin h-4 w-4 text-gray-500 ml-1"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                    />
+                  </svg>
+                )}
+              </div>
+            </div>
+          ))}
           {/* typing ui */}
           {typing.type == true && (
             <div className=" flex gap-1 mt-auto items-center">
@@ -820,8 +946,25 @@ export default function ChatDetail() {
               )}
             </ImageUploading>
 
-            <FiPaperclip className="text-[18px] cursor-pointer" />
-            <MdOutlineOndemandVideo className="text-[18px] cursor-pointer" />
+            <label htmlFor="upload-file">
+              <FiPaperclip className="text-[18px] cursor-pointer hover:text-blue-500" />
+            </label>
+            <input
+              type="file"
+              id="upload-file"
+              hidden
+              multiple
+              onChange={handleSendFile}
+            />
+
+            <MdOutlineOndemandVideo
+              className="text-[18px] cursor-pointer"
+              onClick={() => {
+                toast.error(
+                  "Sorry bạn nha. Vì dùng cloud free nên sợ không đủ dung lượng nên mình chưa làm chức năng này hehe :)"
+                );
+              }}
+            />
           </div>
 
           <div className="flex items-center gap-2 px-3 h-12">
@@ -979,7 +1122,7 @@ export default function ChatDetail() {
             </div>
             {roomInfo.typeRoom === "group" ? (
               <>
-                <div className="flex flex-col gap-3 items-center justify-center py-5 border-b-8">
+                <div className="flex flex-col items-center gap-3  py-5 border-b-8">
                   <img
                     src={
                       roomInfo.avatar ||
@@ -995,22 +1138,137 @@ export default function ChatDetail() {
                   user={item.user_id}
                   type="client"
                 /> */}
-                  <div className="text-[16px] font-[500]">{roomInfo.title}</div>
+                  <div className="flex gap-3 ml-8">
+                    <div className="text-[16px] font-[500]">
+                      {roomInfo.title}
+                    </div>
+                    <AiOutlineEdit
+                      onClick={handleClickOpen}
+                      className=" text-[18px]  cursor-pointer"
+                    />
+                  </div>
                 </div>
-                <div className="flex item-center gap-2 px-5 py-4 text-gray-700 border-b-8">
-                  <HiOutlineUserGroup className="text-[22px]" />
-                  <span className="text-[15px]">1 nhóm chung</span>
+                <div className=" text-gray-700 border-b-8 pt-2 ">
+                  <span className="text-[15px] font-[500] px-4  py-2 my-2">
+                    Thành viên nhóm
+                  </span>
+                  <div className="flex gap-3 text-[14px] hover:bg-gray-100 cursor-pointer p-3">
+                    <HiOutlineUserGroup className="text-[22px]" />
+                    <div onClick={handleShowMember}>
+                      {dataUser.length} thành viên
+                    </div>
+                  </div>
                 </div>
-                <div className="px-5 py-4 text-gray-700 border-b-8">Ảnh</div>
-                <div className="px-5 py-4 text-gray-700 border-b-8">File</div>
-                <div className="px-5 py-4 flex items-center gap-2 text-[16px] text-red-700 ">
-                  <RiDeleteBin6Line />
-                  Xóa lịch sử trò chuyện
+                <div className="px-5 py-4 text-gray-700 border-b-8">
+                  <div
+                    className="flex items-center justify-between cursor-pointer select-none"
+                    onClick={() => setOpenImages(!openImages)}
+                  >
+                    <span className="font-medium">Ảnh</span>
+                    <IoChevronDownSharp
+                      className={`  transition-transform duration-200
+                    ${openImages ? "rotate-180" : ""}`}
+                    />
+                  </div>
+                  {openImages && (
+                    <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
+                      {chat.map((item, index) => {
+                        const isMe = item.user_id._id === state._id;
+
+                        return (
+                          <div key={index} className="">
+                            {item.images && item.images.length > 0 && (
+                              <div className="mb-1 flex gap-2 ">
+                                {item.images.map((image, idx) => (
+                                  <img
+                                    key={idx}
+                                    src={image.url}
+                                    alt="chat-image"
+                                    className="w-20 h-20 rounded-md object-cover flex"
+                                  />
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <div className="px-5 pb-4 flex items-center gap-2 text-[16px] text-red-700 ">
-                  <MdOutlineExitToApp />
-                  Rời nhóm
+                <div className="px-5 py-4 text-gray-700 border-b-8">
+                  <div
+                    className="flex items-center justify-between cursor-pointer select-none"
+                    onClick={() => setOpenFiles(!openFiles)}
+                  >
+                    <span className="font-medium">File</span>
+                    <IoChevronDownSharp
+                      className={`  transition-transform duration-200
+                    ${openFiles ? "rotate-180" : ""}`}
+                    />
+                  </div>
+                  {openFiles && (
+                    <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
+                      {chat.map((item, index) => {
+                        const isMe = item.user_id._id === state._id;
+
+                        return (
+                          <div key={index} className="">
+                            {item.files && item.files.length > 0 && (
+                              <div className="mb-1  ">
+                                {item.files.map((f, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+                                  >
+                                    <MdAttachFile className="text-blue-500" />
+                                    <a
+                                      href={f.url}
+                                      rel="noopener noreferrer"
+                                      className="text-sm text-blue-600 underline break-all hover:text-blue-800"
+                                    >
+                                      {f.name}
+                                    </a>
+                                    <span className="text-gray-400 text-xs">
+                                      ({(f.size / 1024).toFixed(1)} KB)
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
+                {dataUser?.map((item, idx) => {
+                  const isMe = item.user_id._id == state._id;
+                  const isAdmin = item.role == "admin";
+                  return (
+                    <>
+                      {isAdmin && isMe && (
+                        <div
+                          key={idx}
+                          className="px-5 pt-4 cursor-pointer flex items-center gap-2 text-[16px] text-red-700 "
+                        >
+                          <RiDeleteBin6Line />
+                          Giải tán nhóm
+                        </div>
+                      )}
+                      {isMe && (
+                        <div
+                          onClick={() => {
+                            handleLeaveGroup(item);
+                          }}
+                          className="px-5 py-4 flex items-center gap-2 text-[16px] text-red-700 cursor-pointer"
+                        >
+                          <MdOutlineExitToApp />
+                          Rời nhóm
+                        </div>
+                      )}
+                    </>
+                  );
+                })}
               </>
             ) : (
               <>
@@ -1070,7 +1328,50 @@ export default function ChatDetail() {
                       </div>
                     </div>
                     <div className="px-5 py-4 text-gray-700 border-b-8">
-                      File
+                      <div
+                        className="flex items-center justify-between cursor-pointer select-none"
+                        onClick={() => setOpenFiles(!openFiles)}
+                      >
+                        <span className="font-medium">File</span>
+                        <IoChevronDownSharp
+                          className={`  transition-transform duration-200
+                    ${openFiles ? "rotate-180" : ""}`}
+                        />
+                      </div>
+                      {openFiles && (
+                        <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
+                          {chat.map((item, index) => {
+                            const isMe = item.user_id._id === state._id;
+
+                            return (
+                              <div key={index} className="">
+                                {item.files && item.files.length > 0 && (
+                                  <div className="mb-1  ">
+                                    {item.files.map((f, idx) => (
+                                      <div
+                                        key={idx}
+                                        className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+                                      >
+                                        <MdAttachFile className="text-blue-500" />
+                                        <a
+                                          href={f.url}
+                                          rel="noopener noreferrer"
+                                          className="text-sm text-blue-600 underline break-all hover:text-blue-800"
+                                        >
+                                          {f.name}
+                                        </a>
+                                        <span className="text-gray-400 text-xs">
+                                          ({(f.size / 1024).toFixed(1)} KB)
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                     <div className="px-5 py-4 flex items-center gap-2 text-[16px] text-red-700 ">
                       <RiDeleteBin6Line />

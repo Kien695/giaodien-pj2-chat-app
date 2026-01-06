@@ -19,6 +19,7 @@ import {
 import { useSelector } from "react-redux";
 import { getData } from "../../utils/api";
 import { CiImageOn } from "react-icons/ci";
+import { MdAttachFile } from "react-icons/md";
 function SideBar() {
   const state = useSelector((state) => state.user);
 
@@ -103,45 +104,65 @@ function SideBar() {
     fetchRoomChat();
   }, []);
   //server return all room
-  // useEffect(() => {
-  //   if (!socketConnection) return;
+  const navigateRef = useRef();
+  useEffect(() => {
+    navigateRef.current = navigate;
+  }, [navigate]);
+  useEffect(() => {
+    if (!socketConnection) return;
+    const handleRoomUpdateSideBar = ({ roomChat, users }) => {
+      setRooms((prev) => {
+        // tránh add trùng room
+        const exists = prev.some((r) => r._id === roomChat._id);
+        if (exists) return prev;
 
-  //   const handleRoomremoveUser = ({
-  //     roomChatId,
-  //     users,
-  //     removedUserId,
-  //     action,
-  //   }) => {
-  //     if (action === "leave" && removedUserId === state._id) {
-  //       navigate("/chat");
-  //       setRooms((r) => r.filter((room) => room._id !== roomChatId));
-  //     }
+        return [roomChat, ...prev]; // add lên đầu sidebar
+      });
+    };
+    const handleRoomremoveUser = ({
+      roomChatId,
+      users,
+      removedUserId,
+      action,
+    }) => {
+      if (action === "leave" && removedUserId === state._id) {
+        setRooms((prev) =>
+          prev.filter((room) => room._id.toString() !== roomChatId.toString())
+        );
+        navigateRef.current("/chat");
+      }
 
-  //     if (action === "remove" && removedUserId === state._id) {
-  //       navigate("/chat");
-  //       setRooms((r) => r.filter((room) => room._id !== roomChatId));
-  //     }
-  //   };
+      if (action === "remove" && removedUserId === state._id) {
+        setRooms((prev) =>
+          prev.filter((room) => room._id.toString() !== roomChatId.toString())
+        );
+        navigateRef.current("/chat");
+      }
+    };
+    socketConnection.on("SERVER_ROOM_UPDATED_SIDEBAR", handleRoomUpdateSideBar);
+    socketConnection.on("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
+    return () => {
+      socketConnection.off(
+        "SERVER_ROOM_UPDATED_SIDEBAR",
+        handleRoomUpdateSideBar
+      );
+      socketConnection.off("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
+    };
+  }, [socketConnection, state._id]);
+  //server trả về message hiện thị lên sidebar
+  useEffect(() => {
+    if (!socketConnection) return;
 
-  //   socketConnection.on("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
-  //   return () => {
-  //     socketConnection.off("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
-  //   };
-  // }, [socketConnection]);
-  // //server trả về message hiện thị lên sidebar
-  // useEffect(() => {
-  //   if (!socketConnection) return;
+    const handleMessage = (data) => {
+      updateSidebar(data);
+    };
 
-  //   const handleMessage = (data) => {
-  //     updateSidebar(data);
-  //   };
+    socketConnection.on("SERVER_RETURN_SIDEBAR", handleMessage);
 
-  //   socketConnection.on("SERVER_RETURN_SIDEBAR", handleMessage);
-
-  //   return () => {
-  //     socketConnection.off("SERVER_RETURN_SIDEBAR", handleMessage);
-  //   };
-  // }, [socketConnection]);
+    return () => {
+      socketConnection.off("SERVER_RETURN_SIDEBAR", handleMessage);
+    };
+  }, [socketConnection]);
 
   const updateSidebar = (message) => {
     setRooms((prev) => {
@@ -159,6 +180,7 @@ function SideBar() {
             lastMessage: {
               content: message.content,
               images: message.images,
+              files: message.files,
               sender: message.user_id,
               createdAt: message.createdAt,
             },
@@ -456,10 +478,15 @@ function SideBar() {
                              : "text-gray-600"
                          }`}
                         >
-                          {item.lastMessage?.images?.length > 0 ? (
+                          {item.lastMessage?.files?.length > 0 ? (
+                            <div className="flex gap-1 items-center">
+                              <MdAttachFile className="text-[15px]" />
+                              <span>Tệp đính kèm</span>
+                            </div>
+                          ) : item.lastMessage?.images?.length > 0 ? (
                             <div className="flex gap-1 items-center">
                               <CiImageOn className="text-[17px]" />
-                              Hình ảnh
+                              <span>Hình ảnh</span>
                             </div>
                           ) : item.lastMessage?.content ? (
                             <span>{item.lastMessage.content}</span>
