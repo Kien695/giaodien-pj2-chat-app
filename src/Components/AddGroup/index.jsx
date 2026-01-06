@@ -31,6 +31,9 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 }));
 export default function AddGroup({ open, onClose }) {
   const friend = useSelector((state) => state.user.listFriend);
+  const state = useSelector((state) => state.user);
+
+  const socketConnection = state.socketConnection;
   const [user, setUser] = React.useState(null);
   const [keyword, setKeyword] = React.useState("");
   const [searchText, setSearchText] = useState("");
@@ -102,6 +105,7 @@ export default function AddGroup({ open, onClose }) {
 
       const res = await postData("/auth/createRoom", formData);
       if (res.success) {
+        socketConnection.emit("CLIENT_CREATE_ROOM", { room: res.data });
         toast.success("Tạo nhóm thành công");
         onClose();
       }

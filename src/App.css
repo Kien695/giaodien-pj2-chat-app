@@ -55,3 +55,8 @@ body {
     opacity: 0.1;
   }
 }
+/* menu */
+.css-1toxriw-MuiList-root-MuiMenu-list {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}

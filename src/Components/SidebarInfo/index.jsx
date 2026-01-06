@@ -139,14 +139,27 @@ function SideBar() {
         navigateRef.current("/chat");
       }
     };
+    const handleRemoveRoom = ({ roomChatId }) => {
+      setRooms((prev) =>
+        prev.filter((room) => room._id.toString() !== roomChatId.toString())
+      );
+      navigateRef.current("/chat");
+    };
+    const handleCreateRoom = (room) => {
+      setRooms((prev) => [room, ...prev]);
+    };
     socketConnection.on("SERVER_ROOM_UPDATED_SIDEBAR", handleRoomUpdateSideBar);
     socketConnection.on("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
+    socketConnection.on("SERVER_RETURN_ROOM", handleRemoveRoom);
+    socketConnection.on("SERVER_RETURN_NEW_ROOM", handleCreateRoom);
     return () => {
       socketConnection.off(
         "SERVER_ROOM_UPDATED_SIDEBAR",
         handleRoomUpdateSideBar
       );
       socketConnection.off("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
+      socketConnection.off("SERVER_RETURN_ROOM", handleRemoveRoom);
+      socketConnection.off("SERVER_RETURN_NEW_ROOM", handleCreateRoom);
     };
   }, [socketConnection, state._id]);
   //server trả về message hiện thị lên sidebar
@@ -411,7 +424,7 @@ function SideBar() {
             </div>
             <div className="h-[95%] overflow-y-scroll">
               {rooms.map((item, index) => {
-                const unread = item.unreadCount?.[state._id] || 0;
+                const unread = item?.unreadCount?.[state._id] || 0;
 
                 return (
                   <div
@@ -420,7 +433,7 @@ function SideBar() {
                       // 1️ Update local state ngay lập tức
                       setRooms((prev) =>
                         prev.map((room) =>
-                          room._id === item._id
+                          room?._id === item._id
                             ? {
                                 ...room,
                                 unreadCount: {
@@ -448,8 +461,8 @@ function SideBar() {
                     >
                       <img
                         src={
-                          item.avatar ||
-                          item.users?.find((u) => u.user_id?._id !== state._id)
+                          item?.avatar ||
+                          item?.users?.find((u) => u.user_id?._id !== state._id)
                             ?.user_id?.avatar ||
                           "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
                         }
@@ -459,14 +472,14 @@ function SideBar() {
                       <div className="flex-1 flex-col justify-between">
                         <div className="flex justify-between">
                           <div className="text-[15px]">
-                            {item.typeRoom == "group"
-                              ? item.title
-                              : item.users?.find(
+                            {item?.typeRoom == "group"
+                              ? item?.title
+                              : item?.users?.find(
                                   (u) => u.user_id?._id !== state._id
                                 )?.user_id?.name}
                           </div>
                           <div className="text-[13px] text-gray-600">
-                            {timeAgo(item.lastMessage?.createdAt)}
+                            {timeAgo(item?.lastMessage?.createdAt)}
                           </div>
                         </div>
 
@@ -478,17 +491,17 @@ function SideBar() {
                              : "text-gray-600"
                          }`}
                         >
-                          {item.lastMessage?.files?.length > 0 ? (
+                          {item?.lastMessage?.files?.length > 0 ? (
                             <div className="flex gap-1 items-center">
                               <MdAttachFile className="text-[15px]" />
                               <span>Tệp đính kèm</span>
                             </div>
-                          ) : item.lastMessage?.images?.length > 0 ? (
+                          ) : item?.lastMessage?.images?.length > 0 ? (
                             <div className="flex gap-1 items-center">
                               <CiImageOn className="text-[17px]" />
                               <span>Hình ảnh</span>
                             </div>
-                          ) : item.lastMessage?.content ? (
+                          ) : item?.lastMessage?.content ? (
                             <span>{item.lastMessage.content}</span>
                           ) : (
                             "Chưa có tin nhắn"

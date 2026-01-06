@@ -33,7 +33,7 @@ import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import InfoUser from "../../Components/infoUser";
 import { useRef } from "react";
-import { getData, patchData, postData } from "../../utils/api";
+import { deleteData, getData, patchData, postData } from "../../utils/api";
 //emoji
 import EmojiPicker from "emoji-picker-react";
 //image
@@ -513,6 +513,22 @@ export default function ChatDetail() {
       }
     }
   };
+  //remove group
+  const handleRemoveGroup = async () => {
+    try {
+      const res = await deleteData(`/auth/removeRoom/${roomChatId}`);
+      if (res.success) {
+        toast.success(res.message || "Xóa thành công!");
+        socketConnection.emit("CLIENT_REMOVE_ROOM", { roomChatId });
+      }
+    } catch (error) {
+      if (error.response) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Không thể kết nối server!");
+      }
+    }
+  };
   return (
     <div className="w-full h-screen flex">
       <div
@@ -621,13 +637,13 @@ export default function ChatDetail() {
               </div>
             ) : (
               <>
-                {dataUser?.map((item) => {
+                {dataUser?.map((item,index) => {
                   const presence = onlineUsers[item.user_id._id];
 
                   const isOnline = presence?.status === "online";
                   const lastActive = presence?.lastActive;
                   return (
-                    <div className="flex gap-3 relative">
+                    <div className="flex gap-3 relative" key={index}>
                       <img
                         src={
                           item.user_id.avatar ||
@@ -1245,11 +1261,12 @@ export default function ChatDetail() {
                   const isMe = item.user_id._id == state._id;
                   const isAdmin = item.role == "admin";
                   return (
-                    <>
+                    <div key={idx}>
                       {isAdmin && isMe && (
                         <div
                           key={idx}
                           className="px-5 pt-4 cursor-pointer flex items-center gap-2 text-[16px] text-red-700 "
+                          onClick={handleRemoveGroup}
                         >
                           <RiDeleteBin6Line />
                           Giải tán nhóm
@@ -1266,7 +1283,7 @@ export default function ChatDetail() {
                           Rời nhóm
                         </div>
                       )}
-                    </>
+                    </div>
                   );
                 })}
               </>
@@ -1303,29 +1320,40 @@ export default function ChatDetail() {
                       <span className="text-[15px]">1 nhóm chung</span>
                     </div>
                     <div className="px-5 py-4 text-gray-700 border-b-8">
-                      Ảnh
-                      <div className="flex gap-1">
-                        {chat.map((item, index) => {
-                          const isMe = item.user_id._id === state._id;
-
-                          return (
-                            <div key={index}>
-                              {item.images && item.images.length > 0 && (
-                                <div className="mb-1 flex gap-2 flex-wrap">
-                                  {item.images.map((image, idx) => (
-                                    <img
-                                      key={idx}
-                                      src={image.url}
-                                      alt="chat-image"
-                                      className="w-20 h-20 rounded-md object-cover"
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                      <div
+                        className="flex items-center justify-between cursor-pointer select-none"
+                        onClick={() => setOpenImages(!openImages)}
+                      >
+                        <span className="font-medium">Ảnh</span>
+                        <IoChevronDownSharp
+                          className={`  transition-transform duration-200
+                    ${openImages ? "rotate-180" : ""}`}
+                        />
                       </div>
+                      {openImages && (
+                        <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
+                          {chat.map((item, index) => {
+                            const isMe = item.user_id._id === state._id;
+
+                            return (
+                              <div key={index} className="">
+                                {item.images && item.images.length > 0 && (
+                                  <div className="mb-1 flex gap-2 ">
+                                    {item.images.map((image, idx) => (
+                                      <img
+                                        key={idx}
+                                        src={image.url}
+                                        alt="chat-image"
+                                        className="w-20 h-20 rounded-md object-cover flex"
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
                     <div className="px-5 py-4 text-gray-700 border-b-8">
                       <div
@@ -1347,7 +1375,7 @@ export default function ChatDetail() {
                               <div key={index} className="">
                                 {item.files && item.files.length > 0 && (
                                   <div className="mb-1  ">
-                                    {item.files.map((f, idx) => (
+                                    {item?.files?.map((f, idx) => (
                                       <div
                                         key={idx}
                                         className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
