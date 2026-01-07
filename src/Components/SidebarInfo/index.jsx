@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { FcSearch } from "react-icons/fc";
+import logoMyDocument from "../../assets/my-documents-icon-260nw-21989287.webp";
 import {
   Link,
   NavLink,
@@ -20,6 +21,18 @@ import { useSelector } from "react-redux";
 import { getData } from "../../utils/api";
 import { CiImageOn } from "react-icons/ci";
 import { MdAttachFile } from "react-icons/md";
+const myDocumentRoom = {
+  _id: "my-document",
+  typeRoom: "system",
+  title: "My Document",
+  avatar: logoMyDocument, // hoặc icon mặc định
+  unreadCount: {},
+  lastMessage: {
+    content: "Lưu trữ tài liệu cá nhân",
+    createdAt: new Date(),
+  },
+};
+
 function SideBar() {
   const state = useSelector((state) => state.user);
 
@@ -110,7 +123,7 @@ function SideBar() {
   }, [navigate]);
   useEffect(() => {
     if (!socketConnection) return;
-    const handleRoomUpdateSideBar = ({ roomChat, users }) => {
+    const handleRoomUpdateSideBar = ({ roomChat }) => {
       setRooms((prev) => {
         // tránh add trùng room
         const exists = prev.some((r) => r._id === roomChat._id);
@@ -252,6 +265,8 @@ function SideBar() {
     const days = Math.floor(hours / 24);
     return `${days} ngày `;
   };
+  //thêm document vào rooms
+  const roomsWithMyDocument = [myDocumentRoom, ...rooms];
   return (
     <div className="flex">
       <div className="w-[300px] bg-gray-50 border border-r h-screen">
@@ -423,34 +438,38 @@ function SideBar() {
               </div>
             </div>
             <div className="h-[95%] overflow-y-scroll">
-              {rooms.map((item, index) => {
+              {roomsWithMyDocument.map((item, index) => {
                 const unread = item?.unreadCount?.[state._id] || 0;
 
                 return (
                   <div
                     key={index}
                     onClick={() => {
-                      // 1️ Update local state ngay lập tức
+                      //  ROOM SYSTEM (My Document)
+                      if (item.typeRoom === "system") {
+                        navigate("/chat/my-document");
+                        return;
+                      }
+
+                      //  ROOM CHAT THẬT
                       setRooms((prev) =>
                         prev.map((room) =>
-                          room?._id === item._id
+                          room._id === item._id
                             ? {
                                 ...room,
                                 unreadCount: {
                                   ...room.unreadCount,
-                                  [state._id]: 0, // user hiện tại click vào
+                                  [state._id]: 0,
                                 },
                               }
                             : room
                         )
                       );
 
-                      // 2️ Emit cho server để cập nhật DB + broadcast
                       socketConnection.emit("CLIENT_READ_ROOM", {
                         roomChatId: item._id,
                       });
 
-                      // 3️ Điều hướng sang phòng chat
                       navigate(`/chat/${item._id}`);
                     }}
                   >
@@ -472,7 +491,9 @@ function SideBar() {
                       <div className="flex-1 flex-col justify-between">
                         <div className="flex justify-between">
                           <div className="text-[15px]">
-                            {item?.typeRoom == "group"
+                            {item?.typeRoom === "system"
+                              ? item?.title
+                              : item?.typeRoom === "group"
                               ? item?.title
                               : item?.users?.find(
                                   (u) => u.user_id?._id !== state._id

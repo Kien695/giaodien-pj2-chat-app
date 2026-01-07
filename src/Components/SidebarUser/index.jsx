@@ -153,7 +153,7 @@ export default function SideBarUser() {
           </Tooltip>
         </NavLink>
         <NavLink
-          to="/friend/"
+          to="/friend/1"
           className={({ isActive }) =>
             `p-2 rounded ${isActive ? "bg-gray-700" : ""}`
           }
@@ -171,8 +171,10 @@ export default function SideBarUser() {
       </div>
 
       <div className="flex flex-col items-center justify-center gap-5">
-        <Tooltip title="Cloud của tôi" placement="right-start">
-          <IoMdCloudOutline className="text-[26px] text-white" />
+        <Tooltip title="My documents" placement="right-start">
+          <Link to="/chat/my-document">
+            <IoMdCloudOutline className="text-[26px] text-white" />
+          </Link>
         </Tooltip>
         <Tooltip title="Cài đặt" placement="right-start">
           <IoSettingsOutline

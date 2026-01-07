@@ -12,9 +12,11 @@ import {
   setUser,
   setCountFriend,
   setListGroup,
-  setCountGroup,
   setCurrentRoom,
   unfriendSuccess,
+  removeGroup,
+  removeUserFromRoom,
+  addGroup,
 } from "./redux/userSlice";
 import {
   setOnlineUsers,
@@ -28,6 +30,8 @@ function App() {
   const isLogin = useSelector((state) => state.user.isLogin);
   const dispatch = useDispatch();
   const currentRoomId = useSelector((state) => state.user.currentRoomId);
+  const listGroup = useSelector((state) => state.user.listGroup);
+
   useEffect(() => {
     if (!socketConnection) return;
 
@@ -48,7 +52,6 @@ function App() {
       const resListGroup = await getData("/auth/getRoom");
       if (resListGroup.success) {
         dispatch(setListGroup(resListGroup.data));
-        dispatch(setCountGroup(resListGroup.count));
       }
     };
 
@@ -67,6 +70,21 @@ function App() {
     };
     socketConnection.on("SERVER_UNFRIEND_SUCCESS", handleUnfriend);
 
+    //3. server trả về roomChat đã rời
+    const handleLeaveGroup = ({ roomChatId }) => {
+      dispatch(removeGroup(roomChatId));
+    };
+    //4. server bỏ user đã rời trong nhóm
+    socketConnection.on("SERVER_ROOM_UPDATED", ({ roomChatId, userId }) => {
+      dispatch(removeUserFromRoom({ roomChatId, userId }));
+    });
+
+    //5. update room
+    const handleRoomUpdateSideBar = ({ roomChat }) => {
+      dispatch(addGroup(roomChat));
+    };
+
+    socketConnection.on("SERVER_LEAVE_ROOM_PERSON", handleLeaveGroup);
     //socket online/offline user
 
     socketConnection.on("SERVER_ONLINE_USERS", (users) => {
@@ -80,11 +98,17 @@ function App() {
     socketConnection.on("SERVER_USER_OFFLINE", ({ userId, lastActive }) => {
       dispatch(setUserOffline({ userId, lastActive }));
     });
-
+    socketConnection.on("SERVER_ROOM_UPDATED_SIDEBAR", handleRoomUpdateSideBar);
     return () => {
       socketConnection.off("SERVER_UNFRIEND_SUCCESS", handleUnfriend);
       socketConnection.off("SERVER_USER_ONLINE");
       socketConnection.off("SERVER_USER_OFFLINE");
+      socketConnection.off("SERVER_LEAVE_ROOM_PERSON", handleLeaveGroup);
+      socketConnection.on("SERVER_ROOM_UPDATED");
+      socketConnection.off(
+        "SERVER_ROOM_UPDATED_SIDEBAR",
+        handleRoomUpdateSideBar
+      );
     };
   }, [dispatch, socketConnection]);
 

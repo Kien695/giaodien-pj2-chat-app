@@ -13,6 +13,7 @@ import SideBar from "../Components/SidebarInfo";
 import ChatDetail from "../Page/ChatDetail";
 import Friend from "../Components/Friend";
 import Friends from "../Page/Friends";
+import MyDocument from "../Page/MyDcument";
 
 export const routes = [
   { path: "/auth", element: <Auth /> },
@@ -30,7 +31,10 @@ export const routes = [
       {
         path: "chat",
         element: <SideBar />,
-        children: [{ path: ":roomChatId", element: <ChatDetail /> }],
+        children: [
+          { path: "my-document", element: <MyDocument /> },
+          { path: ":roomChatId", element: <ChatDetail /> },
+        ],
       },
 
       {

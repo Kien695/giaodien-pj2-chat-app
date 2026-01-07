@@ -9,6 +9,7 @@ import {
   TextField,
   Tooltip,
 } from "@mui/material";
+
 import { HiOutlineUserGroup } from "react-icons/hi2";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { SiIconify } from "react-icons/si";
@@ -236,7 +237,7 @@ export default function ChatDetail() {
   }, [socketConnection]);
   //end
 
-  //end
+  //render message
   const renderSystemMessage = (msg) => {
     const isMe = msg.user_id._id === state._id;
 
@@ -635,9 +636,9 @@ export default function ChatDetail() {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) :  (
               <>
-                {dataUser?.map((item,index) => {
+                {dataUser?.map((item, index) => {
                   const presence = onlineUsers[item.user_id._id];
 
                   const isOnline = presence?.status === "online";

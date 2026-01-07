@@ -5,21 +5,46 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import { FiUsers } from "react-icons/fi";
 import { LuUserPlus } from "react-icons/lu";
 import { useSelector } from "react-redux";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { patchData } from "../../utils/api";
 
 export default function ListGroup() {
+  const state = useSelector((state) => state.user);
+   const socketConnection = state.socketConnection;
   const count = useSelector((state) => state.user.countGroup);
   const room = useSelector((state) => state.user.listGroup);
-
+  const navigate = useNavigate();
+  const [selectedItem, setSelectedItem] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const openMenu = Boolean(anchorEl);
-  const handleClick = (event) => {
+  const handleClick = (event, item) => {
     setAnchorEl(event.currentTarget);
+    setSelectedItem(item);
   };
   const handleClose = () => {
     setAnchorEl(null);
   };
 
+  //leave group
+  const handleLeaveGroup = async (roomChatId) => {
+    console.log(roomChatId);
+    try {
+      const res = await patchData(`/auth/leaveGroup/${roomChatId}`);
+      if (res.success) {
+        setAnchorEl(null);
+        socketConnection.emit("CLIENT_LEAVE_ROOM_PERSON", {
+          roomChatId,
+        });
+      }
+    } catch (error) {
+      if (error.response) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Không thể kết nối server!");
+      }
+    }
+  };
   return (
     <div className="w-full h-screen flex flex-col px-5">
       <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0">
@@ -28,33 +53,40 @@ export default function ListGroup() {
           <div className="text-[16px]">Danh sách nhóm</div>
         </div>
       </div>
-      <div className="text-[14px] font-[500] py-4">Hiện có ({count}) nhóm</div>
+      <div className="text-[14px] font-[500] py-4">
+        Hiện có ({room.length}) nhóm
+      </div>
       <div className="bg-gray-50  rounded-md shadow-md">
         {room.map((item, index) => (
           <div
             className="flex items-center border-1 border-b justify-between gap-3 cursor-pointer hover:bg-gray-100 px-3 py-3"
             key={index}
           >
-            <Link to={`/chat/${item._id}`}>
-              <div className="flex items-center gap-4">
-                <img
-                  src="https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  alt=""
-                  className="w-[45px] rounded-full"
-                />
-                <div>
-                  <div className="text-[15px] font-[500] text-gray-800">
-                    {item.title}
-                  </div>
-                  <span className="text-[13px] text-gray-500">
-                    Có {item?.users?.length} thành viên
-                  </span>
+            <div
+              className="flex items-center gap-4 cursor-pointer"
+              onClick={() => navigate(`/chat/${item._id}`)}
+            >
+              <img
+                src={
+                  item.avatar ||
+                  "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                }
+                alt=""
+                className="w-[45px] rounded-full"
+              />
+              <div>
+                <div className="text-[15px] font-[500] text-gray-800">
+                  {item.title}
                 </div>
+                <span className="text-[13px] text-gray-500">
+                  Có {item?.users?.length} thành viên
+                </span>
               </div>
-            </Link>
+            </div>
+
             <BsThreeDotsVertical
               className="text-[20px]"
-              onClick={handleClick}
+              onClick={(e) => handleClick(e, item)}
             />
             <Menu
               anchorEl={anchorEl}
@@ -68,7 +100,9 @@ export default function ListGroup() {
               }}
             >
               <MenuItem
-                onClick={handleClose}
+                onClick={(e) => {
+                  handleLeaveGroup(selectedItem._id);
+                }}
                 sx={{
                   fontSize: "14px",
                   padding: "5px 10px",
@@ -89,29 +123,6 @@ export default function ListGroup() {
                 }}
               >
                 Rời nhóm
-              </MenuItem>
-              <MenuItem
-                onClick={handleClose}
-                sx={{
-                  fontSize: "14px",
-                  padding: "5px 10px",
-                  backgroundColor: "gray",
-                  color: "#fff",
-                  "&:hover": {
-                    backgroundColor: "#3c3c3c",
-                  },
-                  "&.Mui-focusVisible": {
-                    backgroundColor: "#ff5252",
-                  },
-                  "&.MuiMenuItem-root.Mui-selected": {
-                    backgroundColor: "#ff5252",
-                  },
-                  "&.MuiMenuItem-root.Mui-selected:hover": {
-                    backgroundColor: "#ff5252",
-                  },
-                }}
-              >
-                Giải tán nhóm
               </MenuItem>
             </Menu>
           </div>
