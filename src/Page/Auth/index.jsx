@@ -100,7 +100,7 @@ export function Auth() {
       return;
     }
     try {
-      const res = await postData("auth/login", formLogin);
+      const res = await postData("/auth/login", formLogin);
       if (res.success) {
         toast.success("Đăng nhập thành công!");
         localStorage.setItem("accessToken", res?.data?.accessToken);
