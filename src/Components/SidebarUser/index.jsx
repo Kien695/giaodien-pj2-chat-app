@@ -178,7 +178,7 @@ export default function SideBarUser() {
         </Tooltip>
         <Tooltip title="Cài đặt" placement="right-start">
           <IoSettingsOutline
-            className="text-[26px] text-white"
+            className="text-[26px] text-white cursor-pointer"
             onClick={() => {
               setOpenSetting(true); // mở modal
             }}

@@ -6,6 +6,7 @@ import {
   NavLink,
   Outlet,
   useLocation,
+  useMatch,
   useNavigate,
   useParams,
 } from "react-router-dom";
@@ -47,6 +48,7 @@ function SideBar() {
   const navigate = useNavigate();
 
   const { roomChatId } = useParams();
+  const matchMyDocument = useMatch("/chat/my-document");
   const [currentRoomId, setCurrentRoomId] = useState(roomChatId);
   const currentRoomIdRef = useRef(roomChatId); // init luôn với roomChatId
 
@@ -538,7 +540,7 @@ function SideBar() {
         )}
       </div>
       <div className="flex-1">
-        {roomChatId ? (
+        {(roomChatId || matchMyDocument) ? (
           <Outlet />
         ) : (
           <div className="w-full">
