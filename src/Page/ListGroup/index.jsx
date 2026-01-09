@@ -8,10 +8,11 @@ import { useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { patchData } from "../../utils/api";
+import { MdOutlineKeyboardArrowLeft } from "react-icons/md";
 
 export default function ListGroup() {
   const state = useSelector((state) => state.user);
-   const socketConnection = state.socketConnection;
+  const socketConnection = state.socketConnection;
   const count = useSelector((state) => state.user.countGroup);
   const room = useSelector((state) => state.user.listGroup);
   const navigate = useNavigate();
@@ -49,6 +50,12 @@ export default function ListGroup() {
     <div className="w-full h-screen flex flex-col px-5">
       <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0">
         <div className="flex gap-3">
+          <MdOutlineKeyboardArrowLeft
+            className="text-[30px] cursor-pointer md:hidden "
+            onClick={() => {
+              navigate("/friend");
+            }}
+          />
           <FiUsers className="text-[22px]" />
           <div className="text-[16px]">Danh sách nhóm</div>
         </div>

@@ -269,9 +269,17 @@ function SideBar() {
   };
   //thêm document vào rooms
   const roomsWithMyDocument = [myDocumentRoom, ...rooms];
+  //dark/mode
+  const theme = useSelector((state) => state.theme.mode);
   return (
     <div className="flex">
-      <div className="w-[300px] bg-gray-50 border border-r h-screen">
+      <div
+        className={`w-full md:w-[300px]  ${
+          roomChatId || matchMyDocument ? "hidden md:block" : "block"
+        } ${
+          theme == "dark" ? "bg-[#22262b] text-white" : "bg-gray-50 "
+        }    border border-r h-screen`}
+      >
         <Function setSearchText={setSearchText} setUser={setUser} />
 
         {searchText !== "" ? (
@@ -424,7 +432,9 @@ function SideBar() {
             <div className="border-b-2 h-[5%] flex gap-2 px-3">
               <div
                 className={`text-[13px] font-[500] cursor-pointer ${
-                  active == 1 ? "text-[#ff5252]" : "text-black"
+                  active == 1
+                    ? "text-[#ff5252]"
+                    : `${theme == "dark" ? "[text-[#2d3136]" : "text-black"}`
                 }`}
                 onClick={() => setActive(1)}
               >
@@ -432,7 +442,9 @@ function SideBar() {
               </div>
               <div
                 className={`text-[13px] font-[500] cursor-pointer ${
-                  active == 2 ? "text-[#ff5252]" : "text-black"
+                  active == 2
+                    ? "text-[#ff5252]"
+                    : `${theme == "dark" ? "[text-[#2d3136]" : "text-black"}`
                 }`}
                 onClick={() => setActive(2)}
               >
@@ -477,7 +489,11 @@ function SideBar() {
                   >
                     <div
                       className={`flex gap-3 cursor-pointer px-3 py-4
-                        hover:bg-gray-100
+                        ${
+                          theme == "dark"
+                            ? "hover:bg-[#2d3136]"
+                            : "hover:bg-gray-100"
+                        }
                         ${unread > 0 ? "bg-blue-50" : ""}`}
                     >
                       <img
@@ -501,7 +517,13 @@ function SideBar() {
                                   (u) => u.user_id?._id !== state._id
                                 )?.user_id?.name}
                           </div>
-                          <div className="text-[13px] text-gray-600">
+                          <div
+                            className={`text-[13px] ${
+                              theme == "dark"
+                                ? "text-[#cccfd4]"
+                                : "text-gray-600"
+                            }`}
+                          >
                             {timeAgo(item?.lastMessage?.createdAt)}
                           </div>
                         </div>
@@ -510,8 +532,12 @@ function SideBar() {
                           className={`line-clamp-1 text-[13px]
                          ${
                            unread > 0
-                             ? "font-semibold text-black"
-                             : "text-gray-600"
+                             ? "font-semibold text-white"
+                             : `${
+                                 theme == "dark"
+                                   ? "text-[#cccfd4]"
+                                   : "text-gray-600"
+                               }`
                          }`}
                         >
                           {item?.lastMessage?.files?.length > 0 ? (
@@ -539,8 +565,13 @@ function SideBar() {
           </div>
         )}
       </div>
-      <div className="flex-1">
-        {(roomChatId || matchMyDocument) ? (
+      <div
+        className={`
+      w-full flex-1
+      ${roomChatId || matchMyDocument ? "block" : "hidden md:flex"}
+    `}
+      >
+        {roomChatId || matchMyDocument ? (
           <Outlet />
         ) : (
           <div className="w-full">

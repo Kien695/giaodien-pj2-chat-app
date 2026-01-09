@@ -5,9 +5,9 @@ import { FiPaperclip } from "react-icons/fi";
 import { IoSend } from "react-icons/io5";
 import React from "react";
 import { FaRegSmile } from "react-icons/fa";
-import { MdDevicesFold } from "react-icons/md";
+import { MdDevicesFold, MdOutlineKeyboardArrowLeft } from "react-icons/md";
 import { LuUserRoundCheck } from "react-icons/lu";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { useEffect } from "react";
 import { getData } from "../../utils/api";
@@ -16,6 +16,7 @@ import { useDispatch, useSelector } from "react-redux";
 import InfoUser from "../../Components/infoUser";
 import { setCurrentRoom } from "../../redux/userSlice";
 export default function ListFriend() {
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
   const [openInfo, setOpenInfo] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -43,9 +44,17 @@ export default function ListFriend() {
   return (
     <div className="w-full h-screen flex flex-col px-5">
       <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0">
-        <div className="flex gap-3">
-          <LuUserRoundCheck className="text-[22px]" />
-          <div className="text-[16px]">Danh sách bạn bè</div>
+        <div className="flex gap-4 items-center">
+          <MdOutlineKeyboardArrowLeft
+            className="text-[30px] cursor-pointer md:hidden "
+            onClick={() => {
+              navigate("/friend");
+            }}
+          />
+          <div className="flex gap-2">
+            <LuUserRoundCheck className="text-[22px]" />
+            <div className="text-[16px]">Danh sách bạn bè</div>
+          </div>
         </div>
       </div>
       <div className="text-[14px] font-[500] py-4">Bạn bè ({count})</div>

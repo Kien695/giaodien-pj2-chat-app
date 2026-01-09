@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Function from "../Function";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useParams } from "react-router-dom";
 import { LuUserPlus, LuUserRoundCheck } from "react-icons/lu";
 import { FiUsers } from "react-icons/fi";
 import { AiOutlineUsergroupAdd } from "react-icons/ai";
@@ -13,6 +13,7 @@ function Friend() {
   const [friendStatus, setFriendStatus] = useState({});
   const state = useSelector((state) => state.user);
   const socketConnection = state.socketConnection;
+  const { id } = useParams();
   const totalAccept =
     (state.lengthAcceptFriend ?? 0) +
     Number(localStorage.getItem("lengthAcceptFriend") ?? 0);
@@ -58,7 +59,11 @@ function Friend() {
   }, [socketConnection]);
   return (
     <div className="flex">
-      <div className="w-[300px] bg-gray-50 border border-r h-screen">
+      <div
+        className={`w-full md:w-[300px]  ${
+          id ? "hidden md:block" : "block"
+        } bg-gray-50 border border-r h-screen`}
+      >
         <Function setSearchText={setSearchText} setUser={setUser} />
         {searchText !== "" ? (
           <>
@@ -259,7 +264,12 @@ function Friend() {
           </>
         )}
       </div>
-      <div className="flex-1">
+      <div
+        className={`
+            w-full flex-1
+            ${id ? "block" : "hidden md:flex"}
+          `}
+      >
         <Outlet />
       </div>
     </div>

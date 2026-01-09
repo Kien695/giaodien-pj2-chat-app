@@ -16,7 +16,7 @@ export default function AuthSuccess() {
       const accessToken = params.get("token");
       if (accessToken) {
         localStorage.setItem("accessToken", accessToken);
-
+        localStorage.setItem("theme", "light");
         toast.success("Đăng nhập thành công");
         dispatch(setLogin(true));
         navigate("/chat");

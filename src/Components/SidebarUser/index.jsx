@@ -11,7 +11,10 @@ import { postData } from "../../utils/api";
 import { toast } from "react-toastify";
 import { logout, setLengthAcceptFriend } from "../../redux/userSlice";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import useIsMobile from "../IsMobile";
 export default function SideBarUser() {
+  const isMobile = useIsMobile();
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -56,6 +59,7 @@ export default function SideBarUser() {
         toast.success("Đăng xuất thành công");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        localStorage.removeItem("theme");
         dispatch(logout());
         navigate("/auth");
       }
@@ -69,7 +73,7 @@ export default function SideBarUser() {
   };
 
   return (
-    <div className="w-[4%] flex flex-col py-7 items-center justify-between bg-gray-500 h-screen max-h-screen">
+    <div className=" w-[11%] md:w-[4%]   flex flex-col py-7 items-center justify-between bg-gray-500 h-screen max-h-screen">
       <div className="flex flex-col items-center justify-center gap-5">
         {user.avatar ? (
           <img
@@ -153,7 +157,7 @@ export default function SideBarUser() {
           </Tooltip>
         </NavLink>
         <NavLink
-          to="/friend/1"
+          to={isMobile ? "/friend" : "/friend/1"}
           className={({ isActive }) =>
             `p-2 rounded ${isActive ? "bg-gray-700" : ""}`
           }

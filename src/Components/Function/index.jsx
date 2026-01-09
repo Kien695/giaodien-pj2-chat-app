@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { getData } from "../../utils/api";
 import AddGroup from "../AddGroup";
 import AddFriend from "../AddFriend";
+import { useSelector } from "react-redux";
 
 export default function Function({ setSearchText, setUser }) {
   const [keyword, setKeyword] = useState("");
@@ -36,7 +37,8 @@ export default function Function({ setSearchText, setUser }) {
 
     fetchData();
   }, [keyword]);
-
+  //dark/mode
+  const theme = useSelector((state) => state.theme.mode);
   return (
     <div className="flex h-[10%] items-center justify-between px-3 gap-2">
       <TextField
@@ -45,20 +47,40 @@ export default function Function({ setSearchText, setUser }) {
         size="small"
         name="keyword"
         onChange={handleInputChange}
+        className={`border-white ${
+          theme === "dark" ? "bg-[#22262b] text-white " : "bg-white text-black "
+        }`}
         sx={{
-          "& .MuiInputBase-input": {
-            padding: "5px 10px", // thu nhỏ chiều cao
-            fontSize: "14px",
-          },
-          "& .MuiInputBase-root": {
+          "& .MuiOutlinedInput-root": {
+            backgroundColor: theme === "dark" ? "#22262b" : "#fff",
+            color: theme === "dark" ? "#fff" : "#000",
             borderRadius: "8px",
+            "&:hover fieldset": {
+              borderColor: theme === "dark" ? "#555" : "#ccc",
+            },
+            "&.Mui-focused fieldset": {
+              borderColor: theme === "dark" ? "#fff" : "#000",
+            },
+          },
+          "& .MuiInputBase-input": {
+            padding: "5px 10px",
+            fontSize: "14px",
+            color: theme === "dark" ? "#fff" : "#000", // text input
+          },
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: theme === "dark" ? "#555" : "#ccc", // viền mặc định
           },
         }}
         slotProps={{
           input: {
             startAdornment: (
               <InputAdornment position="start">
-                <IoSearch className="cursor-pointer" onClick={handleClick} />
+                <IoSearch
+                  className={`${
+                    theme == "dark" ? "!text-white" : ""
+                  } cursor-pointer`}
+                  onClick={handleClick}
+                />
               </InputAdornment>
             ),
           },

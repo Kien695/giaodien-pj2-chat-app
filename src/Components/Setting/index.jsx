@@ -2,7 +2,7 @@ import * as React from "react";
 import Button from "@mui/material/Button";
 import { styled } from "@mui/material/styles";
 import Dialog from "@mui/material/Dialog";
-
+import { TfiMenuAlt } from "react-icons/tfi";
 import IconButton from "@mui/material/IconButton";
 import { CiEdit } from "react-icons/ci";
 import { TbLogout2 } from "react-icons/tb";
@@ -10,6 +10,8 @@ import { IoClose } from "react-icons/io5";
 import { AiOutlineSecurityScan } from "react-icons/ai";
 import { MdLockOpen, MdOutlineCleaningServices } from "react-icons/md";
 import Divider from "@mui/material/Divider";
+import Menu from "@mui/material/Menu";
+import MenuItem from "@mui/material/MenuItem";
 import {
   Checkbox,
   FormControl,
@@ -20,6 +22,8 @@ import {
   Switch,
   TextField,
 } from "@mui/material";
+import { useDispatch, useSelector } from "react-redux";
+import { setTheme } from "../../redux/themeSlice";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -89,7 +93,19 @@ const IOSSwitch = styled((props) => (
 }));
 export default function Setting({ open, onClose }) {
   const [active, setActive] = React.useState(1);
-  const [value, setValue] = React.useState("");
+
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const openMenu = Boolean(anchorEl);
+  const handleClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+  //dark/mode
+  const theme = useSelector((state) => state.theme.mode);
+  const dispatch = useDispatch();
+
   return (
     <React.Fragment>
       <BootstrapDialog
@@ -104,7 +120,7 @@ export default function Setting({ open, onClose }) {
         }}
       >
         <div className="flex h-full rounded-lg">
-          <div className="w-[30%] border-r">
+          <div className="w-[0] md:w-[30%] border-r">
             <div className="py-3 px-4 text-[17px] font-[500]">Cài đặt</div>
             <div
               onClick={() => setActive(1)}
@@ -143,7 +159,84 @@ export default function Setting({ open, onClose }) {
             </div>
           </div>
           <div className="flex-1 flex flex-col bg-gray-100">
-            <div className=" flex  justify-end ">
+            <div className=" flex items-center justify-between  md:justify-end ">
+              <div
+                aria-controls={openMenu ? "demo-positioned-menu" : undefined}
+                aria-haspopup="true"
+                aria-expanded={openMenu ? "true" : undefined}
+                onClick={handleClick}
+              >
+                <TfiMenuAlt className="ml-3 text-[20px] md:hidden" />
+              </div>
+              <Menu
+                id="demo-positioned-menu"
+                aria-labelledby="demo-positioned-button"
+                anchorEl={anchorEl}
+                open={openMenu}
+                onClose={handleClose}
+                anchorOrigin={{
+                  vertical: "bottom",
+                  horizontal: "right",
+                }}
+                transformOrigin={{
+                  vertical: "top",
+                  horizontal: "left",
+                }}
+              >
+                <div
+                  onClick={() => {
+                    setActive(1), handleClose();
+                  }}
+                  className={` py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px] ${
+                    active == 1 ? "text-[#ff5252]" : "text-black"
+                  } hover:bg-gray-200`}
+                >
+                  <AiOutlineSecurityScan />
+                  <span>Tài khoản và bảo mật</span>
+                </div>
+
+                <div
+                  onClick={() => {
+                    setActive(2), handleClose();
+                  }}
+                  className={` py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px] ${
+                    active == 2 ? "text-[#ff5252]" : "text-black"
+                  } hover:bg-gray-200`}
+                >
+                  <MdLockOpen />
+                  <span>Quyền riêng tư</span>
+                </div>
+
+                <div
+                  onClick={() => {
+                    setActive(3), handleClose();
+                  }}
+                  className={` py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px] ${
+                    active == 3 ? "text-[#ff5252]" : "text-black"
+                  } hover:bg-gray-200`}
+                >
+                  <MdOutlineCleaningServices />
+                  <span>Giao diện</span>
+                </div>
+
+                <div
+                  className=" py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px]
+              text-black
+               hover:bg-gray-200"
+                >
+                  <TbLogout2 />
+                  <span>Đăng xuất</span>
+                </div>
+              </Menu>
+              <div className="md:hidden">
+                {active == 1 ? (
+                  <div className="font-[500]">Tài khoản và bảo mật</div>
+                ) : active == 2 ? (
+                  <div className="font-[500]">Quyền riêng tư</div>
+                ) : (
+                  <div className="font-[500]">Giao diện</div>
+                )}
+              </div>
               <Button
                 sx={{
                   color: "black",
@@ -280,10 +373,14 @@ export default function Setting({ open, onClose }) {
                     <div className="flex items-center justify-between">
                       <FormControl>
                         <RadioGroup
-                          value={value}
+                          value={theme}
                           row
                           sx={{ gap: 4 }}
-                          onChange={(e) => setValue(e.target.value)}
+                          onClick={() =>
+                            dispatch(
+                              setTheme(theme === "light" ? "dark" : "light")
+                            )
+                          }
                         >
                           <FormControlLabel
                             value="dark"
@@ -293,7 +390,7 @@ export default function Setting({ open, onClose }) {
                             }
                           />
                           <FormControlLabel
-                            value="mode"
+                            value="light"
                             control={<Radio />}
                             label={
                               <div className="w-[50px] h-[50px] bg-gray-100 border-2 border-blue-800 rounded-2xl"></div>

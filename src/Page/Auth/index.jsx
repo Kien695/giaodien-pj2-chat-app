@@ -105,6 +105,7 @@ export function Auth() {
         toast.success("Đăng nhập thành công!");
         localStorage.setItem("accessToken", res?.data?.accessToken);
         localStorage.setItem("refreshToken", res?.data?.refreshToken);
+        localStorage.setItem("theme", "light");
         setFormLogin({ email: "", password: "" });
         dispatch(setLogin(true));
         navigate("/chat");
@@ -296,7 +297,10 @@ export function Auth() {
           fullWidth
           variant="outlined"
           onClick={() => {
-            window.open("http://localhost:3000/auth/google", "_self");
+            window.open(
+              `${import.meta.env.VITE_SOCKET_URL}/auth/google`,
+              "_self"
+            );
           }}
         >
           <FcGoogle className="text-[20px]" />

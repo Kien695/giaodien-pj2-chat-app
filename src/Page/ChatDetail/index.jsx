@@ -27,6 +27,7 @@ import {
   MdDriveFolderUpload,
   MdOutlineContentCopy,
   MdOutlineExitToApp,
+  MdOutlineKeyboardArrowLeft,
   MdOutlineKeyboardDoubleArrowLeft,
   MdOutlineOndemandVideo,
 } from "react-icons/md";
@@ -58,6 +59,7 @@ export default function ChatDetail() {
   const navigate = useNavigate();
   const params = useParams();
   const { roomChatId } = useParams();
+
   //online/offline user
   const onlineUsers = useSelector((state) => state.online.users);
   //update time- render mỗi phút
@@ -530,14 +532,21 @@ export default function ChatDetail() {
       }
     }
   };
+  //dark/mode
+  const theme = useSelector((state) => state.theme.mode);
+
   return (
-    <div className="w-full h-screen flex">
+    <div
+      className={`w-full h-screen flex ${
+        theme == "dark" ? "bg-[#22262b] text-[#cbced3]" : ""
+      } `}
+    >
       <div
-        className={`flex flex-col h-full ${
-          buttonActive || showMember ? "w-2/3" : "w-full"
-        } border-r`}
+        className={`flex  flex-col h-full border-r ${
+          buttonActive || showMember ? "hidden md:flex md:w-2/3" : "w-full"
+        }`}
       >
-        <div className="flex h-[11%] items-center justify-between px-5 py-1 border-b flex-shrink-0">
+        <div className="flex h-[11%]  items-center justify-between px-5 py-1 border-b flex-shrink-0">
           <div className="flex gap-3 relative">
             {roomInfo.typeRoom === "group" ? (
               <div className="flex gap-3 relative">
@@ -628,7 +637,9 @@ export default function ChatDetail() {
                   </div>
 
                   <div
-                    className="text-[14px] text-gray-700 flex gap-1 cursor-pointer items-center hover:text-blue-500"
+                    className={`text-[14px] ${
+                      theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                    } flex gap-1 cursor-pointer items-center hover:text-blue-500`}
                     onClick={handleShowMember}
                   >
                     <FaRegUser />
@@ -636,7 +647,7 @@ export default function ChatDetail() {
                   </div>
                 </div>
               </div>
-            ) :  (
+            ) : (
               <>
                 {dataUser?.map((item, index) => {
                   const presence = onlineUsers[item.user_id._id];
@@ -672,11 +683,23 @@ export default function ChatDetail() {
                         </div>
 
                         {isOnline ? (
-                          <div className="text-[14px] text-gray-700">
+                          <div
+                            className={`text-[14px] ${
+                              theme == "dark"
+                                ? "text-[#8b96a5]"
+                                : "text-gray-700"
+                            }`}
+                          >
                             Đang hoạt động
                           </div>
                         ) : (
-                          <div className="text-[14px] text-gray-700">
+                          <div
+                            className={`text-[14px] ${
+                              theme == "dark"
+                                ? "text-[#8b96a5]"
+                                : "text-gray-700"
+                            }`}
+                          >
                             {lastActive
                               ? timeAgo(lastActive)
                               : timeAgo(item.user_id.lastActive)}
@@ -697,13 +720,21 @@ export default function ChatDetail() {
           <Button>
             <MdDevicesFold
               className={`text-[20px] ${
-                buttonActive ? "text-blue-500" : "text-gray-500"
+                buttonActive
+                  ? "text-blue-500"
+                  : theme === "dark"
+                  ? "text-white"
+                  : "text-gray-500"
               }`}
               onClick={handleClickInfoChat}
             />
           </Button>
         </div>
-        <div className=" flex-1 px-5 bg-blue-50 flex flex-col  gap-2 overflow-y-auto pt-2">
+        <div
+          className={`flex-1 px-5 ${
+            theme == "dark" ? "bg-[#16191d]" : "bg-blue-50"
+          } flex flex-col  gap-2 overflow-y-auto pt-2`}
+        >
           {chat.map((item, index) => {
             if (item.type === "system") {
               return (
@@ -724,20 +755,30 @@ export default function ChatDetail() {
                 {!isMe && (
                   <img
                     src={item.user_id.avatar || "https://i.pravatar.cc/40"}
-                    className="w-8 h-8 rounded-full"
+                    className="w-6 h-6 md:w-8 md:h-8 rounded-full"
                   />
                 )}
 
                 <div
                   className={`group relative ${
                     isMe
-                      ? "bg-blue-100 rounded-xl rounded-br-none"
+                      ? `${
+                          theme === "dark" ? "bg-[#1f344d]" : "bg-blue-100"
+                        } rounded-xl rounded-br-none`
                       : "bg-white rounded-xl rounded-bl-none"
                   } p-2 max-w-[60%]`}
                 >
                   {/* Nội dung text */}
 
-                  {item.content && <div className="mb-1">{item.content}</div>}
+                  {item.content && (
+                    <div
+                      className={`${
+                        theme == "dark" ? "text-white" : "text-gray-600"
+                      } mb-1`}
+                    >
+                      {item.content}
+                    </div>
+                  )}
 
                   <Tooltip title="Xem thêm" placement="bottom-start">
                     <div
@@ -793,7 +834,7 @@ export default function ChatDetail() {
                           <PhotoView key={i} src={img.url}>
                             <img
                               src={img.url}
-                              className="w-32 h-32 rounded-md object-cover"
+                              className="w-20 h-20 md:w-32 md:h-32 rounded-md object-cover"
                             />
                           </PhotoView>
                         ))}
@@ -806,7 +847,9 @@ export default function ChatDetail() {
                   {item?.files?.map((f, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+                      className={`flex items-center gap-2 p-2 rounded  ${
+                        theme ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+                      } transition-colors cursor-pointer`}
                     >
                       <MdAttachFile className="text-blue-500" />
                       <a
@@ -839,7 +882,9 @@ export default function ChatDetail() {
             <div className="flex justify-end">
               <div
                 key={file.id}
-                className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+                className={`flex items-center gap-2 p-2 rounded  ${
+                  theme ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+                } transition-colors cursor-pointer`}
               >
                 <MdAttachFile className="text-gray-500" />
                 <span className="text-sm text-gray-700 break-all">
@@ -977,18 +1022,20 @@ export default function ChatDetail() {
             <MdOutlineOndemandVideo
               className="text-[18px] cursor-pointer"
               onClick={() => {
-                toast.error(
-                  "Sorry bạn nha. Vì dùng cloud free nên sợ không đủ dung lượng nên mình chưa làm chức năng này hehe :)"
-                );
+                toast.error("Chức năng này chưa làm hehe :)");
               }}
             />
           </div>
 
-          <div className="flex items-center gap-2 px-3 h-12">
+          <div className="flex items-center gap-2  px-3 h-12">
             <input
+              className={`flex-1 px-3 py-1 rounded outline-none ${
+                theme === "dark"
+                  ? "bg-[#22262b] text-white "
+                  : "bg-white text-black "
+              }`}
               type="text"
               placeholder="Nhập tin nhắn gửi đến A"
-              className="flex-1  border-none focus:outline-none"
               ref={input}
               onChange={handleInputChange}
               onKeyDown={(e) => e.key === "Enter" && handleMessage()}
@@ -1007,7 +1054,7 @@ export default function ChatDetail() {
       </div>
       {(buttonActive || showMember) &&
         (showMember && roomInfo.typeRoom === "group" ? (
-          <div className="w-1/3 h-full overflow-y-auto">
+          <div className="w-full  md:w-1/3 h-full overflow-y-auto">
             <div className="flex h-[11%] gap-8 items-center border-b px-5 py-1 ">
               <MdOutlineKeyboardDoubleArrowLeft
                 className="text-[25px]"
@@ -1015,7 +1062,11 @@ export default function ChatDetail() {
                   setShowMember(!showMember);
                 }}
               />
-              <div className=" font-[500] text-[17px] text-gray-700">
+              <div
+                className={`font-[500] text-[17px] ${
+                  theme == "dark" ? "text-white" : "text-gray-700"
+                } `}
+              >
                 Thành viên nhóm
               </div>
             </div>
@@ -1041,7 +1092,11 @@ export default function ChatDetail() {
                 roomChatId={roomChatId}
                 dataUser={dataUser}
               />
-              <div className="text-[15px] py-5 text-gray-700">
+              <div
+                className={`text-[15px] py-5  ${
+                  theme == "dark" ? "text-white" : "text-gray-700"
+                }`}
+              >
                 Danh sách thành viên ({dataUser.length})
               </div>
               <div className="overflow-y-auto">
@@ -1133,9 +1188,20 @@ export default function ChatDetail() {
             </div>
           </div>
         ) : (
-          <div className="w-1/3 h-full overflow-y-auto">
-            <div className="flex h-[11%] items-center justify-center  px-5 py-1 border-b font-[500] text-[17px] text-gray-700">
+          <div className="w-full md:block md:w-1/3 h-full overflow-y-auto">
+            <div
+              className={`flex h-[11%] items-center justify-between   px-5 py-1 border-b font-[500] text-[17px] ${
+                theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+              }`}
+            >
+              <MdOutlineKeyboardArrowLeft
+                className="text-[30px] cursor-pointer"
+                onClick={() => {
+                  setButtonActive(false);
+                }}
+              />
               Thông tin hội thoại
+              <div></div>
             </div>
             {roomInfo.typeRoom === "group" ? (
               <>
@@ -1165,23 +1231,37 @@ export default function ChatDetail() {
                     />
                   </div>
                 </div>
-                <div className=" text-gray-700 border-b-8 pt-2 ">
+                <div
+                  className={`${
+                    theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                  } border-b-8 pt-2`}
+                >
                   <span className="text-[15px] font-[500] px-4  py-2 my-2">
                     Thành viên nhóm
                   </span>
-                  <div className="flex gap-3 text-[14px] hover:bg-gray-100 cursor-pointer p-3">
+                  <div
+                    className={`flex gap-3 text-[14px] ${
+                      theme ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+                    } cursor-pointer p-3`}
+                  >
                     <HiOutlineUserGroup className="text-[22px]" />
                     <div onClick={handleShowMember}>
                       {dataUser.length} thành viên
                     </div>
                   </div>
                 </div>
-                <div className="px-5 py-4 text-gray-700 border-b-8">
+                <div className="px-5 py-4  border-b-8">
                   <div
                     className="flex items-center justify-between cursor-pointer select-none"
                     onClick={() => setOpenImages(!openImages)}
                   >
-                    <span className="font-medium">Ảnh</span>
+                    <span
+                      className={`${
+                        theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                      }font-medium`}
+                    >
+                      Ảnh
+                    </span>
                     <IoChevronDownSharp
                       className={`  transition-transform duration-200
                     ${openImages ? "rotate-180" : ""}`}
@@ -1212,7 +1292,11 @@ export default function ChatDetail() {
                     </div>
                   )}
                 </div>
-                <div className="px-5 py-4 text-gray-700 border-b-8">
+                <div
+                  className={`px-5 py-4  border-b-8 ${
+                    theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                  }`}
+                >
                   <div
                     className="flex items-center justify-between cursor-pointer select-none"
                     onClick={() => setOpenFiles(!openFiles)}
@@ -1235,7 +1319,11 @@ export default function ChatDetail() {
                                 {item.files.map((f, idx) => (
                                   <div
                                     key={idx}
-                                    className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+                                    className={`flex items-center gap-2 p-2 rounded  ${
+                                      theme
+                                        ? "hover:bg-[#2d3136]"
+                                        : "hover:bg-gray-100"
+                                    }  transition-colors cursor-pointer`}
                                   >
                                     <MdAttachFile className="text-blue-500" />
                                     <a
