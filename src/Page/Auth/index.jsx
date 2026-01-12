@@ -210,6 +210,7 @@ export function Auth() {
               />
               <Button
                 variant="contained"
+                disabled={loading}
                 type="submit"
                 sx={{
                   backgroundColor: "red",
@@ -263,6 +264,7 @@ export function Auth() {
 
             <Button
               variant="contained"
+              disabled={loading}
               type="submit"
               sx={{
                 backgroundColor: "red",

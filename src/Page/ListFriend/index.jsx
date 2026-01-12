@@ -40,10 +40,15 @@ export default function ListFriend() {
   const handleUnFriend = (userId) => {
     socketConnection.emit("CLIENT_UNFRIEND", userId);
   };
-
+  //dark/mode
+  const theme = useSelector((state) => state.theme.mode);
   return (
-    <div className="w-full h-screen flex flex-col px-5">
-      <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0">
+    <div
+      className={`w-full h-screen flex flex-col px-5 ${
+        theme == "dark" ? "bg-[#16191d] text-[#c2c5cd]" : "text-[#4f5c6f]"
+      }`}
+    >
+      <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0 ">
         <div className="flex gap-4 items-center">
           <MdOutlineKeyboardArrowLeft
             className="text-[30px] cursor-pointer md:hidden "
@@ -53,15 +58,21 @@ export default function ListFriend() {
           />
           <div className="flex gap-2">
             <LuUserRoundCheck className="text-[22px]" />
-            <div className="text-[16px]">Danh sách bạn bè</div>
+            <div className="text-[16px] font-[500]">Danh sách bạn bè</div>
           </div>
         </div>
       </div>
       <div className="text-[14px] font-[500] py-4">Bạn bè ({count})</div>
-      <div className="bg-gray-50  rounded-md shadow-md">
+      <div
+        className={`${
+          theme == "dark" ? "bg-[#22262b]" : "bg-gray-50"
+        } rounded-md shadow-md `}
+      >
         {friend.map((item, index) => (
           <div
-            className="flex items-center border-1 border-b justify-between gap-3 cursor-pointer hover:bg-gray-100 px-3 py-3"
+            className={`flex items-center border-1 border-b justify-between gap-3 cursor-pointer ${
+              theme == "dark" ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+            }  px-3 py-3`}
             key={index}
           >
             <Link to={`/chat/${item?.infoFriend?.room_chat_id}`}>
@@ -75,7 +86,7 @@ export default function ListFriend() {
                   className="w-[45px] rounded-full"
                 />
                 <div
-                  className="text-[15px] font-[500]"
+                  className="text-[15px] font-[500] "
                   onClick={() =>
                     dispatch(setCurrentRoom(item?.infoFriend?.room_chat_id))
                   }

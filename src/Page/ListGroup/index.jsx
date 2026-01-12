@@ -46,8 +46,14 @@ export default function ListGroup() {
       }
     }
   };
+  //dark/mode
+  const theme = useSelector((state) => state.theme.mode);
   return (
-    <div className="w-full h-screen flex flex-col px-5">
+    <div
+      className={`w-full h-screen flex flex-col px-5 ${
+        theme == "dark" ? "bg-[#16191d] text-[#c2c5cd]" : "text-[#4f5c6f]"
+      }`}
+    >
       <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0">
         <div className="flex gap-3">
           <MdOutlineKeyboardArrowLeft
@@ -57,16 +63,22 @@ export default function ListGroup() {
             }}
           />
           <FiUsers className="text-[22px]" />
-          <div className="text-[16px]">Danh sách nhóm</div>
+          <div className="text-[16px] font-[500]">Danh sách nhóm</div>
         </div>
       </div>
       <div className="text-[14px] font-[500] py-4">
         Hiện có ({room.length}) nhóm
       </div>
-      <div className="bg-gray-50  rounded-md shadow-md">
+      <div
+        className={`${
+          theme == "dark" ? "bg-[#22262b]" : "bg-gray-50"
+        } rounded-md shadow-md `}
+      >
         {room.map((item, index) => (
           <div
-            className="flex items-center border-1 border-b justify-between gap-3 cursor-pointer hover:bg-gray-100 px-3 py-3"
+            className={`flex items-center border-1 border-b justify-between gap-3 cursor-pointer ${
+              theme == "dark" ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+            }  px-3 py-3`}
             key={index}
           >
             <div
@@ -82,10 +94,8 @@ export default function ListGroup() {
                 className="w-[45px] rounded-full"
               />
               <div>
-                <div className="text-[15px] font-[500] text-gray-800">
-                  {item.title}
-                </div>
-                <span className="text-[13px] text-gray-500">
+                <div className="text-[15px] font-[500] ">{item.title}</div>
+                <span className="text-[13px] ">
                   Có {item?.users?.length} thành viên
                 </span>
               </div>

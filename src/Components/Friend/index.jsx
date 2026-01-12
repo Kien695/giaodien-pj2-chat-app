@@ -57,12 +57,14 @@ function Friend() {
       socketConnection.off("SERVER_FRIEND_STATUS", handleStatus);
     };
   }, [socketConnection]);
+  //dark/mode
+  const theme = useSelector((state) => state.theme.mode);
   return (
     <div className="flex">
       <div
-        className={`w-full md:w-[300px]  ${
-          id ? "hidden md:block" : "block"
-        } bg-gray-50 border border-r h-screen`}
+        className={`w-full md:w-[300px]  ${id ? "hidden md:block" : "block"} ${
+          theme == "dark" ? "bg-[#22262b] text-[#c2c5cd]" : "bg-gray-50 "
+        }   border border-r h-screen`}
       >
         <Function setSearchText={setSearchText} setUser={setUser} />
         {searchText !== "" ? (
@@ -194,8 +196,12 @@ function Friend() {
             <NavLink
               to="/friend/1"
               className={({ isActive }) =>
-                `cursor-pointer flex gap-4  hover:bg-gray-100 font-[500] px-4 py-4 items-center text-gray-800 ${
-                  isActive ? "bg-gray-200 " : ""
+                `cursor-pointer flex gap-4 ${
+                  theme == "dark" ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+                }  font-[500] px-4 py-4 items-center  ${
+                  isActive
+                    ? `${theme == "dark" ? "bg-[#1f344d]" : "bg-gray-200"}`
+                    : ""
                 }`
               }
             >
@@ -205,8 +211,12 @@ function Friend() {
             <NavLink
               to="/friend/2"
               className={({ isActive }) =>
-                `cursor-pointer flex gap-4  hover:bg-gray-100 font-[500] px-4 py-4 items-center text-gray-800 ${
-                  isActive ? "bg-gray-200 " : ""
+                `cursor-pointer flex gap-4  ${
+                  theme == "dark" ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+                }  font-[500] px-4 py-4 items-center  ${
+                  isActive
+                    ? `${theme == "dark" ? "bg-[#1f344d]" : "bg-gray-200"}`
+                    : ""
                 }`
               }
             >
@@ -216,8 +226,12 @@ function Friend() {
             <NavLink
               to="/friend/3"
               className={({ isActive }) =>
-                `cursor-pointer flex gap-4  hover:bg-gray-100 font-[500] px-4 py-4 items-center text-gray-800 ${
-                  isActive ? "bg-gray-200 " : ""
+                `cursor-pointer flex gap-4  ${
+                  theme == "dark" ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+                }  font-[500] px-4 py-4 items-center  ${
+                  isActive
+                    ? `${theme == "dark" ? "bg-[#1f344d]" : "bg-gray-200"}`
+                    : ""
                 }`
               }
               onClick={() => {
@@ -253,8 +267,12 @@ function Friend() {
             <NavLink
               to="/friend/4"
               className={({ isActive }) =>
-                `cursor-pointer flex gap-4  hover:bg-gray-100 font-[500] px-4 py-4 items-center text-gray-800 ${
-                  isActive ? "bg-gray-200 " : ""
+                `cursor-pointer flex gap-4  ${
+                  theme == "dark" ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+                }  font-[500] px-4 py-4 items-center  ${
+                  isActive
+                    ? `${theme == "dark" ? "bg-[#1f344d]" : "bg-gray-200"}`
+                    : ""
                 }`
               }
             >

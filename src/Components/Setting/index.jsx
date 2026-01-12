@@ -14,6 +14,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import {
   Checkbox,
+  CircularProgress,
   FormControl,
   FormControlLabel,
   FormGroup,
@@ -23,7 +24,12 @@ import {
   TextField,
 } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
-import { setTheme } from "../../redux/themeSlice";
+import { setTheme, setUseAvatarBg } from "../../redux/themeSlice";
+import { toast } from "react-toastify";
+import { useState } from "react";
+import { postData } from "../../utils/api";
+import { logout } from "../../redux/userSlice";
+import { useNavigate } from "react-router-dom";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -92,8 +98,9 @@ const IOSSwitch = styled((props) => (
   },
 }));
 export default function Setting({ open, onClose }) {
+  const dispatch = useDispatch();
   const [active, setActive] = React.useState(1);
-
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState(null);
   const openMenu = Boolean(anchorEl);
   const handleClick = (event) => {
@@ -102,10 +109,90 @@ export default function Setting({ open, onClose }) {
   const handleClose = () => {
     setAnchorEl(null);
   };
+
+  //change password
+  const [loading, setLoading] = React.useState(false);
+  const [formData, setFormData] = useState({
+    passwordOld: "",
+    passwordNew: "",
+    confirmPasswordNew: "",
+  });
+  const ref = {
+    passwordNew: React.useRef(),
+    passwordOld: React.useRef(),
+    confirmPasswordNew: React.useRef(),
+  };
+  const handleInput = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+  const handleChangePassword = async () => {
+    if (loading) return;
+    setLoading(true);
+    if (!formData.passwordOld) {
+      toast.error("Vui lòng nhập mật khẩu hiện tại!");
+      ref.passwordOld.current.focus();
+      setLoading(false);
+      return;
+    }
+    if (!formData.passwordNew || formData.passwordNew.length < 8) {
+      toast.error("Vui lòng nhập đúng theo yêu cầu");
+      ref.passwordNew.current.focus();
+      setLoading(false);
+      return;
+    }
+    if (formData.confirmPasswordNew !== formData.passwordNew) {
+      toast.error("Vui lòng nhập đúng theo yêu cầu");
+      ref.confirmPasswordNew.current.focus();
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await postData("/auth/change-password", formData);
+      if (res.success) {
+        toast.success(res.message || "Đổi mật khẩu thành công");
+        setFormData({
+          passwordOld: "",
+          passwordNew: "",
+          confirmPasswordNew: "",
+        });
+      }
+    } catch (error) {
+      if (error.response) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Không thể kết nối server!");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+  //logout
+  const handleLogout = async () => {
+    try {
+      const resLogout = await postData("/auth/logout");
+      if (resLogout.success) {
+        toast.success("Đăng xuất thành công");
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("theme");
+        localStorage.removeItem("useAvatarBg");
+        dispatch(logout());
+        navigate("/auth");
+      }
+    } catch (error) {
+      if (error.response) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error("Không thể kết nối server!");
+      }
+    }
+  };
   //dark/mode
   const theme = useSelector((state) => state.theme.mode);
-  const dispatch = useDispatch();
 
+  //userBG
+  const useAvatarBg = useSelector((state) => state.theme.useAvatarBg);
   return (
     <React.Fragment>
       <BootstrapDialog
@@ -153,6 +240,7 @@ export default function Setting({ open, onClose }) {
               className=" py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px]
               text-black
                hover:bg-gray-200"
+              onClick={handleLogout}
             >
               <TbLogout2 />
               <span>Đăng xuất</span>
@@ -223,6 +311,7 @@ export default function Setting({ open, onClose }) {
                   className=" py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px]
               text-black
                hover:bg-gray-200"
+                  onClick={handleLogout}
                 >
                   <TbLogout2 />
                   <span>Đăng xuất</span>
@@ -265,10 +354,13 @@ export default function Setting({ open, onClose }) {
                     <div className="flex flex-col gap-2">
                       <div className="text-[13px]">Mật khẩu hiện tại: </div>
                       <TextField
-                        name="password"
+                        type="password"
+                        name="passwordOld"
                         size="small"
                         label="Mật khẩu hiện tại"
                         variant="outlined"
+                        inputRef={ref.passwordOld}
+                        onChange={handleInput}
                       />
                     </div>
 
@@ -276,19 +368,25 @@ export default function Setting({ open, onClose }) {
                     <div className="flex flex-col gap-2">
                       <div className="text-[13px]">Mật khẩu mới: </div>
                       <TextField
-                        name="password"
+                        type="password"
+                        name="passwordNew"
                         size="small"
                         label="Mật khẩu mới"
                         variant="outlined"
+                        inputRef={ref.passwordNew}
+                        onChange={handleInput}
                       />
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="text-[13px]">Xác nhận mật khẩu mới: </div>
                       <TextField
-                        name="password"
+                        type="password"
+                        name="confirmPasswordNew"
                         size="small"
                         label="Xác nhận mật khẩu mới"
                         variant="outlined"
+                        inputRef={ref.confirmPasswordNew}
+                        onChange={handleInput}
                       />
                     </div>
                     <div className="py-2 px-4 flex justify-end gap-2">
@@ -304,13 +402,22 @@ export default function Setting({ open, onClose }) {
                       </Button>
                       <Button
                         variant="contained"
+                        disabled={loading}
                         sx={{
                           backgroundColor: "#ff5252",
                           textTransform: "none",
                           color: "#fff",
                         }}
+                        onClick={handleChangePassword}
                       >
-                        Cập nhật
+                        {loading ? (
+                          <div className="flex gap-2">
+                            <CircularProgress size={20} color="inherit" /> Đang
+                            xử lí...
+                          </div>
+                        ) : (
+                          "Cập nhật"
+                        )}
                       </Button>
                     </div>
                   </div>
@@ -406,7 +513,15 @@ export default function Setting({ open, onClose }) {
                         Cho phép dùng avatar làm ảnh nền khung chat:
                       </div>
                       <FormControlLabel
-                        control={<IOSSwitch sx={{ m: 1 }} defaultChecked />}
+                        control={
+                          <IOSSwitch
+                            sx={{ m: 1 }}
+                            checked={useAvatarBg}
+                            onChange={(e) =>
+                              dispatch(setUseAvatarBg(e.target.checked))
+                            }
+                          />
+                        }
                       />
                     </div>
                   </div>

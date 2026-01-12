@@ -55,8 +55,14 @@ export default function AddFriend() {
   const handleAcceptFriend = (userId) => {
     socketConnection.emit("CLIENT_ACCEPT_FRIEND", userId);
   };
+  //dark/mode
+  const theme = useSelector((state) => state.theme.mode);
   return (
-    <div className="w-full h-screen flex flex-col px-5">
+    <div
+      className={`w-full h-screen flex flex-col px-5 ${
+        theme == "dark" ? "bg-[#16191d] text-[#c2c5cd]" : "text-[#4f5c6f]"
+      }`}
+    >
       <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0">
         <div className="flex gap-3">
           <MdOutlineKeyboardArrowLeft
@@ -75,7 +81,9 @@ export default function AddFriend() {
       <div className="flex flex-wrap gap-3">
         {invite.map((item, index) => (
           <div
-            className="bg-gray-100 shadow-md border border-gray-300 p-4 flex flex-col gap-3  w-1/3 rounded-md "
+            className={`${
+              theme == "dark" ? "bg-[#2d3136] " : "bg-gray-100"
+            } shadow-md border border-gray-300 p-4 flex flex-col gap-3  md:w-1/3 rounded-md `}
             key={item._id}
           >
             <div className="flex justify-between">
@@ -95,7 +103,11 @@ export default function AddFriend() {
               </div>
               <PiChatCenteredDotsThin className="text-[20px] cursor-pointer" />
             </div>
-            <div className="bg-gray-200 border border-gray-300 p-3 rounded-md">
+            <div
+              className={`${
+                theme == "dark" ? "bg-[#2d3136] " : "bg-gray-100"
+              }border border-gray-300 p-2 rounded-md`}
+            >
               {item?.requestFriends[0]?.message}
             </div>
             <div className="flex gap-3 justify-center">

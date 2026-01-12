@@ -143,7 +143,7 @@ export default function ChatDetail() {
   };
 
   //edit rooms
-
+  const [loading, setLoading] = useState(false);
   const [loadingAvatar, setLoadingAvatar] = useState(false);
   const [formInfo, setFormInfo] = useState({
     title: roomInfo.title || "",
@@ -163,7 +163,10 @@ export default function ChatDetail() {
       }));
     }
   };
+
   const handleConfirm = async () => {
+    if (loading) return;
+    setLoading(true);
     try {
       const formData = new FormData();
       formData.append("title", formInfo.title);
@@ -183,6 +186,8 @@ export default function ChatDetail() {
       }
     } catch (error) {
       console.error("Upload failed:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -532,8 +537,8 @@ export default function ChatDetail() {
       }
     }
   };
-  //dark/mode
-  const theme = useSelector((state) => state.theme.mode);
+  //dark/mode && avatarBG
+  const { mode: theme, useAvatarBg } = useSelector((state) => state.theme);
 
   return (
     <div
@@ -629,8 +634,19 @@ export default function ChatDetail() {
                       <Divider sx={{ my: 0.2 }} />
                       <DialogActions>
                         <Button onClick={handleCloseOpen}>Hủy</Button>
-                        <Button onClick={handleConfirm} autoFocus>
-                          Xác nhận
+                        <Button
+                          disabled={loading}
+                          onClick={handleConfirm}
+                          autoFocus
+                        >
+                          {loading ? (
+                            <div className="flex gap-2">
+                              <CircularProgress size={20} color="inherit" />{" "}
+                              Đang xử lí...
+                            </div>
+                          ) : (
+                            "Cập nhật"
+                          )}
                         </Button>
                       </DialogActions>
                     </Dialog>
@@ -647,7 +663,7 @@ export default function ChatDetail() {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : roomInfo.typeRoom == "friend" ? (
               <>
                 {dataUser?.map((item, index) => {
                   const presence = onlineUsers[item.user_id._id];
@@ -714,6 +730,32 @@ export default function ChatDetail() {
                   );
                 })}
               </>
+            ) : (
+              <div className="flex gap-3 relative">
+                <img
+                  src={
+                    roomInfo.avatar ||
+                    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ-zvsfyRJwofBZJROisGYWZXLdBygcVh9Wgw&s"
+                  }
+                  alt="avatar"
+                  className="w-[45px] rounded-full cursor-pointer"
+                  onClick={() => setOpenInfo(true)}
+                />
+
+                <div className="flex flex-col justify-between">
+                  <div className="text-[16px] font-[500] flex gap-2 items-center group">
+                    <span className="cursor-pointer">{roomInfo.title}</span>
+                  </div>
+
+                  <div
+                    className={`text-[14px] ${
+                      theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                    } flex gap-1 cursor-pointer items-center `}
+                  >
+                    Dành cho công việc riêng
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
@@ -732,8 +774,20 @@ export default function ChatDetail() {
         </div>
         <div
           className={`flex-1 px-5 ${
-            theme == "dark" ? "bg-[#16191d]" : "bg-blue-50"
-          } flex flex-col  gap-2 overflow-y-auto pt-2`}
+            theme === "dark" ? "bg-[#16191d]" : "bg-blue-50"
+          } flex flex-col gap-2 overflow-y-auto pt-2`}
+          style={{
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+
+            //  CHỈ hiện avatar khi switch = true
+            backgroundImage:
+              useAvatarBg && state.avatar ? `url(${state.avatar})` : "none",
+
+            //  fallback màu nền
+            backgroundColor: theme === "dark" ? "#16191d" : "#eff6ff",
+          }}
         >
           {chat.map((item, index) => {
             if (item.type === "system") {
@@ -765,7 +819,9 @@ export default function ChatDetail() {
                       ? `${
                           theme === "dark" ? "bg-[#1f344d]" : "bg-blue-100"
                         } rounded-xl rounded-br-none`
-                      : "bg-white rounded-xl rounded-bl-none"
+                      : `${
+                          theme === "dark" ? "bg-[#262b30]" : "bg-white"
+                        }  rounded-xl rounded-bl-none`
                   } p-2 max-w-[60%]`}
                 >
                   {/* Nội dung text */}
@@ -787,7 +843,11 @@ export default function ChatDetail() {
                       ${isMe ? "-left-10 " : "-right-10"}
                       opacity-0 group-hover:opacity-100
                       transition-opacity cursor-pointer
-                      rounded-full bg-white p-1 border border-gray-100
+                      rounded-full  border ${
+                        theme == "dark"
+                          ? "bg-[#2e3034] border-gray-700"
+                          : "bg-white border-gray-200"
+                      } p-1  
                     `}
                       aria-controls={open ? "fade-menu" : undefined}
                       aria-haspopup="true"
@@ -848,7 +908,9 @@ export default function ChatDetail() {
                     <div
                       key={i}
                       className={`flex items-center gap-2 p-2 rounded  ${
-                        theme ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+                        theme == "dark"
+                          ? "hover:bg-[#2d3136]"
+                          : "hover:bg-gray-100"
                       } transition-colors cursor-pointer`}
                     >
                       <MdAttachFile className="text-blue-500" />
@@ -1187,6 +1249,126 @@ export default function ChatDetail() {
               </div>
             </div>
           </div>
+        ) : roomInfo.typeRoom === "system" ? (
+          <div className="w-full md:block md:w-1/3 h-full overflow-y-auto">
+            <div
+              className={`flex h-[11%] items-center justify-center px-5 py-1 border-b font-[500] text-[17px] ${
+                theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+              }`}
+            >
+              Thông tin hội thoại
+            </div>
+
+            <div className="flex flex-col items-center gap-3  py-5 border-b-8">
+              <img
+                src={
+                  roomInfo.avatar ||
+                  "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                }
+                alt="avatar"
+                className="w-[45px] h-[45px] rounded-full cursor-pointer"
+              />
+
+              <div className="text-[16px] font-[500]">{roomInfo.title}</div>
+            </div>
+
+            <div className="px-5 py-4  border-b-8">
+              <div
+                className="flex items-center justify-between cursor-pointer select-none"
+                onClick={() => setOpenImages(!openImages)}
+              >
+                <span
+                  className={`${
+                    theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                  }font-medium`}
+                >
+                  Ảnh
+                </span>
+                <IoChevronDownSharp
+                  className={`  transition-transform duration-200
+                    ${openImages ? "rotate-180" : ""}`}
+                />
+              </div>
+              {openImages && (
+                <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
+                  {chat.map((item, index) => {
+                    const isMe = item.user_id._id === state._id;
+
+                    return (
+                      <div key={index} className="">
+                        {item.images && item.images.length > 0 && (
+                          <div className="mb-1 flex gap-2 ">
+                            {item.images.map((image, idx) => (
+                              <img
+                                key={idx}
+                                src={image.url}
+                                alt="chat-image"
+                                className="w-20 h-20 rounded-md object-cover flex"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div
+              className={`px-5 py-4  border-b-8 ${
+                theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+              }`}
+            >
+              <div
+                className="flex items-center justify-between cursor-pointer select-none"
+                onClick={() => setOpenFiles(!openFiles)}
+              >
+                <span className="font-medium">File</span>
+                <IoChevronDownSharp
+                  className={`  transition-transform duration-200
+                    ${openFiles ? "rotate-180" : ""}`}
+                />
+              </div>
+              {openFiles && (
+                <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
+                  {chat.map((item, index) => {
+                    const isMe = item.user_id._id === state._id;
+
+                    return (
+                      <div key={index} className="">
+                        {item.files && item.files.length > 0 && (
+                          <div className="mb-1  ">
+                            {item.files.map((f, idx) => (
+                              <div
+                                key={idx}
+                                className={`flex items-center gap-2 p-2 rounded  ${
+                                  theme == "dark"
+                                    ? "hover:bg-[#2d3136]"
+                                    : "hover:bg-gray-100"
+                                }  transition-colors cursor-pointer`}
+                              >
+                                <MdAttachFile className="text-blue-500" />
+                                <a
+                                  href={f.url}
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-600 underline break-all hover:text-blue-800"
+                                >
+                                  {f.name}
+                                </a>
+                                <span className="text-gray-400 text-xs">
+                                  ({(f.size / 1024).toFixed(1)} KB)
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         ) : (
           <div className="w-full md:block md:w-1/3 h-full overflow-y-auto">
             <div
@@ -1241,7 +1423,9 @@ export default function ChatDetail() {
                   </span>
                   <div
                     className={`flex gap-3 text-[14px] ${
-                      theme ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+                      theme == "dark"
+                        ? "hover:bg-[#2d3136]"
+                        : "hover:bg-gray-100"
                     } cursor-pointer p-3`}
                   >
                     <HiOutlineUserGroup className="text-[22px]" />
@@ -1320,7 +1504,7 @@ export default function ChatDetail() {
                                   <div
                                     key={idx}
                                     className={`flex items-center gap-2 p-2 rounded  ${
-                                      theme
+                                      theme == "dark"
                                         ? "hover:bg-[#2d3136]"
                                         : "hover:bg-gray-100"
                                     }  transition-colors cursor-pointer`}

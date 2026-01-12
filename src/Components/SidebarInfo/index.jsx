@@ -26,7 +26,7 @@ const myDocumentRoom = {
   _id: "my-document",
   typeRoom: "system",
   title: "My Document",
-  avatar: logoMyDocument, // hoặc icon mặc định
+  avatar: logoMyDocument,
   unreadCount: {},
   lastMessage: {
     content: "Lưu trữ tài liệu cá nhân",
@@ -48,7 +48,7 @@ function SideBar() {
   const navigate = useNavigate();
 
   const { roomChatId } = useParams();
-  const matchMyDocument = useMatch("/chat/my-document");
+
   const [currentRoomId, setCurrentRoomId] = useState(roomChatId);
   const currentRoomIdRef = useRef(roomChatId); // init luôn với roomChatId
 
@@ -268,14 +268,14 @@ function SideBar() {
     return `${days} ngày `;
   };
   //thêm document vào rooms
-  const roomsWithMyDocument = [myDocumentRoom, ...rooms];
+
   //dark/mode
   const theme = useSelector((state) => state.theme.mode);
   return (
     <div className="flex">
       <div
         className={`w-full md:w-[300px]  ${
-          roomChatId || matchMyDocument ? "hidden md:block" : "block"
+          roomChatId ? "hidden md:block" : "block"
         } ${
           theme == "dark" ? "bg-[#22262b] text-white" : "bg-gray-50 "
         }    border border-r h-screen`}
@@ -434,7 +434,7 @@ function SideBar() {
                 className={`text-[13px] font-[500] cursor-pointer ${
                   active == 1
                     ? "text-[#ff5252]"
-                    : `${theme == "dark" ? "[text-[#2d3136]" : "text-black"}`
+                    : `${theme == "dark" ? "text-white" : "text-[#2d3136]"}`
                 }`}
                 onClick={() => setActive(1)}
               >
@@ -444,7 +444,7 @@ function SideBar() {
                 className={`text-[13px] font-[500] cursor-pointer ${
                   active == 2
                     ? "text-[#ff5252]"
-                    : `${theme == "dark" ? "[text-[#2d3136]" : "text-black"}`
+                    : `${theme == "dark" ? "text-white" : "text-[#2d3136]"}`
                 }`}
                 onClick={() => setActive(2)}
               >
@@ -452,19 +452,13 @@ function SideBar() {
               </div>
             </div>
             <div className="h-[95%] overflow-y-scroll">
-              {roomsWithMyDocument.map((item, index) => {
+              {rooms.map((item, index) => {
                 const unread = item?.unreadCount?.[state._id] || 0;
 
                 return (
                   <div
                     key={index}
                     onClick={() => {
-                      //  ROOM SYSTEM (My Document)
-                      if (item.typeRoom === "system") {
-                        navigate("/chat/my-document");
-                        return;
-                      }
-
                       //  ROOM CHAT THẬT
                       setRooms((prev) =>
                         prev.map((room) =>
@@ -568,10 +562,10 @@ function SideBar() {
       <div
         className={`
       w-full flex-1
-      ${roomChatId || matchMyDocument ? "block" : "hidden md:flex"}
+      ${roomChatId ? "block" : "hidden md:flex"}
     `}
       >
-        {roomChatId || matchMyDocument ? (
+        {roomChatId ? (
           <Outlet />
         ) : (
           <div className="w-full">

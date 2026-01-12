@@ -1,11 +1,18 @@
 import { AiOutlineUsergroupAdd } from "react-icons/ai";
 import { MdOutlineKeyboardArrowLeft } from "react-icons/md";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 export default function AddGroup() {
   const navigate = useNavigate();
+  //dark/mode
+  const theme = useSelector((state) => state.theme.mode);
   return (
-    <div className="w-full h-screen flex flex-col px-5">
+    <div
+      className={`w-full h-screen flex flex-col px-5 ${
+        theme == "dark" ? "bg-[#16191d] text-[#c2c5cd]" : "text-[#4f5c6f]"
+      }`}
+    >
       <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0">
         <div className="flex gap-3">
           <MdOutlineKeyboardArrowLeft
