@@ -3,17 +3,21 @@ import React, { useEffect, useState } from "react";
 import { PiChatCenteredDotsThin } from "react-icons/pi";
 import { LuUserPlus } from "react-icons/lu";
 import { getData } from "../../utils/api";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { MdOutlineKeyboardArrowLeft } from "react-icons/md";
+import {
+  decreaseAcceptFriend,
+  setIncreaseAcceptFriend,
+} from "../../redux/userSlice";
 
 export default function AddFriend() {
   const navigate = useNavigate();
   const state = useSelector((state) => state.user);
   const socketConnection = state.socketConnection;
-  const totalAccept =
-    (state.lengthAcceptFriend ?? 0) + (state?.acceptFriends?.length ?? 0);
+  const dispatch = useDispatch();
   const [invite, setInvite] = useState([]);
+  const totalAccept = invite.length;
   //get data
   useEffect(() => {
     const fetchData = async () => {
@@ -34,12 +38,14 @@ export default function AddFriend() {
           if (prev.find((u) => u._id === data.infoUserA._id)) return prev;
           return [...prev, data.infoUserA];
         });
+        dispatch(setIncreaseAcceptFriend());
       }
     };
     const handleDelete = (data) => {
       if (state._id === data.userIdB) {
         setInvite((prev) => prev.filter((item) => item._id !== data.userIdA));
       }
+      dispatch(decreaseAcceptFriend());
     };
     socketConnection.on("SERVER_RETURN_INFO_A", handleAdd);
     socketConnection.on("SERVER_DELETE_INFO_A", handleDelete);
@@ -57,6 +63,7 @@ export default function AddFriend() {
   };
   //dark/mode
   const theme = useSelector((state) => state.theme.mode);
+
   return (
     <div
       className={`w-full h-screen flex flex-col px-5 ${

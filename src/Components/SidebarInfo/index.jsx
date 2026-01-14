@@ -91,6 +91,7 @@ function SideBar() {
     if (!socketConnection) return;
 
     const handleStatus = (data) => {
+      console.log(data)
       setFriendStatus((prev) => ({
         ...prev,
         [data.userId]: data.status,
@@ -323,7 +324,6 @@ function SideBar() {
                             </Link>
                             {isFriend ? null : (
                               <>
-                                {" "}
                                 {friendStatus[item._id] === "pending" ||
                                 item.friendStatus === "pending" ? (
                                   <Button

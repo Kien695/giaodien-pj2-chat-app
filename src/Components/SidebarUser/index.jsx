@@ -9,7 +9,7 @@ import Setting from "../Setting";
 import { useDispatch, useSelector } from "react-redux";
 import { postData } from "../../utils/api";
 import { toast } from "react-toastify";
-import { logout, setLengthAcceptFriend } from "../../redux/userSlice";
+import { logout } from "../../redux/userSlice";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import useIsMobile from "../IsMobile";
 export default function SideBarUser() {
@@ -25,26 +25,7 @@ export default function SideBarUser() {
   const user = useSelector((state) => state.user);
   const socketConnection = user.socketConnection;
 
-  //server return lengthAccept
-  useEffect(() => {
-    if (!socketConnection) return;
-    const handleAccept = (data) => {
-      if (user._id === data?.userId) {
-        localStorage.setItem(
-          "lengthAcceptFriend",
-          JSON.stringify(data.lengthAcceptFriend)
-        );
-        dispatch(setLengthAcceptFriend(data.lengthAcceptFriend));
-      }
-    };
-    socketConnection.on("SEVER_RETURN_LENGTH_ACCEPT_FRIEND", handleAccept);
-    return () => {
-      socketConnection.off("SEVER_RETURN_LENGTH_ACCEPT_FRIEND", handleAccept);
-    };
-  }, [socketConnection, user._id]);
-
-  const total =
-    (user.lengthAcceptFriend ?? 0) + (user?.acceptFriends?.length ?? 0);
+  const total = user.lengthAcceptFriend ?? 0;
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);

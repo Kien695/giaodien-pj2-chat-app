@@ -53,9 +53,13 @@ export const userSlice = createSlice({
     setSocketConnection: (state, action) => {
       state.socketConnection = action.payload;
     },
-    setLengthAcceptFriend: (state, action) => {
-      state.lengthAcceptFriend = action.payload;
+    setIncreaseAcceptFriend: (state) => {
+      state.lengthAcceptFriend += 1;
     },
+    decreaseAcceptFriend: (state) => {
+      state.lengthAcceptFriend = Math.max(state.lengthAcceptFriend - 1, 0);
+    },
+
     resetAcceptFriends: (state) => {
       state.lengthAcceptFriend = 0;
     },
@@ -109,7 +113,8 @@ export const {
   setLogin,
   setOnlineUser,
   setSocketConnection,
-  setLengthAcceptFriend,
+  setIncreaseAcceptFriend,
+  decreaseAcceptFriend,
   resetAcceptFriends,
   setListFriend,
   setCountFriend,

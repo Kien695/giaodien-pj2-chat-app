@@ -14,9 +14,7 @@ function Friend() {
   const state = useSelector((state) => state.user);
   const socketConnection = state.socketConnection;
   const { id } = useParams();
-  const totalAccept =
-    (state.lengthAcceptFriend ?? 0) +
-    Number(localStorage.getItem("lengthAcceptFriend") ?? 0);
+  const totalAccept = state.lengthAcceptFriend ?? 0;
 
   const [active, setActive] = useState(1);
   const [searchText, setSearchText] = useState("");
@@ -236,7 +234,6 @@ function Friend() {
               }
               onClick={() => {
                 dispatch(resetAcceptFriends());
-                localStorage.removeItem("lengthAcceptFriend");
               }}
             >
               {totalAccept > 0 ? (
