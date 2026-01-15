@@ -9,25 +9,32 @@ import { setLogin } from "../../redux/userSlice";
 export default function AuthSuccess() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-
     const accessToken = params.get("token");
     const documentId = params.get("documentId");
 
-    if (!accessToken) return;
+    // Kiểm tra xem đã có token chưa
+    if (accessToken) {
+      // Lưu vào Storage
+      localStorage.setItem("accessToken", accessToken);
+      if (documentId) localStorage.setItem("documentId", documentId);
+      localStorage.setItem("theme", "light");
 
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("documentId", documentId);
-    localStorage.setItem("theme", "light");
+      // Cập nhật State
+      dispatch(setLogin(true));
+      toast.success("Đăng nhập thành công");
 
-    toast.success("Đăng nhập thành công");
-    dispatch(setLogin(true));
+      // Chuyển hướng ngay lập tức sang /chat
+      // Bỏ dòng window.history.replaceState vì navigate đã lo việc này
+      navigate("/chat", { replace: true });
+    } else {
+      // Nếu không có token, đẩy về trang login hoặc báo lỗi
+      console.error("No token found in URL");
+      navigate("/login");
+    }
+  }, [dispatch, navigate]);
 
-    // 🔥 QUAN TRỌNG: xóa query string
-    window.history.replaceState({}, "", "/auth-success");
-
-    // 🔥 QUAN TRỌNG: replace để không back lại
-    navigate("/chat", { replace: true });
-  }, []);
+  return <div>Đang xử lý đăng nhập...</div>; // Thêm UI chờ để tránh trang trắng
 }
