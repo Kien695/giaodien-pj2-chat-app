@@ -25,9 +25,9 @@ export default function AddGroup() {
           <div className="text-[16px]">Lời mời vào nhóm</div>
         </div>
       </div>
-      <div className="flex items-center justify-center">
-        <div className="bg-gray-50 w-[100px] rounded-md shadow-md">
-          Không có lời mời nào
+      <div className="flex items-center justify-center mt-4 shadow-md">
+        <div className=" w-full p-10 flex items-center justify-center font-[500] rounded-md shadow-md italic text-[20px]">
+          Không có lời mời nào!
         </div>
       </div>
     </div>

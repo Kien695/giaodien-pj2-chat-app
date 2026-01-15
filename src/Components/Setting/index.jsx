@@ -135,8 +135,20 @@ export default function Setting({ open, onClose }) {
       setLoading(false);
       return;
     }
-    if (!formData.passwordNew || formData.passwordNew.length < 8) {
-      toast.error("Vui lòng nhập đúng theo yêu cầu");
+    if (!formData.passwordNew) {
+      toast.error("Vui lòng nhập mật khẩu mới");
+      ref.passwordNew.current.focus();
+      setLoading(false);
+      return;
+    }
+    // Regex password
+    const passwordRegex =
+      /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[{\]};:'",.<>/?\\|]).{8,}$/;
+
+    if (!passwordRegex.test(formData.passwordNew)) {
+      toast.error(
+        "Mật khẩu phải ≥ 8 ký tự, gồm 1 chữ hoa, 1 số và 1 ký tự đặc biệt"
+      );
       ref.passwordNew.current.focus();
       setLoading(false);
       return;
@@ -350,7 +362,8 @@ export default function Setting({ open, onClose }) {
                   </div>
                   <div className="w-full h-auto rounded-lg bg-white p-3 flex flex-col gap-3 shadow-md">
                     <div className="text-[13px] italic">
-                      Ghi chú: Mật khẩu tối đa 8 kí tự
+                      Ghi chú: Mật khẩu phải ≥ 8 ký tự, gồm 1 chữ hoa, 1 số và 1
+                      ký tự đặc biệt
                     </div>
                     <div className="flex flex-col gap-2">
                       <div className="text-[13px]">Mật khẩu hiện tại: </div>

@@ -40,13 +40,33 @@ export function Auth() {
     }
     if (!formRegister.email) {
       toast.error("Vui lòng nhập email!");
-      inputRefRegister.name.current.focus();
+      inputRefRegister.email.current.focus();
+      setLoading(false);
+      return;
+    }
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formRegister.email)) {
+      toast.error("Email không đúng định dạng!");
+      inputRefRegister.email.current.focus();
       setLoading(false);
       return;
     }
     if (!formRegister.password) {
       toast.error("Vui lòng nhập mật khẩu!");
       inputRefRegister.name.current.focus();
+      setLoading(false);
+      return;
+    }
+    // Regex password
+    const passwordRegex =
+      /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[{\]};:'",.<>/?\\|]).{8,}$/;
+
+    if (!passwordRegex.test(formRegister.password)) {
+      toast.error(
+        "Mật khẩu phải ≥ 8 ký tự, gồm 1 chữ hoa, 1 số và 1 ký tự đặc biệt"
+      );
+      inputRefRegister.password.current.focus();
       setLoading(false);
       return;
     }
