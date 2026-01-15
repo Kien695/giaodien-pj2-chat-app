@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Function from "../Function";
-import { NavLink, Outlet, useParams } from "react-router-dom";
+import { Link, NavLink, Outlet, useParams } from "react-router-dom";
 import { LuUserPlus, LuUserRoundCheck } from "react-icons/lu";
 import { FiUsers } from "react-icons/fi";
 import { AiOutlineUsergroupAdd } from "react-icons/ai";
@@ -71,120 +71,86 @@ function Friend() {
             {user.length > 0 ? (
               <div className="h-[89%]  flex py-4">
                 <div className="flex flex-col gap-3">
-                  {user.map((item, index) => (
-                    <div
-                      className="flex  gap-3 mx-3 rounded-md  items-center cursor-pointer bg-gray-100 border px-3 py-4 w-full h-[70px]"
-                      key={index}
-                    >
-                      <img
-                        src={
-                          item.avatar ||
-                          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
-                        }
-                        alt="avatar"
-                        className="w-[40px] h-[40px] rounded-full"
-                      />
+                  {user.map((item, index) => {
+                    const friend = item.FriendList?.find(
+                      (f) => String(f.user_id) === String(state._id)
+                    );
 
-                      <div className="ml-4">
-                        <div className="text-[14px] font-[500] ml-1">
-                          {item.name}
-                        </div>
-                        <div>
-                          <Button
-                            size="small"
-                            color="error"
-                            sx={{
-                              textTransform: "none",
-                            }}
-                          >
-                            Nhắn tin
-                          </Button>
-                          {friendStatus[item._id] === "pending" ||
-                          item.friendStatus === "pending" ? (
-                            <Button
-                              size="small"
-                              sx={{
-                                textTransform: "none",
-                              }}
-                              onClick={() => handleCancelRequire(item._id)}
+                    const isFriend = !!friend;
+                    const roomChatId = friend?.room_chat_id;
+
+                    return (
+                      <div
+                        key={index}
+                        className={`flex  gap-3 mx-3 rounded-md  items-center cursor-pointer  ${
+                          theme == "dark" ? "bg-[#16191d]" : "bg-gray-100 "
+                        } border px-3 py-4 w-full h-[70px]`}
+                      >
+                        <img
+                          src={
+                            item.avatar ||
+                            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
+                          }
+                          alt="avatar"
+                          className="w-[40px] h-[40px] rounded-full"
+                        />
+
+                        <div className="ml-4">
+                          <div className="text-[14px] font-[500] ml-1">
+                            {item.name}
+                          </div>
+                          <div>
+                            <Link
+                              to={isFriend ? `/chat/${roomChatId}` : "/chat/"}
                             >
-                              Hủy kết bạn
-                            </Button>
-                          ) : (
-                            <>
                               <Button
                                 size="small"
+                                color="error"
                                 sx={{
                                   textTransform: "none",
                                 }}
-                                onClick={() => {
-                                  setSelectedUser(item);
-                                  setOpen(true);
-                                }}
                               >
-                                Kết bạn
+                                Nhắn tin
                               </Button>
-                              <Dialog
-                                open={open}
-                                onClose={handleClose}
-                                PaperProps={{
-                                  sx: {
-                                    width: "400px",
-                                    paddingX: "15px",
-                                    paddingTop: "10px",
-                                    maxWidth: "50vw",
-                                  },
-                                }}
-                              >
-                                <div className="relative">
-                                  <img
-                                    src={
-                                      item.background ||
-                                      "https://cdn-media.sforum.vn/storage/app/media/ctv_seo3/mau-background-dep-6.jpg"
-                                    }
-                                    alt="background"
-                                    className="h-[120px] w-full object-cover rounded-md"
-                                  />
-                                  <div className="absolute flex gap-3 items-center bottom-[-45px] left-6">
-                                    <img
-                                      src={
-                                        item.avatar ||
-                                        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
-                                      }
-                                      alt="avatar"
-                                      className="rounded-full w-[60px] border-2"
-                                    />
-                                    <div className=" font-[500] text-[16px]">
-                                      {item.name}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="mt-12">
-                                  <textarea
-                                    placeholder="Hãy ghi lời chào khi kết bạn vào đây!"
-                                    className="w-full border border-gray-300 rounded p-2 focus:!border-blue-500"
-                                    rows={3}
-                                    onChange={(e) => {
-                                      setText(e.target.value);
-                                    }}
-                                  />
-                                </div>
-                                <DialogActions>
-                                  <Button onClick={handleClose}>Hủy</Button>
+                            </Link>
+                            {isFriend ? null : (
+                              <>
+                                {friendStatus[item._id] === "pending" ||
+                                item.friendStatus === "pending" ? (
                                   <Button
-                                    onClick={() => handleSendRequire(item._id)}
-                                    autoFocus
+                                    size="small"
+                                    sx={{
+                                      textTransform: "none",
+                                    }}
+                                    onClick={() =>
+                                      handleCancelRequire(item._id)
+                                    }
                                   >
-                                    Gửi lời mời
+                                    Hủy kết bạn
                                   </Button>
-                                </DialogActions>
-                              </Dialog>
-                            </>
-                          )}
+                                ) : (
+                                  <>
+                                    <Button
+                                      size="small"
+                                      sx={{
+                                        textTransform: "none",
+                                      }}
+                                      onClick={() => {
+                                        setSelectedUser(item);
+                                        setOpen(true);
+                                      }}
+                                    >
+                                      Kết bạn
+                                    </Button>
+                                  </>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   <Dialog
                     open={open}
                     onClose={() => setOpen(false)}

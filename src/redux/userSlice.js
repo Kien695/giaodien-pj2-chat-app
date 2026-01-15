@@ -66,7 +66,7 @@ export const userSlice = createSlice({
       state.listFriend = action.payload;
     },
     setListAddFriend: (state, action) => {
-      state.listFriend = action.payload;
+      state.listAddFriend = action.payload;
     },
     // friendSlice.js
     unfriendSuccess: (state, action) => {

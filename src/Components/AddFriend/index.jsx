@@ -159,7 +159,7 @@ export default function AddFriend({ open, onClose }) {
                       width: "400px",
                       paddingX: "15px",
                       paddingTop: "10px",
-                      maxWidth: "50vw",
+                      maxWidth: "66vw",
                     },
                   }}
                 >

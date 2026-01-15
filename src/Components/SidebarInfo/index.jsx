@@ -284,7 +284,9 @@ function SideBar() {
                     return (
                       <div
                         key={index}
-                        className="flex  gap-3 mx-3 rounded-md  items-center cursor-pointer bg-gray-100 border px-3 py-4 w-full h-[70px]"
+                        className={`flex  gap-3 mx-3 rounded-md  items-center cursor-pointer  ${
+                          theme == "dark" ? "bg-[#16191d]" : "bg-gray-100 "
+                        } border px-3 py-4 w-full h-[70px]`}
                       >
                         <img
                           src={
@@ -359,7 +361,7 @@ function SideBar() {
                         width: "400px",
                         paddingX: "15px",
                         paddingTop: "10px",
-                        maxWidth: "50vw",
+                        maxWidth: "66vw",
                       },
                     }}
                   >
@@ -480,7 +482,13 @@ function SideBar() {
                             ? "hover:bg-[#2d3136]"
                             : "hover:bg-gray-100"
                         }
-                        ${unread > 0 ? "bg-blue-50" : ""}`}
+                        ${
+                          unread > 0
+                            ? `${
+                                theme == "dark" ? "bg-[#2d3136]" : "bg-blue-50"
+                              }`
+                            : ""
+                        }`}
                     >
                       <img
                         src={
@@ -518,7 +526,7 @@ function SideBar() {
                           className={`line-clamp-1 text-[13px]
                          ${
                            unread > 0
-                             ? "font-semibold text-white"
+                             ? "font-semibold "
                              : `${
                                  theme == "dark"
                                    ? "text-[#cccfd4]"

@@ -26,8 +26,6 @@ export default function AuthSuccess() {
       dispatch(setLogin(true));
       toast.success("Đăng nhập thành công");
 
-      // Chuyển hướng ngay lập tức sang /chat
-      // Bỏ dòng window.history.replaceState vì navigate đã lo việc này
       navigate("/chat", { replace: true });
     } else {
       // Nếu không có token, đẩy về trang login hoặc báo lỗi
@@ -36,5 +34,5 @@ export default function AuthSuccess() {
     }
   }, [dispatch, navigate]);
 
-  return <div>Đang xử lý đăng nhập...</div>; // Thêm UI chờ để tránh trang trắng
+  return <div>Đang xử lý đăng nhập...</div>;
 }

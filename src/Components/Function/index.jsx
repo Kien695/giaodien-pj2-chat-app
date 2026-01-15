@@ -13,9 +13,7 @@ export default function Function({ setSearchText, setUser }) {
   const [keyword, setKeyword] = useState("");
   const [openGroup, setOpenGroup] = useState(false);
   const [openSearchFriend, setOpenSearchFriend] = useState(false);
-  const handleClick = () => {
-    console.log("ok");
-  };
+
   const handleInputChange = (e) => {
     const value = e.target.value;
     setKeyword(value);
@@ -79,7 +77,6 @@ export default function Function({ setSearchText, setUser }) {
                   className={`${
                     theme == "dark" ? "!text-white" : ""
                   } cursor-pointer`}
-                  onClick={handleClick}
                 />
               </InputAdornment>
             ),
