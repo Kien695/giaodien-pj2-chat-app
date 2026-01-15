@@ -1,45 +1,31 @@
-import React, { useEffect, useRef } from "react";
-import SideBar from "../Components/SidebarInfo";
-import { Outlet, useParams } from "react-router-dom";
+import React, { useEffect } from "react";
 import SideBarUser from "../Components/SidebarUser";
-import { useDispatch, useSelector } from "react-redux";
-import { io } from "socket.io-client";
-import { setOnlineUser, setSocketConnection } from "../redux/userSlice";
+import { Outlet, useParams } from "react-router-dom";
+import { socket } from "../socket.js";
+
 export default function Layout() {
-  const dispatch = useDispatch();
   const { roomChatId } = useParams();
-  const { socketConnection } = useSelector((state) => state.user);
-  const socketRef = useRef(null);
 
+  // 1️ connect socket
   useEffect(() => {
-    const socket = io(import.meta.env.VITE_SOCKET_URL, {
-      auth: {
-        token: localStorage.getItem("accessToken"),
-      },
-    });
-
-    socketRef.current = socket;
-    dispatch(setSocketConnection(socket));
-
-    return () => {
-      socket.disconnect();
-    };
+    socket.connect();
+    return () => socket.disconnect();
   }, []);
-  useEffect(() => {
-    if (!socketConnection || !roomChatId) return;
 
-    // JOIN ROOM ngay lập tức
-    socketConnection.emit("JOIN_ROOM", { roomChatId });
+  // 2️ join / leave room
+  useEffect(() => {
+    if (!roomChatId) return;
+
+    socket.emit("JOIN_ROOM", { roomChatId });
 
     return () => {
-      socketConnection.emit("LEAVE_ROOM", { roomChatId });
+      socket.emit("LEAVE_ROOM", { roomChatId });
     };
-  }, [socketConnection, roomChatId]);
+  }, [roomChatId]);
 
   return (
     <div className="flex h-screen max-h-screen">
       <SideBarUser />
-
       <div className="flex-1">
         <Outlet />
       </div>

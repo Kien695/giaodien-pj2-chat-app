@@ -11,10 +11,11 @@ import { postData } from "../../utils/api";
 import { toast } from "react-toastify";
 import { logout } from "../../redux/userSlice";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import { socket } from "../../socket";
 import useIsMobile from "../IsMobile";
 export default function SideBarUser() {
   const isMobile = useIsMobile();
-
+  const documentId = localStorage.getItem("documentId") || "";
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -23,7 +24,6 @@ export default function SideBarUser() {
   const [lengthAccept, setLengthAccept] = useState(0);
   const open = Boolean(anchorEl);
   const user = useSelector((state) => state.user);
-  const socketConnection = user.socketConnection;
 
   const total = user.lengthAcceptFriend ?? 0;
 
@@ -40,6 +40,7 @@ export default function SideBarUser() {
         toast.success("Đăng xuất thành công");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        localStorage.removeItem("documentId");
         localStorage.removeItem("theme");
         localStorage.removeItem("useAvatarBg");
         dispatch(logout());
@@ -158,7 +159,7 @@ export default function SideBarUser() {
 
       <div className="flex flex-col items-center justify-center gap-5">
         <Tooltip title="My documents" placement="right-start">
-          <Link to="/chat/my-document">
+          <Link to={`/chat/${documentId}`}>
             <IoMdCloudOutline className="text-[26px] text-white" />
           </Link>
         </Tooltip>

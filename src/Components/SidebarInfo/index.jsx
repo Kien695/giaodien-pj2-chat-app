@@ -22,22 +22,11 @@ import { useSelector } from "react-redux";
 import { getData } from "../../utils/api";
 import { CiImageOn } from "react-icons/ci";
 import { MdAttachFile } from "react-icons/md";
-const myDocumentRoom = {
-  _id: "my-document",
-  typeRoom: "system",
-  title: "My Document",
-  avatar: logoMyDocument,
-  unreadCount: {},
-  lastMessage: {
-    content: "Lưu trữ tài liệu cá nhân",
-    createdAt: new Date(),
-  },
-};
+import { socket } from "../../socket";
 
 function SideBar() {
   const state = useSelector((state) => state.user);
 
-  const socketConnection = state.socketConnection;
   const [active, setActive] = useState(1);
   const [searchText, setSearchText] = useState("");
   const [text, setText] = useState("");
@@ -81,29 +70,29 @@ function SideBar() {
   //gửi lên server
   const handleSendRequire = (userId) => {
     setOpen(false);
-    socketConnection.emit("CLIENT_ADD_FRIEND", { userId, text });
+    socket.emit("CLIENT_ADD_FRIEND", { userId, text });
   };
   const handleCancelRequire = (userId) => {
-    socketConnection.emit("CLIENT_CANCEL_FRIEND", userId);
+    socket.emit("CLIENT_CANCEL_FRIEND", userId);
   };
   //server trả về
   useEffect(() => {
-    if (!socketConnection) return;
+    if (!socket) return;
 
     const handleStatus = (data) => {
-      console.log(data)
+      console.log(data);
       setFriendStatus((prev) => ({
         ...prev,
         [data.userId]: data.status,
       }));
     };
 
-    socketConnection.on("SERVER_FRIEND_STATUS", handleStatus);
+    socket.on("SERVER_FRIEND_STATUS", handleStatus);
 
     return () => {
-      socketConnection.off("SERVER_FRIEND_STATUS", handleStatus);
+      socket.off("SERVER_FRIEND_STATUS", handleStatus);
     };
-  }, [socketConnection, state._id]);
+  }, [socket, state._id]);
 
   //get all room chat
   useEffect(() => {
@@ -125,7 +114,7 @@ function SideBar() {
     navigateRef.current = navigate;
   }, [navigate]);
   useEffect(() => {
-    if (!socketConnection) return;
+    if (!socket) return;
     const handleRoomUpdateSideBar = ({ roomChat }) => {
       setRooms((prev) => {
         // tránh add trùng room
@@ -164,34 +153,31 @@ function SideBar() {
     const handleCreateRoom = (room) => {
       setRooms((prev) => [room, ...prev]);
     };
-    socketConnection.on("SERVER_ROOM_UPDATED_SIDEBAR", handleRoomUpdateSideBar);
-    socketConnection.on("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
-    socketConnection.on("SERVER_RETURN_ROOM", handleRemoveRoom);
-    socketConnection.on("SERVER_RETURN_NEW_ROOM", handleCreateRoom);
+    socket.on("SERVER_ROOM_UPDATED_SIDEBAR", handleRoomUpdateSideBar);
+    socket.on("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
+    socket.on("SERVER_RETURN_ROOM", handleRemoveRoom);
+    socket.on("SERVER_RETURN_NEW_ROOM", handleCreateRoom);
     return () => {
-      socketConnection.off(
-        "SERVER_ROOM_UPDATED_SIDEBAR",
-        handleRoomUpdateSideBar
-      );
-      socketConnection.off("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
-      socketConnection.off("SERVER_RETURN_ROOM", handleRemoveRoom);
-      socketConnection.off("SERVER_RETURN_NEW_ROOM", handleCreateRoom);
+      socket.off("SERVER_ROOM_UPDATED_SIDEBAR", handleRoomUpdateSideBar);
+      socket.off("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
+      socket.off("SERVER_RETURN_ROOM", handleRemoveRoom);
+      socket.off("SERVER_RETURN_NEW_ROOM", handleCreateRoom);
     };
-  }, [socketConnection, state._id]);
+  }, [socket, state._id]);
   //server trả về message hiện thị lên sidebar
   useEffect(() => {
-    if (!socketConnection) return;
+    if (!socket) return;
 
     const handleMessage = (data) => {
       updateSidebar(data);
     };
 
-    socketConnection.on("SERVER_RETURN_SIDEBAR", handleMessage);
+    socket.on("SERVER_RETURN_SIDEBAR", handleMessage);
 
     return () => {
-      socketConnection.off("SERVER_RETURN_SIDEBAR", handleMessage);
+      socket.off("SERVER_RETURN_SIDEBAR", handleMessage);
     };
-  }, [socketConnection]);
+  }, [socket]);
 
   const updateSidebar = (message) => {
     setRooms((prev) => {
@@ -232,7 +218,7 @@ function SideBar() {
 
   //update sidebar khi click vào tin nhắn mới
   useEffect(() => {
-    if (!socketConnection) return;
+    if (!socket) return;
 
     const handleReadRoom = ({ roomChatId, userId }) => {
       setRooms((prev) =>
@@ -250,12 +236,12 @@ function SideBar() {
       );
     };
 
-    socketConnection.on("SERVER_READ_ROOM", handleReadRoom);
+    socket.on("SERVER_READ_ROOM", handleReadRoom);
 
     return () => {
-      socketConnection.off("SERVER_READ_ROOM", handleReadRoom);
+      socket.off("SERVER_READ_ROOM", handleReadRoom);
     };
-  }, [socketConnection]);
+  }, [socket]);
   // Hàm định format thời gian
   const timeAgo = (date) => {
     if (!date) return "";
@@ -297,9 +283,15 @@ function SideBar() {
                     const roomChatId = friend?.room_chat_id;
 
                     return (
-                      <div className="flex  gap-3 mx-3 rounded-md  items-center cursor-pointer bg-gray-100 border px-3 py-4 w-full h-[70px]">
+                      <div
+                        key={index}
+                        className="flex  gap-3 mx-3 rounded-md  items-center cursor-pointer bg-gray-100 border px-3 py-4 w-full h-[70px]"
+                      >
                         <img
-                          src={item.avatar}
+                          src={
+                            item.avatar ||
+                            "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                          }
                           alt="avatar"
                           className="w-[40px] h-[40px] rounded-full"
                         />
@@ -474,7 +466,7 @@ function SideBar() {
                         )
                       );
 
-                      socketConnection.emit("CLIENT_READ_ROOM", {
+                      socket.emit("CLIENT_READ_ROOM", {
                         roomChatId: item._id,
                       });
 

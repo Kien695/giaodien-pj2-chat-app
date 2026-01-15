@@ -12,7 +12,7 @@ import {
 
 import { HiOutlineUserGroup } from "react-icons/hi2";
 import { RiDeleteBin6Line } from "react-icons/ri";
-import { SiIconify } from "react-icons/si";
+import { SiIconify, SiTruenas } from "react-icons/si";
 import { GrImage } from "react-icons/gr";
 import { FiDelete, FiPaperclip } from "react-icons/fi";
 import { IoChevronDown, IoChevronDownSharp, IoSend } from "react-icons/io5";
@@ -48,14 +48,14 @@ import { AiOutlineEdit, AiOutlineUsergroupAdd } from "react-icons/ai";
 import AddGroup from "../../Components/AddGroup";
 import AddMember from "../../Components/AddMember";
 import { toast } from "react-toastify";
-
+import { socket } from "../../socket";
 export default function ChatDetail() {
   const [openInfo, setOpenInfo] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [openMenu, setOpenMenu] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState([]);
   const state = useSelector((state) => state.user);
-  const socketConnection = state.socketConnection;
+
   const navigate = useNavigate();
   const params = useParams();
   const { roomChatId } = useParams();
@@ -74,13 +74,36 @@ export default function ChatDetail() {
   }, []);
 
   //menu chat
+  const [selectedMessageId, setSelectedMessageId] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+
   const [anchorEl, setAnchorEl] = React.useState(null);
   const open = Boolean(anchorEl);
-  const handleClick = (event) => {
+  const handleClick = (event, messageId, message) => {
     setAnchorEl(event.currentTarget);
+    setSelectedMessageId(messageId);
+    setSelectedMessage(message);
   };
-  const handleClose = () => {
+  const handleClose = (event) => {
     setAnchorEl(null);
+  };
+  const handleCopy = () => {
+    handleClose();
+    if (!selectedMessage) return;
+    navigator.clipboard
+      .writeText(selectedMessage)
+      .then(() => {
+        toast.success("Đã sao chép");
+      })
+      .catch(() => {
+        toast.error("Không thể sao chép");
+      });
+  };
+
+  const handleDeleteMessage = () => {
+    // emit socket delete
+    socket.emit("CLIENT_REMOVE_MESSAGE", { selectedMessageId, roomChatId });
+    handleClose();
   };
 
   const [anchorElUser, setAnchorElUser] = React.useState(null);
@@ -127,13 +150,13 @@ export default function ChatDetail() {
 
     typingTimeoutRef.current = setTimeout(() => {
       setTyping(false);
-      if (socketConnection) socketConnection.emit("CLIENT_SEND_TYPING", false);
+      if (socket) socket.emit("CLIENT_SEND_TYPING", false);
     }, 3000);
   };
   const onEmojiClick = (emojiData) => {
     setMessage((prev) => prev + emojiData.emoji);
-    if (socketConnection) {
-      socketConnection.emit("CLIENT_SEND_TYPING", true);
+    if (socket) {
+      socket.emit("CLIENT_SEND_TYPING", true);
     }
     // bật typing ngay
     setTyping(true);
@@ -177,7 +200,7 @@ export default function ChatDetail() {
 
       const res = await patchData("/auth/editRoom/" + roomChatId, formData);
       if (res.success) {
-        socketConnection.emit("CLIENT_UPDATE_ROOM_INFO", {
+        socket.emit("CLIENT_UPDATE_ROOM_INFO", {
           roomChatId,
           title: res.data.title,
           avatar: res.data.avatar,
@@ -202,7 +225,7 @@ export default function ChatDetail() {
   };
 
   useEffect(() => {
-    if (!socketConnection) return;
+    if (!socket) return;
 
     const handleNewMessage = (msg) => {
       setChat((prev) => [...prev, msg]);
@@ -231,17 +254,17 @@ export default function ChatDetail() {
       setDataUser(users);
     };
 
-    socketConnection.on("SERVER_NEW_MESSAGE", handleNewMessage);
-    socketConnection.on("SERVER_ROOM_UPDATED", handleRoomUpdated);
-    socketConnection.on("SERVER_ROOM_UPDATED_USER", handleRoomUpdateUser);
-    socketConnection.on("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
+    socket.on("SERVER_NEW_MESSAGE", handleNewMessage);
+    socket.on("SERVER_ROOM_UPDATED", handleRoomUpdated);
+    socket.on("SERVER_ROOM_UPDATED_USER", handleRoomUpdateUser);
+    socket.on("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
     return () => {
-      socketConnection.off("SERVER_NEW_MESSAGE", handleNewMessage);
-      socketConnection.off("SERVER_ROOM_UPDATED", handleRoomUpdated);
-      socketConnection.off("SERVER_ROOM_UPDATED_USER", handleRoomUpdateUser);
-      socketConnection.off("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
+      socket.off("SERVER_NEW_MESSAGE", handleNewMessage);
+      socket.off("SERVER_ROOM_UPDATED", handleRoomUpdated);
+      socket.off("SERVER_ROOM_UPDATED_USER", handleRoomUpdateUser);
+      socket.off("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
     };
-  }, [socketConnection]);
+  }, [socket]);
   //end
 
   //render message
@@ -281,8 +304,8 @@ export default function ChatDetail() {
     const value = e.target.value;
     setMessage(value);
 
-    if (socketConnection) {
-      socketConnection.emit("CLIENT_SEND_TYPING", !!value);
+    if (socket) {
+      socket.emit("CLIENT_SEND_TYPING", !!value);
     }
 
     // bật typing
@@ -352,7 +375,7 @@ export default function ChatDetail() {
         setUploadingFiles([]);
 
         // 4️ Gửi message qua socket
-        socketConnection.emit("CLIENT_SEND_MESSAGE", {
+        socket.emit("CLIENT_SEND_MESSAGE", {
           message,
           images: "",
           roomChatId: roomChatId || null,
@@ -400,16 +423,16 @@ export default function ChatDetail() {
 
   // Gửi tin nhắn đến server
   const handleMessage = async () => {
-    if (socketConnection) {
+    if (socket) {
       const base64List = await convertImagesToBase64();
-      socketConnection.emit("CLIENT_SEND_MESSAGE", {
+      socket.emit("CLIENT_SEND_MESSAGE", {
         message,
         images: base64List,
         roomChatId: roomChatId || null,
         file: "",
       });
       // tắt typing ngay lập tức
-      socketConnection.emit("CLIENT_SEND_TYPING", false);
+      socket.emit("CLIENT_SEND_TYPING", false);
       setTyping((prev) => (prev ? { ...prev, type: false } : prev));
       setMessage("");
       input.current.value = "";
@@ -419,7 +442,7 @@ export default function ChatDetail() {
 
   //lấy tin nhắn từ server gửi về
   useEffect(() => {
-    if (!socketConnection) return;
+    if (!socket) return;
 
     const handleMessage = (data) => {
       const formatted = {
@@ -433,7 +456,7 @@ export default function ChatDetail() {
         // đảm bảo luôn là array
         images: Array.isArray(data.images) ? data.images : [],
         files: Array.isArray(data.files) ? data.files : [],
-
+        deleted: false,
         _id: data._id || Date.now(),
         createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
       };
@@ -444,13 +467,23 @@ export default function ChatDetail() {
     const handleTyping = (data) => {
       setTyping(data);
     };
-    socketConnection.on("SERVER_RETURN_MASSAGE", handleMessage);
-    socketConnection.on("SERVER_RETURN_TYPING", handleTyping);
-    return () => {
-      socketConnection.off("SERVER_RETURN_MASSAGE", handleMessage);
-      socketConnection.off("SERVER_RETURN_TYPING", handleTyping);
+    const handleRemoveMeassage = (selectedMessageId) => {
+      console.log(selectedMessageId);
+      setChat((prev) =>
+        prev.map((msg) =>
+          msg._id === selectedMessageId ? { ...msg, deleted: true } : msg
+        )
+      );
     };
-  }, [socketConnection]);
+    socket.on("SERVER_RETURN_MASSAGE", handleMessage);
+    socket.on("SERVER_RETURN_TYPING", handleTyping);
+    socket.on("SERVER_MESSAGE_DELETED", handleRemoveMeassage);
+    return () => {
+      socket.off("SERVER_RETURN_MASSAGE", handleMessage);
+      socket.off("SERVER_RETURN_TYPING", handleTyping);
+      socket.off("SERVER_MESSAGE_DELETED", handleRemoveMeassage);
+    };
+  }, [socket]);
 
   //thời gian hoạt động trước đó
   const timeAgo = (date) => {
@@ -489,7 +522,7 @@ export default function ChatDetail() {
         memberId: item.user_id._id,
       });
       if (res.success) {
-        socketConnection.emit("CLIENT_REMOVE_MEMBER", {
+        socket.emit("CLIENT_REMOVE_MEMBER", {
           roomChatId,
           member: item.user_id._id,
         });
@@ -509,7 +542,7 @@ export default function ChatDetail() {
         memberId: item.user_id._id,
       });
       if (res.success) {
-        socketConnection.emit("CLIENT_LEAVE_GROUP", {
+        socket.emit("CLIENT_LEAVE_GROUP", {
           roomChatId,
         });
       }
@@ -527,7 +560,7 @@ export default function ChatDetail() {
       const res = await deleteData(`/auth/removeRoom/${roomChatId}`);
       if (res.success) {
         toast.success(res.message || "Xóa thành công!");
-        socketConnection.emit("CLIENT_REMOVE_ROOM", { roomChatId });
+        socket.emit("CLIENT_REMOVE_ROOM", { roomChatId });
       }
     } catch (error) {
       if (error.response) {
@@ -826,7 +859,9 @@ export default function ChatDetail() {
                 >
                   {/* Nội dung text */}
 
-                  {item.content && (
+                  {item.deleted == true ? (
+                    <i className="text-gray-400">Tin nhắn đã bị xóa</i>
+                  ) : (
                     <div
                       className={`${
                         theme == "dark" ? "text-white" : "text-gray-600"
@@ -835,10 +870,10 @@ export default function ChatDetail() {
                       {item.content}
                     </div>
                   )}
-
-                  <Tooltip title="Xem thêm" placement="bottom-start">
-                    <div
-                      className={`
+                  {isMe && (
+                    <Tooltip title="Xem thêm" placement="bottom-start">
+                      <div
+                        className={`
                       absolute top-1/2 -translate-y-1/2
                       ${isMe ? "-left-10 " : "-right-10"}
                       opacity-0 group-hover:opacity-100
@@ -849,14 +884,15 @@ export default function ChatDetail() {
                           : "bg-white border-gray-200"
                       } p-1  
                     `}
-                      aria-controls={open ? "fade-menu" : undefined}
-                      aria-haspopup="true"
-                      aria-expanded={open ? "true" : undefined}
-                      onClick={handleClick}
-                    >
-                      <BsThreeDots />
-                    </div>
-                  </Tooltip>
+                        aria-controls={open ? "fade-menu" : undefined}
+                        aria-haspopup="true"
+                        aria-expanded={open ? "true" : undefined}
+                        onClick={(e) => handleClick(e, item._id, item.content)}
+                      >
+                        <BsThreeDots />
+                      </div>
+                    </Tooltip>
+                  )}
 
                   <Menu
                     id="fade-menu"
@@ -871,14 +907,14 @@ export default function ChatDetail() {
                     onClose={handleClose}
                   >
                     <MenuItem
-                      onClick={handleClose}
+                      onClick={handleCopy}
                       className="flex items-center gap-3 !text-blue-500 !text-[14px]"
                     >
                       <MdOutlineContentCopy />
                       Sao chép
                     </MenuItem>
                     <MenuItem
-                      onClick={handleClose}
+                      onClick={handleDeleteMessage}
                       className="flex items-center gap-3 !text-red-600 !text-[14px]"
                     >
                       <FiDelete />

@@ -8,11 +8,12 @@ import { FcSearch } from "react-icons/fc";
 import { Badge, Button, Dialog, DialogActions } from "@mui/material";
 import { useDispatch, useSelector } from "react-redux";
 import { resetAcceptFriends } from "../../redux/userSlice";
+import { socket } from "../../socket";
 function Friend() {
   const dispatch = useDispatch();
   const [friendStatus, setFriendStatus] = useState({});
   const state = useSelector((state) => state.user);
-  const socketConnection = state.socketConnection;
+
   const { id } = useParams();
   const totalAccept = state.lengthAcceptFriend ?? 0;
 
@@ -33,14 +34,14 @@ function Friend() {
   //gửi lên server
   const handleSendRequire = (userId) => {
     setOpen(false);
-    socketConnection.emit("CLIENT_ADD_FRIEND", { userId, text });
+    socket.emit("CLIENT_ADD_FRIEND", { userId, text });
   };
   const handleCancelRequire = (userId) => {
-    socketConnection.emit("CLIENT_CANCEL_FRIEND", userId);
+    socket.emit("CLIENT_CANCEL_FRIEND", userId);
   };
   //server trả về
   useEffect(() => {
-    if (!socketConnection) return;
+    if (!socket) return;
 
     const handleStatus = (data) => {
       setFriendStatus((prev) => ({
@@ -49,12 +50,12 @@ function Friend() {
       }));
     };
 
-    socketConnection.on("SERVER_FRIEND_STATUS", handleStatus);
+    socket.on("SERVER_FRIEND_STATUS", handleStatus);
 
     return () => {
-      socketConnection.off("SERVER_FRIEND_STATUS", handleStatus);
+      socket.off("SERVER_FRIEND_STATUS", handleStatus);
     };
-  }, [socketConnection]);
+  }, [socket]);
   //dark/mode
   const theme = useSelector((state) => state.theme.mode);
   return (

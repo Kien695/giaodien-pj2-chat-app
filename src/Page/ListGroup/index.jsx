@@ -12,7 +12,7 @@ import { MdOutlineKeyboardArrowLeft } from "react-icons/md";
 
 export default function ListGroup() {
   const state = useSelector((state) => state.user);
-  const socketConnection = state.socketConnection;
+
   const count = useSelector((state) => state.user.countGroup);
   const room = useSelector((state) => state.user.listGroup);
   const navigate = useNavigate();
@@ -29,12 +29,11 @@ export default function ListGroup() {
 
   //leave group
   const handleLeaveGroup = async (roomChatId) => {
-    console.log(roomChatId);
     try {
       const res = await patchData(`/auth/leaveGroup/${roomChatId}`);
       if (res.success) {
         setAnchorEl(null);
-        socketConnection.emit("CLIENT_LEAVE_ROOM_PERSON", {
+        socket.emit("CLIENT_LEAVE_ROOM_PERSON", {
           roomChatId,
         });
       }

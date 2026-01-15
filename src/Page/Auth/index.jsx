@@ -105,6 +105,7 @@ export function Auth() {
         toast.success("Đăng nhập thành công!");
         localStorage.setItem("accessToken", res?.data?.accessToken);
         localStorage.setItem("refreshToken", res?.data?.refreshToken);
+        localStorage.setItem("documentId", res?.data?.documentId);
         localStorage.setItem("theme", "light");
         setFormLogin({ email: "", password: "" });
         dispatch(setLogin(true));

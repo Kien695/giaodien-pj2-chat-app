@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { socket } from "./socket.js";
+
 //toastyfy
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -17,6 +19,12 @@ import {
   removeGroup,
   removeUserFromRoom,
   addGroup,
+  acceptFriendSuccess,
+  setIncreaseAcceptFriend,
+  decreaseAcceptFriend,
+  setListAddFriend,
+  addInvite,
+  removeInvite,
 } from "./redux/userSlice";
 import {
   setOnlineUsers,
@@ -33,8 +41,6 @@ function App() {
   const listGroup = useSelector((state) => state.user.listGroup);
 
   useEffect(() => {
-    if (!socketConnection) return;
-
     // 1️ Fetch initial data
     const fetchData = async () => {
       const token = localStorage.getItem("accessToken");
@@ -48,7 +54,10 @@ function App() {
         dispatch(setListFriend(resListFriend.data));
         dispatch(setCountFriend(resListFriend.count));
       }
-
+      const resListAddFriend = await getData("/auth/getAcceptFriend");
+      if (resListAddFriend.success) {
+        dispatch(setListAddFriend(resListAddFriend.data));
+      }
       const resListGroup = await getData("/auth/getRoom");
       if (resListGroup.success) {
         dispatch(setListGroup(resListGroup.data));
@@ -57,60 +66,66 @@ function App() {
 
     fetchData();
 
-    // 2️ Socket listener: unfriend
+    // 2️ socket listeners
     const handleUnfriend = ({ friendId, roomChatId }) => {
       dispatch(unfriendSuccess(friendId));
-
       if (currentRoomId === roomChatId) {
         dispatch(setCurrentRoom(null));
       }
-
-      // Tải lại list + count từ BE
       fetchData();
     };
-    socketConnection.on("SERVER_UNFRIEND_SUCCESS", handleUnfriend);
-
-    //3. server trả về roomChat đã rời
+    const handleAcceptfriend = ({ friend }) => {
+      dispatch(acceptFriendSuccess(friend));
+    };
     const handleLeaveGroup = ({ roomChatId }) => {
       dispatch(removeGroup(roomChatId));
     };
-    //4. server bỏ user đã rời trong nhóm
-    socketConnection.on("SERVER_ROOM_UPDATED", ({ roomChatId, userId }) => {
-      dispatch(removeUserFromRoom({ roomChatId, userId }));
-    });
 
-    //5. update room
     const handleRoomUpdateSideBar = ({ roomChat }) => {
       dispatch(addGroup(roomChat));
     };
+    const handleAdd = (data) => {
+      if (state._id === data.userId) {
+        dispatch(addInvite(data.infoUserA));
+        dispatch(setIncreaseAcceptFriend());
+      }
+    };
+    const handleDelete = (data) => {
+      if (state._id === data.userIdB) {
+        dispatch(removeInvite(data.userIdA));
+        dispatch(decreaseAcceptFriend());
+      }
+    };
+    socket.on("SERVER_RETURN_INFO_A", handleAdd);
+    socket.on("SERVER_DELETE_INFO_A", handleDelete);
+    socket.on("SERVER_RETURN_LIST_FRIEND", handleAcceptfriend);
+    socket.on("SERVER_UNFRIEND_SUCCESS", handleUnfriend);
+    socket.on("SERVER_LEAVE_ROOM_PERSON", handleLeaveGroup);
+    socket.on("SERVER_ROOM_UPDATED_SIDEBAR", handleRoomUpdateSideBar);
 
-    socketConnection.on("SERVER_LEAVE_ROOM_PERSON", handleLeaveGroup);
-    //socket online/offline user
-
-    socketConnection.on("SERVER_ONLINE_USERS", (users) => {
+    socket.on("SERVER_ONLINE_USERS", (users) => {
       dispatch(setOnlineUsers(users));
     });
 
-    socketConnection.on("SERVER_USER_ONLINE", ({ userId }) => {
+    socket.on("SERVER_USER_ONLINE", ({ userId }) => {
       dispatch(setUserOnline(userId));
     });
 
-    socketConnection.on("SERVER_USER_OFFLINE", ({ userId, lastActive }) => {
+    socket.on("SERVER_USER_OFFLINE", ({ userId, lastActive }) => {
       dispatch(setUserOffline({ userId, lastActive }));
     });
-    socketConnection.on("SERVER_ROOM_UPDATED_SIDEBAR", handleRoomUpdateSideBar);
+
     return () => {
-      socketConnection.off("SERVER_UNFRIEND_SUCCESS", handleUnfriend);
-      socketConnection.off("SERVER_USER_ONLINE");
-      socketConnection.off("SERVER_USER_OFFLINE");
-      socketConnection.off("SERVER_LEAVE_ROOM_PERSON", handleLeaveGroup);
-      socketConnection.on("SERVER_ROOM_UPDATED");
-      socketConnection.off(
-        "SERVER_ROOM_UPDATED_SIDEBAR",
-        handleRoomUpdateSideBar
-      );
+      socket.off("SERVER_UNFRIEND_SUCCESS", handleUnfriend);
+      socket.off("SERVER_LEAVE_ROOM_PERSON", handleLeaveGroup);
+      socket.off("SERVER_ROOM_UPDATED_SIDEBAR", handleRoomUpdateSideBar);
+      socket.off("SERVER_ONLINE_USERS");
+      socket.off("SERVER_USER_ONLINE");
+      socket.off("SERVER_USER_OFFLINE");
+      socket.off("SERVER_RETURN_INFO_A", handleAdd);
+      socket.off("SERVER_DELETE_INFO_A", handleDelete);
     };
-  }, [dispatch, socketConnection]);
+  }, [dispatch, currentRoomId, state._id, isLogin]);
 
   return (
     <>

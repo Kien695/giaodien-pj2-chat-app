@@ -15,6 +15,7 @@ import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import InfoUser from "../../Components/infoUser";
 import { setCurrentRoom } from "../../redux/userSlice";
+import { socket } from "../../socket";
 export default function ListFriend() {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = useState(null);
@@ -22,7 +23,7 @@ export default function ListFriend() {
   const [selectedItem, setSelectedItem] = useState(null);
   const dispatch = useDispatch();
   const state = useSelector((state) => state.user);
-  const socketConnection = state.socketConnection;
+
   const openMenu = Boolean(anchorEl);
 
   const handleClick = (event, item) => {
@@ -38,7 +39,7 @@ export default function ListFriend() {
 
   //gửi lên server
   const handleUnFriend = (userId) => {
-    socketConnection.emit("CLIENT_UNFRIEND", userId);
+    socket.emit("CLIENT_UNFRIEND", userId);
   };
   //dark/mode
   const theme = useSelector((state) => state.theme.mode);

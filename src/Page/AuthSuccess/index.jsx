@@ -14,8 +14,10 @@ export default function AuthSuccess() {
       const params = new URLSearchParams(window.location.search);
 
       const accessToken = params.get("token");
+      const documentId = params.get("documentId");
       if (accessToken) {
         localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("documentId", documentId);
         localStorage.setItem("theme", "light");
         toast.success("Đăng nhập thành công");
         dispatch(setLogin(true));

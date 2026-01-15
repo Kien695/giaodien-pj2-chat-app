@@ -175,6 +175,7 @@ export default function Setting({ open, onClose }) {
         toast.success("Đăng xuất thành công");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        localStorage.removeItem("documentId");
         localStorage.removeItem("theme");
         localStorage.removeItem("useAvatarBg");
         dispatch(logout());

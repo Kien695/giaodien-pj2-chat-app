@@ -27,11 +27,12 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     padding: theme.spacing(1),
   },
 }));
+import { socket } from "../../socket";
 export default function AddFriend({ open, onClose }) {
   const [users, setUsers] = useState([]);
   const [text, setText] = useState("");
   const [keyword, setKeyword] = useState("");
-  const socketConnection = useSelector((state) => state.user.socketConnection);
+
   //dialog
   const [openDialog, setOpenDialog] = React.useState(false);
   const handleClickOpen = () => {
@@ -45,7 +46,7 @@ export default function AddFriend({ open, onClose }) {
   //gửi lên server
   const handleSendRequire = (userId) => {
     setOpenDialog(false);
-    socketConnection.emit("CLIENT_ADD_FRIEND", { userId, text });
+    socket.emit("CLIENT_ADD_FRIEND", { userId, text });
   };
   useEffect(() => {
     const fetchData = async () => {

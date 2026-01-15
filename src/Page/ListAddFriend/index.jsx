@@ -10,56 +10,57 @@ import {
   decreaseAcceptFriend,
   setIncreaseAcceptFriend,
 } from "../../redux/userSlice";
-
+import { socket } from "../../socket";
 export default function AddFriend() {
   const navigate = useNavigate();
   const state = useSelector((state) => state.user);
-  const socketConnection = state.socketConnection;
+
   const dispatch = useDispatch();
-  const [invite, setInvite] = useState([]);
+  const invite = state.listAddFriend;
+
   const totalAccept = invite.length;
   //get data
-  useEffect(() => {
-    const fetchData = async () => {
-      const res = await getData("auth/getAcceptFriend");
-      if (res.success) {
-        setInvite(res.data);
-      }
-    };
-    fetchData();
-  }, []);
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     const res = await getData("auth/getAcceptFriend");
+  //     if (res.success) {
+  //       setInvite(res.data);
+  //     }
+  //   };
+  //   fetchData();
+  // }, []);
   //server return info A
-  useEffect(() => {
-    if (!socketConnection) return;
+  // useEffect(() => {
+  //   if (!socket) return;
 
-    const handleAdd = (data) => {
-      if (state._id === data.userId) {
-        setInvite((prev) => {
-          if (prev.find((u) => u._id === data.infoUserA._id)) return prev;
-          return [...prev, data.infoUserA];
-        });
-        dispatch(setIncreaseAcceptFriend());
-      }
-    };
-    const handleDelete = (data) => {
-      if (state._id === data.userIdB) {
-        setInvite((prev) => prev.filter((item) => item._id !== data.userIdA));
-      }
-      dispatch(decreaseAcceptFriend());
-    };
-    socketConnection.on("SERVER_RETURN_INFO_A", handleAdd);
-    socketConnection.on("SERVER_DELETE_INFO_A", handleDelete);
-    return () => {
-      socketConnection.off("SERVER_RETURN_INFO_A", handleAdd);
-      socketConnection.off("SERVER_DELETE_INFO_A", handleDelete);
-    };
-  }, [socketConnection, state._id]);
+  //   const handleAdd = (data) => {
+  //     if (state._id === data.userId) {
+  //       setInvite((prev) => {
+  //         if (prev.find((u) => u._id === data.infoUserA._id)) return prev;
+  //         return [...prev, data.infoUserA];
+  //       });
+  //       dispatch(setIncreaseAcceptFriend());
+  //     }
+  //   };
+  //   const handleDelete = (data) => {
+  //     if (state._id === data.userIdB) {
+  //       setInvite((prev) => prev.filter((item) => item._id !== data.userIdA));
+  //     }
+  //     dispatch(decreaseAcceptFriend());
+  //   };
+  //   socket.on("SERVER_RETURN_INFO_A", handleAdd);
+  //   socket.on("SERVER_DELETE_INFO_A", handleDelete);
+  //   return () => {
+  //     socket.off("SERVER_RETURN_INFO_A", handleAdd);
+  //     socket.off("SERVER_DELETE_INFO_A", handleDelete);
+  //   };
+  // }, [socket, state._id]);
 
   const handleRefuseFriend = (userId) => {
-    socketConnection.emit("CLIENT_REFUSE_FRIEND", userId);
+    socket.emit("CLIENT_REFUSE_FRIEND", userId);
   };
   const handleAcceptFriend = (userId) => {
-    socketConnection.emit("CLIENT_ACCEPT_FRIEND", userId);
+    socket.emit("CLIENT_ACCEPT_FRIEND", userId);
   };
   //dark/mode
   const theme = useSelector((state) => state.theme.mode);
