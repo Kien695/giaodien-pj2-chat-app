@@ -841,7 +841,7 @@ export default function ChatDetail() {
               >
                 {!isMe && (
                   <img
-                    src={item.user_id.avatar || "https://i.pravatar.cc/40"}
+                    src={item.user_id.avatar || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"}
                     className="w-6 h-6 md:w-8 md:h-8 rounded-full"
                   />
                 )}
@@ -1019,7 +1019,7 @@ export default function ChatDetail() {
             <div className=" flex gap-1 mt-auto items-center">
               <div className="flex gap-2">
                 <img
-                  src={typing.avatar || "https://i.pravatar.cc/40"}
+                  src={typing.avatar || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"}
                   alt="avatar"
                   className="w-5 h-5 rounded-full"
                 />
