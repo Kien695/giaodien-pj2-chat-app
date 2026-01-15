@@ -10,20 +10,24 @@ export default function AuthSuccess() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   useEffect(() => {
-    const authSuccess = async () => {
-      const params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.location.search);
 
-      const accessToken = params.get("token");
-      const documentId = params.get("documentId");
-      if (accessToken) {
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("documentId", documentId);
-        localStorage.setItem("theme", "light");
-        toast.success("Đăng nhập thành công");
-        dispatch(setLogin(true));
-        navigate("/chat");
-      }
-    };
-    authSuccess();
+    const accessToken = params.get("token");
+    const documentId = params.get("documentId");
+
+    if (!accessToken) return;
+
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("documentId", documentId);
+    localStorage.setItem("theme", "light");
+
+    toast.success("Đăng nhập thành công");
+    dispatch(setLogin(true));
+
+    // 🔥 QUAN TRỌNG: xóa query string
+    window.history.replaceState({}, "", "/auth-success");
+
+    // 🔥 QUAN TRỌNG: replace để không back lại
+    navigate("/chat", { replace: true });
   }, []);
 }
