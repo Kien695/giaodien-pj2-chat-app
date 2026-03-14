@@ -17,10 +17,6 @@ export default function Layout() {
     if (!roomChatId) return;
 
     socket.emit("JOIN_ROOM", { roomChatId });
-
-    return () => {
-      socket.emit("LEAVE_ROOM", { roomChatId });
-    };
   }, [roomChatId]);
 
   return (

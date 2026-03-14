@@ -233,7 +233,7 @@ export default function InfoUser({ open, onClose, user, type }) {
             </MenuItem>
             <MenuItem
               onClick={() => {
-                handleClose(), handleOpenEdit();
+                (handleClose(), handleOpenEdit());
               }}
               sx={{
                 fontSize: "14px",
@@ -366,7 +366,7 @@ export default function InfoUser({ open, onClose, user, type }) {
         <BootstrapDialog
           open={openEdit}
           onClose={() => {
-            onClose(), setOpenEdit(false);
+            (onClose(), setOpenEdit(false));
           }}
           hideBackdrop={true}
           slots={{
@@ -402,7 +402,7 @@ export default function InfoUser({ open, onClose, user, type }) {
                   },
                 }}
                 onClick={() => {
-                  onClose(), setOpenEdit(false);
+                  (onClose(), setOpenEdit(false));
                 }}
               >
                 <IoClose className="text-[22px] cursor-pointer" />

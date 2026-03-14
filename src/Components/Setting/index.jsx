@@ -30,6 +30,7 @@ import { useState } from "react";
 import { postData } from "../../utils/api";
 import { logout } from "../../redux/userSlice";
 import { useNavigate } from "react-router-dom";
+import { socket } from "../../socket";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -184,9 +185,10 @@ export default function Setting({ open, onClose }) {
     try {
       const resLogout = await postData("/auth/logout");
       if (resLogout.success) {
+        socket.disconnect();
         toast.success("Đăng xuất thành công");
         localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+      
         localStorage.removeItem("documentId");
         localStorage.removeItem("theme");
         localStorage.removeItem("useAvatarBg");

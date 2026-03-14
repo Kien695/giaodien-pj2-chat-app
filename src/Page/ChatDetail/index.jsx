@@ -140,19 +140,12 @@ export default function ChatDetail() {
   const [openFiles, setOpenFiles] = useState(true);
   const [chat, setChat] = useState([]);
   const [roomInfo, setRoomInfo] = useState({});
-  const [typing, setTyping] = useState("");
+  const [typing, setTyping] = useState({});
   const [images, setImages] = useState([]);
+  const [commonGroupCount, setCommonGroupCount] = useState(0);
   const maxNumber = 5;
   const typingTimeoutRef = useRef(null);
 
-  const resetTyping = () => {
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-
-    typingTimeoutRef.current = setTimeout(() => {
-      setTyping(false);
-      if (socket) socket.emit("CLIENT_SEND_TYPING", false);
-    }, 3000);
-  };
   const onEmojiClick = (emojiData) => {
     setMessage((prev) => prev + emojiData.emoji);
     if (socket) {
@@ -239,7 +232,7 @@ export default function ChatDetail() {
         const existingIds = prev.map((u) => u.user_id._id);
 
         const newUsers = users.filter(
-          (u) => !existingIds.includes(u.user_id._id)
+          (u) => !existingIds.includes(u.user_id._id),
         );
 
         return [...prev, ...newUsers];
@@ -266,9 +259,10 @@ export default function ChatDetail() {
     };
   }, [socket]);
   //end
-
+  console.log(chat);
   //render message
   const renderSystemMessage = (msg) => {
+    console.log("renderSystemMessage", msg);
     const isMe = msg.user_id._id === state._id;
 
     switch (msg.action) {
@@ -279,7 +273,7 @@ export default function ChatDetail() {
 
       case "add_member": {
         const names = msg.content_user
-          ?.map((u) => (u._id === state._id ? "bạn" : u.name))
+          ?.map((u) => (String(u._id) === String(state._id) ? "bạn" : u.name))
           .join(", ");
 
         return `${isMe ? "Bạn" : msg.user_id.name} đã thêm ${names} vào nhóm`;
@@ -289,7 +283,7 @@ export default function ChatDetail() {
         return `${msg.user_id.name} đã rời khỏi nhóm`;
       case "remove_member":
         const names = msg.content_user
-          ?.map((u) => (u._id === state._id ? "bạn" : u.name))
+          ?.map((u) => (String(u._id) === String(state._id) ? "bạn" : u.name))
           .join(", ");
         return `${
           isMe ? "Bạn" : msg.user_id.name
@@ -300,6 +294,14 @@ export default function ChatDetail() {
   };
 
   //typing input
+  const resetTyping = () => {
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+
+    typingTimeoutRef.current = setTimeout(() => {
+      setTyping(false);
+      if (socket) socket.emit("CLIENT_SEND_TYPING", false);
+    }, 3000);
+  };
   const handleInputChange = (e) => {
     const value = e.target.value;
     setMessage(value);
@@ -307,10 +309,6 @@ export default function ChatDetail() {
     if (socket) {
       socket.emit("CLIENT_SEND_TYPING", !!value);
     }
-
-    // bật typing
-    setTyping(true);
-
     // reset timeout 3s
     resetTyping();
   };
@@ -385,16 +383,18 @@ export default function ChatDetail() {
         // Nếu BE trả về lỗi, set status error
         setUploadingFiles((prev) =>
           prev.map((f) =>
-            tempFiles.some((t) => t.id === f.id) ? { ...f, status: "error" } : f
-          )
+            tempFiles.some((t) => t.id === f.id)
+              ? { ...f, status: "error" }
+              : f,
+          ),
         );
       }
     } catch (error) {
       // Nếu upload lỗi, set status = error
       setUploadingFiles((prev) =>
         prev.map((f) =>
-          tempFiles.some((t) => t.id === f.id) ? { ...f, status: "error" } : f
-        )
+          tempFiles.some((t) => t.id === f.id) ? { ...f, status: "error" } : f,
+        ),
       );
     }
   };
@@ -410,6 +410,7 @@ export default function ChatDetail() {
           setChat(res.data);
           setDataUser(res.users);
           setRoomInfo(res.room);
+          setCommonGroupCount(res.commonGroupCount);
         }
       } catch (error) {
         if (error.response?.data?.link) {
@@ -433,7 +434,7 @@ export default function ChatDetail() {
       });
       // tắt typing ngay lập tức
       socket.emit("CLIENT_SEND_TYPING", false);
-      setTyping((prev) => (prev ? { ...prev, type: false } : prev));
+
       setMessage("");
       input.current.value = "";
       setImages([]);
@@ -468,11 +469,10 @@ export default function ChatDetail() {
       setTyping(data);
     };
     const handleRemoveMeassage = (selectedMessageId) => {
-      console.log(selectedMessageId);
       setChat((prev) =>
         prev.map((msg) =>
-          msg._id === selectedMessageId ? { ...msg, deleted: true } : msg
-        )
+          msg._id === selectedMessageId ? { ...msg, deleted: true } : msg,
+        ),
       );
     };
     socket.on("SERVER_RETURN_MASSAGE", handleMessage);
@@ -494,8 +494,13 @@ export default function ChatDetail() {
     if (minutes < 60) return `Truy cập ${minutes} phút trước`;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `Truy cập ${hours} giờ trước`;
+    if (hours < 48) return `Hôm qua`;
     const days = Math.floor(hours / 24);
-    return `Truy cập ${days} ngày trước`;
+    if (2 < days < 30) return `Truy cập ${days} ngày trước`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `Truy cập ${months} tháng trước`;
+    const years = Math.floor(months / 12);
+    return `Truy cập ${years} năm trước`;
   };
   //luôn cuộn xuống dưới
   useEffect(() => {
@@ -513,7 +518,7 @@ export default function ChatDetail() {
   };
   // Is Admin?
   const isCurrentUserAdmin = dataUser.some(
-    (u) => u.user_id._id === state._id && u.role === "admin"
+    (u) => u.user_id._id === state._id && u.role === "admin",
   );
   //remove member
   const handleRemoveUser = async (item) => {
@@ -772,7 +777,6 @@ export default function ChatDetail() {
                   }
                   alt="avatar"
                   className="w-[45px] rounded-full cursor-pointer"
-                  onClick={() => setOpenInfo(true)}
                 />
 
                 <div className="flex flex-col justify-between">
@@ -798,8 +802,8 @@ export default function ChatDetail() {
                 buttonActive
                   ? "text-blue-500"
                   : theme === "dark"
-                  ? "text-white"
-                  : "text-gray-500"
+                    ? "text-white"
+                    : "text-gray-500"
               }`}
               onClick={handleClickInfoChat}
             />
@@ -841,7 +845,10 @@ export default function ChatDetail() {
               >
                 {!isMe && (
                   <img
-                    src={item.user_id.avatar || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"}
+                    src={
+                      item.user_id.avatar ||
+                      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
+                    }
                     className="w-6 h-6 md:w-8 md:h-8 rounded-full"
                   />
                 )}
@@ -1019,7 +1026,10 @@ export default function ChatDetail() {
             <div className=" flex gap-1 mt-auto items-center">
               <div className="flex gap-2">
                 <img
-                  src={typing.avatar || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"}
+                  src={
+                    typing.avatar ||
+                    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
+                  }
                   alt="avatar"
                   className="w-5 h-5 rounded-full"
                 />
@@ -1117,12 +1127,7 @@ export default function ChatDetail() {
               onChange={handleSendFile}
             />
 
-            <MdOutlineOndemandVideo
-              className="text-[18px] cursor-pointer"
-              onClick={() => {
-                toast.error("Chức năng này chưa làm hehe :)");
-              }}
-            />
+            <MdOutlineOndemandVideo className="text-[18px] cursor-pointer" />
           </div>
 
           <div className="flex items-center gap-2  px-3 h-12">
@@ -1133,7 +1138,7 @@ export default function ChatDetail() {
                   : "bg-white text-black "
               }`}
               type="text"
-              placeholder="Nhập tin nhắn gửi đến A"
+              placeholder="Nhập tin nhắn"
               ref={input}
               onChange={handleInputChange}
               onKeyDown={(e) => e.key === "Enter" && handleMessage()}
@@ -1168,7 +1173,7 @@ export default function ChatDetail() {
                 Thành viên nhóm
               </div>
             </div>
-            <div className="py-3 px-3">
+            <div className="py-3 px-3 flex-1">
               <Button
                 variant="contained"
                 size="small"
@@ -1197,7 +1202,7 @@ export default function ChatDetail() {
               >
                 Danh sách thành viên ({dataUser.length})
               </div>
-              <div className="overflow-y-auto">
+              <div className="overflow-y-auto ">
                 {dataUser?.map((item) => {
                   const isMyself = item.user_id._id === state._id;
 
@@ -1624,10 +1629,15 @@ export default function ChatDetail() {
                         )}
                       </div>
                     </div>
-                    <div className="flex item-center gap-2 px-5 py-4 text-gray-700 border-b-8">
-                      <HiOutlineUserGroup className="text-[22px]" />
-                      <span className="text-[15px]">1 nhóm chung</span>
-                    </div>
+                    {commonGroupCount > 0 && (
+                      <div className="flex item-center gap-2 px-5 py-4 text-gray-700 border-b-8">
+                        <HiOutlineUserGroup className="text-[22px]" />
+                        <span className="text-[15px]">
+                          {commonGroupCount} nhóm chung
+                        </span>
+                      </div>
+                    )}
+
                     <div className="px-5 py-4 text-gray-700 border-b-8">
                       <div
                         className="flex items-center justify-between cursor-pointer select-none"
@@ -1642,8 +1652,6 @@ export default function ChatDetail() {
                       {openImages && (
                         <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
                           {chat.map((item, index) => {
-                            const isMe = item.user_id._id === state._id;
-
                             return (
                               <div key={index} className="">
                                 {item.images && item.images.length > 0 && (
@@ -1678,8 +1686,6 @@ export default function ChatDetail() {
                       {openFiles && (
                         <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
                           {chat.map((item, index) => {
-                            const isMe = item.user_id._id === state._id;
-
                             return (
                               <div key={index} className="">
                                 {item.files && item.files.length > 0 && (
@@ -1710,7 +1716,7 @@ export default function ChatDetail() {
                         </div>
                       )}
                     </div>
-                    <div className="px-5 py-4 flex items-center gap-2 text-[16px] text-red-700 ">
+                    <div className="px-5 py-4 cursor-pointer flex items-center gap-2 text-[16px] text-red-700 ">
                       <RiDeleteBin6Line />
                       Xóa lịch sử trò chuyện
                     </div>

@@ -37,6 +37,7 @@ export default function SideBarUser() {
     try {
       const resLogout = await postData("/auth/logout");
       if (resLogout.success) {
+        socket.disconnect();
         toast.success("Đăng xuất thành công");
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
@@ -73,17 +74,19 @@ export default function SideBarUser() {
           anchorEl={anchorEl}
           open={open}
           onClose={handleClose}
-          PaperProps={{
-            sx: {
-              width: 200,
-              borderRadius: 2,
-              py: 1,
-              px: 1,
+          slotProps={{
+            paper: {
+              sx: {
+                width: 200,
+                borderRadius: 2,
+                py: 1,
+                px: 1,
+              },
             },
-          }}
-          MenuListProps={{
-            sx: {
-              p: 0,
+            list: {
+              sx: {
+                p: 0,
+              },
             },
           }}
         >
@@ -105,7 +108,7 @@ export default function SideBarUser() {
           <MenuItem
             sx={{ py: 0.7, px: 1.5 }}
             onClick={() => {
-              handleClose(), setOpenSetting(true);
+              (handleClose(), setOpenSetting(true));
             }}
           >
             Cài đặt

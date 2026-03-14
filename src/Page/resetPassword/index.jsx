@@ -34,6 +34,18 @@ export default function ResetPassword() {
       inputRefs.newPassword.current.focus();
       return;
     }
+    // Regex password
+    const passwordRegex =
+      /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[{\]};:'",.<>/?\\|]).{8,}$/;
+
+    if (!passwordRegex.test(formPassword.newPassword)) {
+      toast.error(
+        "Mật khẩu phải ≥ 8 ký tự, gồm 1 chữ hoa, 1 số và 1 ký tự đặc biệt",
+      );
+      inputRefs.newPassword.current.focus();
+      setLoading(false);
+      return;
+    }
     if (!formPassword.confirmPassword) {
       toast.error("Vui lòng nhập mật xác nhận khẩu mới");
       setLoading(false);

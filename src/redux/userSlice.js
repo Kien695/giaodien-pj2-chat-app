@@ -12,7 +12,6 @@ const initialState = {
   createdAt: "",
   _id: "",
   isLogin: false,
-  onlineUser: [],
 
   lengthAcceptFriend: 0,
   listFriend: [],
@@ -33,24 +32,7 @@ export const userSlice = createSlice({
     setLogin: (state, action) => {
       state.isLogin = action.payload; // true/false
     },
-    logout: (state) => {
-      state.name = "";
-      state.email = "";
-      state.avatar = "";
-      state.avatar_public_id = "";
-      state.background = "";
-      state.background_public_id = "";
-      state.mobile = "";
-      state.date_of_birth = "";
-      state.createdAt = "";
-      state._id = "";
-      state.isLogin = false;
-
-      state.lengthAcceptFriend = 0;
-    },
-    setOnlineUser: (state, action) => {
-      state.onlineUser = action.payload;
-    },
+    logout: () => ({ ...initialState }),
 
     setIncreaseAcceptFriend: (state) => {
       state.lengthAcceptFriend += 1;
@@ -72,7 +54,7 @@ export const userSlice = createSlice({
     unfriendSuccess: (state, action) => {
       const friendId = action.payload;
       state.listFriend = state.listFriend.filter(
-        (item) => item._id !== friendId
+        (item) => item._id !== friendId,
       );
     },
     acceptFriendSuccess: (state, action) => {
@@ -98,7 +80,7 @@ export const userSlice = createSlice({
     },
     removeGroup: (state, action) => {
       state.listGroup = state.listGroup.filter(
-        (room) => room._id.toString() !== action.payload.toString()
+        (room) => room._id.toString() !== action.payload.toString(),
       );
     },
     removeUserFromRoom: (state, action) => {
@@ -116,7 +98,7 @@ export const userSlice = createSlice({
     },
     addInvite: (state, action) => {
       const exists = state.listAddFriend.find(
-        (u) => u._id === action.payload._id
+        (u) => u._id === action.payload._id,
       );
       if (!exists) {
         state.listAddFriend.push(action.payload);
@@ -124,7 +106,7 @@ export const userSlice = createSlice({
     },
     removeInvite: (state, action) => {
       state.listAddFriend = state.listAddFriend.filter(
-        (u) => u._id !== action.payload
+        (u) => u._id !== action.payload,
       );
     },
   },
@@ -135,8 +117,6 @@ export const {
   setUser,
   logout,
   setLogin,
-  setOnlineUser,
-
   setIncreaseAcceptFriend,
   decreaseAcceptFriend,
   resetAcceptFriends,

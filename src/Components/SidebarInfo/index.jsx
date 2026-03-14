@@ -118,6 +118,7 @@ function SideBar() {
       setRooms((prev) => {
         // tránh add trùng room
         const exists = prev.some((r) => r._id === roomChat._id);
+
         if (exists) return prev;
 
         return [roomChat, ...prev]; // add lên đầu sidebar
@@ -131,21 +132,21 @@ function SideBar() {
     }) => {
       if (action === "leave" && removedUserId === state._id) {
         setRooms((prev) =>
-          prev.filter((room) => room._id.toString() !== roomChatId.toString())
+          prev.filter((room) => room._id.toString() !== roomChatId.toString()),
         );
         navigateRef.current("/chat");
       }
 
       if (action === "remove" && removedUserId === state._id) {
         setRooms((prev) =>
-          prev.filter((room) => room._id.toString() !== roomChatId.toString())
+          prev.filter((room) => room._id.toString() !== roomChatId.toString()),
         );
         navigateRef.current("/chat");
       }
     };
     const handleRemoveRoom = ({ roomChatId }) => {
       setRooms((prev) =>
-        prev.filter((room) => room._id.toString() !== roomChatId.toString())
+        prev.filter((room) => room._id.toString() !== roomChatId.toString()),
       );
       navigateRef.current("/chat");
     };
@@ -230,8 +231,8 @@ function SideBar() {
                   [userId]: 0,
                 },
               }
-            : room
-        )
+            : room,
+        ),
       );
     };
 
@@ -250,8 +251,13 @@ function SideBar() {
     if (minutes < 60) return `${minutes} phút `;
     const hours = Math.floor(minutes / 60);
     if (hours < 24) return `${hours} giờ `;
+    if (hours < 48) return `Hôm qua`;
     const days = Math.floor(hours / 24);
-    return `${days} ngày `;
+    if (days >= 2 && days < 30) return `${days} ngày`;
+    const months = Math.floor(days / 30);
+    if (months < 12) return `${months} tháng`;
+    const years = Math.floor(months / 12);
+    return `${years} năm`;
   };
   //thêm document vào rooms
 
@@ -275,7 +281,7 @@ function SideBar() {
                 <div className="flex flex-col gap-3">
                   {user.map((item, index) => {
                     const friend = item.FriendList?.find(
-                      (f) => String(f.user_id) === String(state._id)
+                      (f) => String(f.user_id) === String(state._id),
                     );
 
                     const isFriend = !!friend;
@@ -302,19 +308,22 @@ function SideBar() {
                             {item.name}
                           </div>
                           <div>
-                            <Link
-                              to={isFriend ? `/chat/${roomChatId}` : "/chat/"}
-                            >
-                              <Button
-                                size="small"
-                                color="error"
-                                sx={{
-                                  textTransform: "none",
-                                }}
+                            {isFriend && (
+                              <Link
+                                to={isFriend ? `/chat/${roomChatId}` : "/chat/"}
                               >
-                                Nhắn tin
-                              </Button>
-                            </Link>
+                                <Button
+                                  size="small"
+                                  color="error"
+                                  sx={{
+                                    textTransform: "none",
+                                  }}
+                                >
+                                  Nhắn tin
+                                </Button>
+                              </Link>
+                            )}
+
                             {isFriend ? null : (
                               <>
                                 {friendStatus[item._id] === "pending" ||
@@ -464,8 +473,8 @@ function SideBar() {
                                   [state._id]: 0,
                                 },
                               }
-                            : room
-                        )
+                            : room,
+                        ),
                       );
 
                       socket.emit("CLIENT_READ_ROOM", {
@@ -506,49 +515,61 @@ function SideBar() {
                             {item?.typeRoom === "system"
                               ? item?.title
                               : item?.typeRoom === "group"
-                              ? item?.title
-                              : item?.users?.find(
-                                  (u) => u.user_id?._id !== state._id
-                                )?.user_id?.name}
+                                ? item?.title
+                                : item?.users?.find(
+                                    (u) => u.user_id?._id !== state._id,
+                                  )?.user_id?.name}
                           </div>
                           <div
                             className={`text-[13px] ${
-                              theme == "dark"
-                                ? "text-[#cccfd4]"
-                                : "text-gray-600"
+                              unread > 0
+                                ? "font-semibold"
+                                : `${
+                                    theme == "dark"
+                                      ? "text-[#cccfd4]"
+                                      : "text-gray-600"
+                                  }`
                             }`}
                           >
                             {timeAgo(item?.lastMessage?.createdAt)}
                           </div>
                         </div>
-
-                        <div
-                          className={`line-clamp-1 text-[13px]
+                        <div className="flex justify-between">
+                          <div
+                            className={`line-clamp-1 text-[13px]
                          ${
                            unread > 0
-                             ? "font-semibold "
+                             ? "font-semibold"
                              : `${
                                  theme == "dark"
                                    ? "text-[#cccfd4]"
                                    : "text-gray-600"
                                }`
                          }`}
-                        >
-                          {item?.lastMessage?.files?.length > 0 ? (
-                            <div className="flex gap-1 items-center">
-                              <MdAttachFile className="text-[15px]" />
-                              <span>Tệp đính kèm</span>
-                            </div>
-                          ) : item?.lastMessage?.images?.length > 0 ? (
-                            <div className="flex gap-1 items-center">
-                              <CiImageOn className="text-[17px]" />
-                              <span>Hình ảnh</span>
-                            </div>
-                          ) : item?.lastMessage?.content ? (
-                            <span>{item.lastMessage.content}</span>
-                          ) : (
-                            "Chưa có tin nhắn"
-                          )}
+                          >
+                            {item?.lastMessage?.files?.length > 0 ? (
+                              <div className="flex gap-1 items-center">
+                                <MdAttachFile className="text-[15px]" />
+                                <span>Tệp đính kèm</span>
+                              </div>
+                            ) : item?.lastMessage?.images?.length > 0 ? (
+                              <div className="flex gap-1 items-center">
+                                <CiImageOn className="text-[17px]" />
+                                <span>Hình ảnh</span>
+                              </div>
+                            ) : item?.lastMessage?.content ? (
+                              <span>{item.lastMessage.content}</span>
+                            ) : (
+                              "Chưa có tin nhắn"
+                            )}
+                          </div>
+                          <div
+                            className={`w-[14px] h-[14px] mr-3 font-semibold text-[10px] flex text-white items-center justify-center rounded-full bg-red-500 ${
+                              unread > 0 ? "block" : "hidden"
+                            }`}
+                          >
+                            {unread}
+                          </div>
                         </div>
                       </div>
                     </div>

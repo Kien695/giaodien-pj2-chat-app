@@ -45,7 +45,8 @@ function App() {
     const fetchData = async () => {
       const token = localStorage.getItem("accessToken");
       if (!token) return;
-
+      socket.auth = { token };
+      socket.connect();
       const resUser = await getData("/auth/getUser");
       if (resUser.success) dispatch(setUser(resUser.data));
 

@@ -6,6 +6,8 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  FormControlLabel,
+  FormGroup,
   InputAdornment,
   TextField,
   Typography,
@@ -28,8 +30,10 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   },
 }));
 import { socket } from "../../socket";
+import InfoUser from "../infoUser";
 export default function AddFriend({ open, onClose }) {
   const [users, setUsers] = useState([]);
+  const [searchUser, setSearchUser] = useState(null);
   const [text, setText] = useState("");
   const [keyword, setKeyword] = useState("");
 
@@ -47,8 +51,14 @@ export default function AddFriend({ open, onClose }) {
   //gửi lên server
   const handleSendRequire = (userId) => {
     setOpenDialog(false);
+    setKeyword("");
     socket.emit("CLIENT_ADD_FRIEND", { userId, text });
   };
+  useEffect(() => {
+    if (keyword.trim() === "") {
+      setSearchUser(null);
+    }
+  }, [keyword]);
   useEffect(() => {
     const fetchData = async () => {
       const res = await getData(`/auth/getAllUser`);
@@ -57,7 +67,7 @@ export default function AddFriend({ open, onClose }) {
       }
     };
     fetchData();
-  }, []);
+  }, [keyword]);
   const handleClickSearchFriend = async () => {
     if (keyword.trim() === "") {
       toast.error("Vui lòng nhập thông tin tìm kiếm");
@@ -66,7 +76,7 @@ export default function AddFriend({ open, onClose }) {
     try {
       const res = await getData(`/auth/searchUser?keyword=${keyword}`);
       if (res.success) {
-        setUsers(res.data);
+        setSearchUser(res.data);
       }
     } catch (error) {
       toast.error("Tìm kiếm thất bại. Vui lòng thử lại sau.");
@@ -104,15 +114,50 @@ export default function AddFriend({ open, onClose }) {
             <IoClose className="text-[22px] cursor-pointer" />
           </Button>
         </div>
-        <DialogContent dividers className="flex flex-col flex-1">
-          <TextField
-            label="Số điện thoại hoặc email người dùng"
-            variant="standard"
-            size="small"
-            name="keyword"
-            onChange={(e) => setKeyword(e.target.value)}
-            sx={{ marginBottom: 2 }}
-          />
+        <DialogContent dividers className="flex flex-col flex-1 ">
+          <div className="relative w-full">
+            <TextField
+              fullWidth
+              value={keyword}
+              label="Số điện thoại hoặc email người dùng"
+              variant="standard"
+              size="small"
+              name="keyword"
+              onChange={(e) => setKeyword(e.target.value)}
+              sx={{ marginBottom: 2 }}
+            />
+            {keyword && searchUser && (
+              <div className="absolute flex item-center justify-between bg-gray-100 top-16 border p-2 w-full rounded-lg shadow-md">
+                <div className="flex items-center gap-2">
+                  <img
+                    src={
+                      searchUser?.avatar ||
+                      "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                    }
+                    alt=""
+                    className="w-[35px] rounded-full"
+                  />
+                  <div className="text-[15px]">{searchUser?.name}</div>
+                </div>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  sx={{
+                    textTransform: "none",
+                    paddingX: "16px",
+                    paddingY: "1px",
+                  }}
+                  onClick={() => {
+                    setSelectedUser(searchUser);
+                    setOpenDialog(true);
+                  }}
+                >
+                  Kết bạn
+                </Button>
+              </div>
+            )}
+          </div>
+
           <Divider sx={{ marginY: 1 }} />
           <div>
             <div className="text-[13px] mb-2">Gợi ý kết bạn</div>
@@ -164,7 +209,7 @@ export default function AddFriend({ open, onClose }) {
                   }}
                 >
                   {selectedUser && (
-                    <>
+                    <React.Fragment>
                       <div className="relative">
                         <img
                           src={
@@ -207,7 +252,7 @@ export default function AddFriend({ open, onClose }) {
                           Gửi lời mời
                         </Button>
                       </DialogActions>
-                    </>
+                    </React.Fragment>
                   )}
                 </Dialog>
               </div>

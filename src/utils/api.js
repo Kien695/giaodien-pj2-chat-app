@@ -2,41 +2,67 @@ import axios from "axios";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_SOCKET_URL,
-  withCredentials: true, // gửi cookie httpOnly
+  withCredentials: true,
 });
 
-// Interceptor tự động refresh token khi 401
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // chỉ retry 1 lần
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        // request chờ refresh xong
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers["Authorization"] = `Bearer ${token}`;
+          return api(originalRequest);
+        });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
-        // gọi refresh token
-        const res = await api.post("/auth/refresh-token");
-        const newAccessToken = res.data.accessToken;
+        const res = await api.post(`/auth/refreshToken`);
 
-        // lưu token mới vào localStorage
+        const newAccessToken = res.data.data.accessToken;
+
         localStorage.setItem("accessToken", newAccessToken);
 
-        // gắn token mới và retry request
+        processQueue(null, newAccessToken);
+
         originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+
         return api(originalRequest);
-      } catch (refreshError) {
-        // refresh token hết hạn → logout FE hoặc redirect login
-        console.error("Refresh token failed", refreshError);
+      } catch (err) {
+        processQueue(err, null);
         localStorage.removeItem("accessToken");
-        window.location.href = "/login";
-        return Promise.reject(refreshError);
+        window.location.href = "/auth";
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
       }
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 // getData

@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { postData } from "../../utils/api";
 import { useDispatch } from "react-redux";
 import { setLogin } from "../../redux/userSlice";
+import { socket } from "../../socket";
 
 export function Auth() {
   const dispatch = useDispatch();
@@ -64,7 +65,7 @@ export function Auth() {
 
     if (!passwordRegex.test(formRegister.password)) {
       toast.error(
-        "Mật khẩu phải ≥ 8 ký tự, gồm 1 chữ hoa, 1 số và 1 ký tự đặc biệt"
+        "Mật khẩu phải ≥ 8 ký tự, gồm 1 chữ hoa, 1 số và 1 ký tự đặc biệt",
       );
       inputRefRegister.password.current.focus();
       setLoading(false);
@@ -74,7 +75,7 @@ export function Auth() {
       const res = await postData("/auth/register", formRegister);
       if (res.success) {
         toast.success(
-          "Đăng kí thành công. Vui lòng nhập OTP để xác thực email của bạn!"
+          "Đăng kí thành công. Vui lòng nhập OTP để xác thực email của bạn!",
         );
         localStorage.setItem("userEmail", formRegister.email);
         setFormRegister({ name: "", email: "", password: "" });
@@ -124,7 +125,11 @@ export function Auth() {
       if (res.success) {
         toast.success("Đăng nhập thành công!");
         localStorage.setItem("accessToken", res?.data?.accessToken);
-        localStorage.setItem("refreshToken", res?.data?.refreshToken);
+        socket.auth = {
+          token: res.data.accessToken,
+        };
+
+        socket.connect();
         localStorage.setItem("documentId", res?.data?.documentId);
         localStorage.setItem("theme", "light");
         setFormLogin({ email: "", password: "" });
@@ -322,7 +327,7 @@ export function Auth() {
           onClick={() => {
             window.open(
               `${import.meta.env.VITE_SOCKET_URL}/auth/google`,
-              "_self"
+              "_self",
             );
           }}
         >

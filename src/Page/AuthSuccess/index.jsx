@@ -5,6 +5,7 @@ import { getData } from "../../utils/api";
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { setLogin } from "../../redux/userSlice";
+import { socket } from "../../socket";
 
 export default function AuthSuccess() {
   const dispatch = useDispatch();
@@ -19,6 +20,11 @@ export default function AuthSuccess() {
     if (accessToken) {
       // Lưu vào Storage
       localStorage.setItem("accessToken", accessToken);
+      socket.auth = {
+        token: accessToken,
+      };
+
+      socket.connect();
       if (documentId) localStorage.setItem("documentId", documentId);
       localStorage.setItem("theme", "light");
 
@@ -28,7 +34,6 @@ export default function AuthSuccess() {
 
       navigate("/chat", { replace: true });
     } else {
-      // Nếu không có token, đẩy về trang login hoặc báo lỗi
       console.error("No token found in URL");
       navigate("/login");
     }
