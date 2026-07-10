@@ -1,12 +1,37 @@
-# React + Vite
+## Tổng quan
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Ứng dụng mạng xã hội kết hợp nhắn tin thời gian thực, cho phép người dùng kết nối bạn bè, trò chuyện cá nhân, tham gia nhóm và chia sẻ hình ảnh, tệp tin.
 
-Currently, two official plugins are available:
+## Tính năng & Công nghệ
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Xác thực người dùng:**
+  - Đăng ký, đăng nhập và quản lý tài khoản người dùng.
+  - Hỗ trợ đăng nhập bằng Google OAuth.
+  - Quên mật khẩu thông qua email.
 
-## Expanding the ESLint configuration
+- **Nhắn tin thời gian thực:**
+  - Xây dựng chức năng chat 1-1 và chat nhóm bằng Socket.io.
+  - Hiển thị trạng thái online/offline của người dùng.
+  - Hỗ trợ gửi emoji, icon và tin nhắn realtime.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Quản lý bạn bè:**
+  - Tìm kiếm người dùng.
+  - Gửi, chấp nhận, hủy lời mời kết bạn.
+  - Quản lý danh sách bạn bè.
+
+- **Quản lý nhóm chat:**
+  - Tạo và quản lý nhóm.
+  - Thêm, xóa thành viên trong nhóm.
+  - Trò chuyện nhóm realtime.
+
+- **Chia sẻ hình ảnh & tệp tin:**
+  - Upload và gửi hình ảnh trong cuộc trò chuyện.
+  - Tích hợp Cloudinary để lưu trữ media.
+
+- **Giao diện người dùng:**
+  - Xây dựng giao diện responsive.
+  - Tối ưu trải nghiệm chat realtime.
+
+## Công nghệ sử dụng
+
+React.js, TailwindCSS, Material UI, Socket.io Client
