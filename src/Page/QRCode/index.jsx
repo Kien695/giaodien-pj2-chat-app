@@ -19,7 +19,12 @@ export default function QRScannerModal({ open, onClose }) {
         onClose();
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Có lỗi xảy ra");
+      const errorMessage =
+      error.response?.data?.message ||
+      error.message ||
+      "Không thể kết nối đến máy chủ";
+      
+    toast.error(errorMessage);
     }
   };
 
