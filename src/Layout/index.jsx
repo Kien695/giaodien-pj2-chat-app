@@ -2,9 +2,12 @@ import React, { useEffect } from "react";
 import SideBarUser from "../Components/SidebarUser";
 import { Outlet, useParams } from "react-router-dom";
 import { socket } from "../socket.js";
+import { useMatch } from "react-router-dom";
 
 export default function Layout() {
   const { roomChatId } = useParams();
+
+  const isChatDetail = useMatch("/chat/:id");
 
   // 1️ connect socket
   useEffect(() => {
@@ -21,7 +24,7 @@ export default function Layout() {
 
   return (
     <div className="flex h-screen max-h-screen">
-      <SideBarUser />
+      <SideBarUser hideBottomNav={!!isChatDetail} />
       <div className="flex-1">
         <Outlet />
       </div>

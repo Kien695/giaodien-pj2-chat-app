@@ -12,6 +12,7 @@ const initialState = {
   createdAt: "",
   _id: "",
   isLogin: false,
+  hasPasskey: false,
 
   lengthAcceptFriend: 0,
   listFriend: [],

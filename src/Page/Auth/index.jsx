@@ -1,19 +1,36 @@
-import { Button, CircularProgress, TextField } from "@mui/material";
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogContent,
+  TextField,
+  Typography,
+} from "@mui/material";
+import QRCode from "react-qr-code";
 import { Link, useNavigate } from "react-router-dom";
 import { useRef, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
+import { MdFingerprint } from "react-icons/md";
+
 //toastyfy
 import { toast } from "react-toastify";
 import { postData } from "../../utils/api";
 import { useDispatch } from "react-redux";
 import { setLogin } from "../../redux/userSlice";
 import { socket } from "../../socket";
-
+import { startAuthentication } from "@simplewebauthn/browser";
+import QRDialog from "../../Components/QRDialog";
+import { useEffect } from "react";
+import useIsMobile from "../../Components/IsMobile";
 export function Auth() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
+
+  const isMobile = useIsMobile();
+
   //register
   const [formRegister, setFormRegister] = useState({
     name: "",
@@ -172,169 +189,402 @@ export function Auth() {
     }
   };
 
+  //login with passkey
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const handleLoginPasskey = async () => {
+    try {
+      setPasskeyLoading(true);
+
+      const optionResponse = await postData("/auth/passkey/login/options");
+      if (!optionResponse.success) {
+        toast.error(
+          optionResponse.message || "Không thể đăng nhập bằng Passkey!",
+        );
+        setPasskeyLoading(false);
+        return;
+      }
+
+      // 2. Hiện giao diện vân tay, Face ID hoặc mã khóa
+      const authenticationResponse = await startAuthentication({
+        optionsJSON: optionResponse,
+      });
+
+      // 3. Gửi kết quả về backend để xác minh
+
+      const verifyResponse = await postData("/auth/passkey/login/verify", {
+        challengeId: optionResponse.challengeId,
+        credential: authenticationResponse,
+      });
+
+      if (!verifyResponse.success) {
+        toast.error(
+          verifyResponse.message || "Xác thực Passkey không thành công",
+        );
+      }
+      toast.success("Đăng nhập thành công");
+      localStorage.setItem("accessToken", verifyResponse?.data?.accessToken);
+      socket.auth = {
+        token: verifyResponse.data.accessToken,
+      };
+
+      socket.connect();
+      localStorage.setItem("documentId", verifyResponse?.data?.documentId);
+      localStorage.setItem("theme", "light");
+
+      dispatch(setLogin(true));
+      navigate("/chat");
+    } catch (error) {
+      if (error.name === "NotAllowedError") {
+        toast.error("Bạn đã hủy xác thực Passkey");
+        return;
+      }
+
+      toast.error(error.response.data.message || "Đăng nhập Passkey thất bại");
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
+
   return (
-    <div className="w-[100vw] h-[100vh] flex flex-col gap-4 items-center justify-center bg-gray-100">
-      <div className="flex flex-col items-center">
-        <div className="font-[800] text-gray-700 text-[33px] italic">
-          XIN CHÀO!
-        </div>
-        <div className="text-[16px] text-gray-600">
-          Vui lòng đăng nhập để tiếp tục cuộc trò chuyện!
-        </div>
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 ">
+      {/* Background decoration */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-red-500/20 blur-3xl" />
+        <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
+        <div className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-3xl" />
       </div>
-      <div className="w-[75vw] min-h-[70vh] md:w-[80vw] xl:w-[35vw] xl:min-h-[65vh] p-8 bg-gray-200 border-2 border-red-100 shadow-2xl rounded-lg">
-        {/* Tab chuyển đổi */}
-        <div className="flex border-b border-gray-200 mb-6 w-max mx-auto">
-          <div
-            className={`
-      px-10 py-2 font-medium cursor-pointer relative
-      ${isLogin ? "text-red-500" : "text-gray-500 hover:text-red-500"}
-      transition-colors duration-300
-    `}
-            onClick={() => setIsLogin(true)}
-          >
-            Đăng nhập
-            {isLogin && (
-              <span className="absolute bottom-0 left-0 w-full h-1 bg-red-500 rounded-t-full animate-slideIn"></span>
-            )}
+
+      <section className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-2xl lg:grid-cols-2">
+        {/* Phần giới thiệu */}
+        <div className="relative hidden overflow-hidden bg-gradient-to-br from-red-600 via-red-500 to-orange-400 p-6 text-white lg:flex lg:flex-col lg:justify-between">
+          <div className="absolute -right-20 -top-20 h-50 w-20 rounded-full bg-white/10" />
+          <div className="absolute -bottom-24 -left-24 h-42 w-20 rounded-full bg-black/10" />
+
+          <div className="relative z-10">
+            <div className="mb-12 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20 text-xl font-bold shadow-lg backdrop-blur">
+                CT
+              </div>
+
+              <div>
+                <h1 className="text-xl font-bold">Chat Together</h1>
+                <p className="text-sm text-red-100">
+                  Kết nối mọi người dễ dàng hơn
+                </p>
+              </div>
+            </div>
+
+            <h2 className="max-w-md text-4xl font-bold leading-tight">
+              Trò chuyện, chia sẻ và kết nối mọi lúc
+            </h2>
+
+            <p className="mt-5 max-w-md leading-7 text-red-50">
+              Đăng nhập để tiếp tục cuộc trò chuyện với bạn bè và những người
+              quan trọng.
+            </p>
           </div>
 
-          <div
-            className={`
-      px-10 py-2 font-medium cursor-pointer relative
-      ${!isLogin ? "text-red-500" : "text-gray-500 hover:text-red-500"}
-      transition-colors duration-300
-    `}
-            onClick={() => setIsLogin(false)}
-          >
-            Đăng kí
-            {!isLogin && (
-              <span className="absolute bottom-0 left-0 w-full h-1 bg-red-500 rounded-t-full animate-slideIn"></span>
-            )}
+          <div className="relative z-10 rounded-2xl border border-white/20 bg-white/10 p-5 backdrop-blur-md">
+            <p className="text-sm leading-6 text-white/90">
+              Đăng nhập nhanh hơn bằng Passkey. Không cần ghi nhớ mật khẩu, chỉ
+              cần vân tay, khuôn mặt hoặc mã khóa thiết bị.
+            </p>
           </div>
         </div>
 
         {/* Form */}
-        {isLogin ? (
-          <div className="flex flex-col gap-2">
-            <form onSubmit={handleLoginSubmit} className="flex flex-col gap-4">
+        <div className="flex min-h-[450] flex-col justify-center bg-white px-6 py-8 sm:px-10 lg:px-12">
+          <div className="mb-6">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-xl font-bold text-red-500 lg:hidden">
+              CT
+            </div>
+
+            <h2 className="text-3xl font-bold text-slate-900">
+              {isLogin ? "Chào mừng trở lại" : "Tạo tài khoản mới"}
+            </h2>
+
+            <p className="mt-2 text-sm text-slate-500">
+              {isLogin
+                ? "Đăng nhập để tiếp tục cuộc trò chuyện."
+                : "Điền thông tin bên dưới để bắt đầu."}
+            </p>
+          </div>
+
+          {/* Tab chuyển đổi */}
+          <div className="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+            <button
+              type="button"
+              onClick={() => setIsLogin(true)}
+              className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-300 ${
+                isLogin
+                  ? "bg-white text-red-500 shadow-sm"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              Đăng nhập
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsLogin(false)}
+              className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-300 ${
+                !isLogin
+                  ? "bg-white text-red-500 shadow-sm"
+                  : "text-slate-500 hover:text-slate-900"
+              }`}
+            >
+              Đăng ký
+            </button>
+          </div>
+
+          {isLogin ? (
+            <div className="flex flex-col gap-4">
+              <form
+                onSubmit={handleLoginSubmit}
+                className="flex flex-col gap-3"
+              >
+                <TextField
+                  fullWidth
+                  name="email"
+                  size="small"
+                  label="Email"
+                  type="email"
+                  variant="outlined"
+                  inputRef={inputRefLogin.email}
+                  onChange={handleInputLogin}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "12px",
+                    },
+                  }}
+                />
+
+                <TextField
+                  fullWidth
+                  name="password"
+                  size="small"
+                  label="Mật khẩu"
+                  type="password"
+                  variant="outlined"
+                  inputRef={inputRefLogin.password}
+                  onChange={handleInputLogin}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: "12px",
+                    },
+                  }}
+                />
+
+                <div
+                  className={`flex ${!isMobile ? "justify-between px-3" : "justify-end"}`}
+                >
+                  {!isMobile && <QRDialog />}
+
+                  <button
+                    type="button"
+                    onClick={handleClickForgot}
+                    className="text-[13px] font-medium text-slate-500 transition hover:text-red-500"
+                  >
+                    Quên mật khẩu?
+                  </button>
+                </div>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  disabled={loading}
+                  type="submit"
+                  sx={{
+                    minHeight: 44,
+                    borderRadius: "12px",
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: "15px",
+                    boxShadow: "none",
+                    background:
+                      "linear-gradient(135deg, #ef4444 0%, #f97316 100%)",
+                    "&:hover": {
+                      boxShadow: "0 10px 25px rgba(239, 68, 68, 0.25)",
+                      background:
+                        "linear-gradient(135deg, #dc2626 0%, #ea580c 100%)",
+                    },
+                  }}
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <CircularProgress size={20} color="inherit" />
+                      Đang xử lý...
+                    </span>
+                  ) : (
+                    "Đăng nhập"
+                  )}
+                </Button>
+              </form>
+            </div>
+          ) : (
+            <form
+              onSubmit={handleRegisterSubmit}
+              className="flex flex-col gap-4"
+            >
               <TextField
+                fullWidth
+                size="small"
+                name="name"
+                label="Họ và tên"
+                variant="outlined"
+                inputRef={inputRefRegister.name}
+                onChange={handleInputRegister}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                  },
+                }}
+              />
+
+              <TextField
+                fullWidth
+                size="small"
                 name="email"
-                size="small"
                 label="Email"
+                type="email"
                 variant="outlined"
-                inputRef={inputRefLogin.email}
-                onChange={handleInputLogin}
+                inputRef={inputRefRegister.email}
+                onChange={handleInputRegister}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                  },
+                }}
               />
+
               <TextField
-                name="password"
+                fullWidth
                 size="small"
+                name="password"
                 label="Mật khẩu"
+                type="password"
                 variant="outlined"
-                inputRef={inputRefLogin.password}
-                onChange={handleInputLogin}
+                inputRef={inputRefRegister.password}
+                onChange={handleInputRegister}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "12px",
+                  },
+                }}
               />
+
               <Button
+                fullWidth
                 variant="contained"
                 disabled={loading}
                 type="submit"
                 sx={{
-                  backgroundColor: "red",
+                  minHeight: 44,
+                  borderRadius: "12px",
+                  textTransform: "none",
+                  fontWeight: 600,
+                  fontSize: "15px",
+                  boxShadow: "none",
+                  background:
+                    "linear-gradient(135deg, #ef4444 0%, #f97316 100%)",
                   "&:hover": {
-                    backgroundColor: "black",
+                    boxShadow: "0 10px 25px rgba(239, 68, 68, 0.25)",
+                    background:
+                      "linear-gradient(135deg, #dc2626 0%, #ea580c 100%)",
                   },
                 }}
               >
                 {loading ? (
-                  <div className="flex gap-2">
-                    <CircularProgress size={20} color="inherit" /> Đang xử lí...
-                  </div>
+                  <span className="flex items-center gap-2">
+                    <CircularProgress size={20} color="inherit" />
+                    Đang xử lý...
+                  </span>
                 ) : (
-                  "Đăng nhập"
+                  "Đăng ký"
                 )}
               </Button>
             </form>
-            <div
-              onClick={handleClickForgot}
-              className="flex text-[12px] font-[500] hover:text-[#ff5252] cursor-pointer justify-end"
-            >
-              Quên mật khẩu?
-            </div>
-          </div>
-        ) : (
-          <form onSubmit={handleRegisterSubmit} className="flex flex-col gap-4">
-            <TextField
-              size="small"
-              name="name"
-              label="Họ tên"
-              variant="outlined"
-              inputRef={inputRefRegister.name}
-              onChange={handleInputRegister}
-            />
-            <TextField
-              size="small"
-              name="email"
-              label="Email"
-              variant="outlined"
-              inputRef={inputRefRegister.email}
-              onChange={handleInputRegister}
-            />
-            <TextField
-              size="small"
-              name="password"
-              label="Mật khẩu"
-              variant="outlined"
-              inputRef={inputRefRegister.password}
-              onChange={handleInputRegister}
-            />
+          )}
 
+          {/* Divider */}
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-xs font-medium text-slate-400">
+              HOẶC TIẾP TỤC VỚI
+            </span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {/* Google */}
             <Button
-              variant="contained"
-              disabled={loading}
-              type="submit"
+              fullWidth
+              variant="outlined"
+              onClick={() => {
+                window.open(
+                  `${import.meta.env.VITE_SOCKET_URL}/auth/google`,
+                  "_self",
+                );
+              }}
               sx={{
-                backgroundColor: "red",
+                minHeight: 44,
+                borderRadius: "12px",
+                borderColor: "#e2e8f0",
+                color: "#334155",
+                textTransform: "none",
+                fontWeight: 600,
                 "&:hover": {
-                  backgroundColor: "black",
+                  borderColor: "#cbd5e1",
+                  backgroundColor: "#f8fafc",
                 },
               }}
             >
-              {loading ? (
-                <div className="flex gap-2">
-                  <CircularProgress size={20} color="inherit" /> Đang xử lí...
-                </div>
+              <span className="flex items-center gap-2">
+                <FcGoogle className="text-xl" />
+                Google
+              </span>
+            </Button>
+
+            {/* Passkey */}
+            <Button
+              fullWidth
+              variant="outlined"
+              disabled={passkeyLoading}
+              onClick={handleLoginPasskey}
+              sx={{
+                minHeight: 44,
+                borderRadius: "12px",
+                borderColor: "#e2e8f0",
+                color: "#334155",
+                textTransform: "none",
+                fontWeight: 600,
+                "&:hover": {
+                  borderColor: "#cbd5e1",
+                  backgroundColor: "#f8fafc",
+                },
+              }}
+            >
+              {passkeyLoading ? (
+                <span className="flex items-center gap-2">
+                  <CircularProgress size={18} color="inherit" />
+                  Đang xác thực...
+                </span>
               ) : (
-                "Đăng kí"
+                <span className="flex items-center gap-2">
+                  <MdFingerprint className="text-2xl text-red-500" />
+                  Passkey
+                </span>
               )}
             </Button>
-          </form>
-        )}
-        {/* Divider */}
-        <div className="flex items-center my-2">
-          <hr className="flex-grow border-gray-300" />
-          <span className="px-2 text-gray-500">HOẶC</span>
-          <hr className="flex-grow border-gray-300" />
+          </div>
+
+          {isLogin && (
+            <p className="mt-3 text-center text-xs leading-2 text-slate-400">
+              Passkey sử dụng vân tay, Face ID hoặc mã khóa màn hình trên thiết
+              bị của bạn.
+            </p>
+          )}
         </div>
-        <Button
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 1,
-          }}
-          fullWidth
-          variant="outlined"
-          onClick={() => {
-            window.open(
-              `${import.meta.env.VITE_SOCKET_URL}/auth/google`,
-              "_self",
-            );
-          }}
-        >
-          <FcGoogle className="text-[20px]" />
-          Đăng nhập với Google
-        </Button>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

@@ -3,7 +3,14 @@ export default {
   darkMode: "class",
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
   theme: {
-    extend: {},
+    extend: {
+      keyframes: {
+        scan: {
+          "0%, 100%": { top: "0%" },
+          "50%": { top: "100%" },
+        },
+      },
+    },
   },
   plugins: [],
 };

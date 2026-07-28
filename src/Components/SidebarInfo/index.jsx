@@ -21,8 +21,10 @@ import {
 import { useSelector } from "react-redux";
 import { getData } from "../../utils/api";
 import { CiImageOn } from "react-icons/ci";
-import { MdAttachFile } from "react-icons/md";
+import { MdAttachFile, MdOutlineInsertEmoticon } from "react-icons/md";
 import { socket } from "../../socket";
+import { AiFillLike } from "react-icons/ai";
+import { IoQrCodeOutline } from "react-icons/io5";
 
 function SideBar() {
   const state = useSelector((state) => state.user);
@@ -266,7 +268,7 @@ function SideBar() {
   return (
     <div className="flex">
       <div
-        className={`w-full md:w-[300px]  ${
+        className={`w-full md:max-w-[300px]  ${
           roomChatId ? "hidden md:block" : "block"
         } ${
           theme == "dark" ? "bg-[#22262b] text-white" : "bg-gray-50 "
@@ -431,7 +433,7 @@ function SideBar() {
             )}
           </>
         ) : (
-          <div className="h-[89%]">
+          <div className="h-[89%] ">
             <div className="border-b-2 h-[5%] flex gap-2 px-3">
               <div
                 className={`text-[13px] font-[500] cursor-pointer ${
@@ -509,7 +511,7 @@ function SideBar() {
                         alt=""
                         className="w-[45px] rounded-full"
                       />
-                      <div className="flex-1 flex-col justify-between">
+                      <div className="flex flex-1 flex-col justify-between">
                         <div className="flex justify-between">
                           <div className="text-[15px]">
                             {item?.typeRoom === "system"
@@ -521,7 +523,7 @@ function SideBar() {
                                   )?.user_id?.name}
                           </div>
                           <div
-                            className={`text-[13px] ${
+                            className={`text-[13px] truncate${
                               unread > 0
                                 ? "font-semibold"
                                 : `${
@@ -557,6 +559,14 @@ function SideBar() {
                                 <CiImageOn className="text-[17px]" />
                                 <span>Hình ảnh</span>
                               </div>
+                            ) : item?.lastMessage?.type === "emoji" ? (
+                              <span className="flex gap-1 items-center">
+                                <MdOutlineInsertEmoticon /> emoji
+                              </span>
+                            ) : item?.lastMessage?.type === "invite" ? (
+                              <span className="flex gap-1 items-center">
+                                <IoQrCodeOutline /> QR Code
+                              </span>
                             ) : item?.lastMessage?.content ? (
                               <span>{item.lastMessage.content}</span>
                             ) : (

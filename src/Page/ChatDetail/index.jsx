@@ -1,11 +1,17 @@
 import {
+  Avatar,
   Button,
+  Checkbox,
   CircularProgress,
   Dialog,
   DialogActions,
+  DialogContent,
   DialogTitle,
   Divider,
   IconButton,
+  styled,
+  Tab,
+  Tabs,
   TextField,
   Tooltip,
 } from "@mui/material";
@@ -15,9 +21,24 @@ import { RiDeleteBin6Line } from "react-icons/ri";
 import { SiIconify, SiTruenas } from "react-icons/si";
 import { GrImage } from "react-icons/gr";
 import { FiDelete, FiPaperclip } from "react-icons/fi";
-import { IoChevronDown, IoChevronDownSharp, IoSend } from "react-icons/io5";
+import {
+  IoArrowBack,
+  IoChevronDown,
+  IoChevronDownSharp,
+  IoClose,
+  IoSearchCircleOutline,
+  IoSend,
+} from "react-icons/io5";
 import React, { useEffect, useState } from "react";
-import { FaRegSmile, FaRegThumbsUp, FaRegUser } from "react-icons/fa";
+import {
+  FaRegSmile,
+  FaRegThumbsUp,
+  FaRegUser,
+  FaLink,
+  FaRegCopy,
+  FaShareAlt,
+  FaRegFolderOpen,
+} from "react-icons/fa";
 import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Fade from "@mui/material/Fade";
@@ -30,12 +51,14 @@ import {
   MdOutlineKeyboardArrowLeft,
   MdOutlineKeyboardDoubleArrowLeft,
   MdOutlineOndemandVideo,
+  MdOutlineSettings,
 } from "react-icons/md";
 import { useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
 import InfoUser from "../../Components/infoUser";
 import { useRef } from "react";
 import { deleteData, getData, patchData, postData } from "../../utils/api";
+
 //emoji
 import EmojiPicker from "emoji-picker-react";
 //image
@@ -44,12 +67,21 @@ import ImageUploading from "react-images-uploading";
 import { PhotoProvider, PhotoView } from "react-photo-view";
 import "react-photo-view/dist/react-photo-view.css";
 import { BsThreeDots } from "react-icons/bs";
-import { AiOutlineEdit, AiOutlineUsergroupAdd } from "react-icons/ai";
+import {
+  AiFillLike,
+  AiOutlineEdit,
+  AiOutlineUsergroupAdd,
+} from "react-icons/ai";
+import QRCode from "react-qr-code";
 import AddGroup from "../../Components/AddGroup";
 import AddMember from "../../Components/AddMember";
 import { toast } from "react-toastify";
 import { socket } from "../../socket";
+import { CiSettings } from "react-icons/ci";
+import { FaLinkSlash } from "react-icons/fa6";
+import useIsMobile from "../../Components/IsMobile";
 export default function ChatDetail() {
+  const isMobile = useIsMobile();
   const [openInfo, setOpenInfo] = useState(false);
   const [openMenuId, setOpenMenuId] = useState(null);
   const [openMenu, setOpenMenu] = useState(false);
@@ -165,6 +197,7 @@ export default function ChatDetail() {
     title: roomInfo.title || "",
     image: null,
   });
+
   const handleInputChangeRoom = (e) => {
     const { name, value, files } = e.target;
     if (name === "image") {
@@ -259,10 +292,9 @@ export default function ChatDetail() {
     };
   }, [socket]);
   //end
-  console.log(chat);
+
   //render message
   const renderSystemMessage = (msg) => {
-    console.log("renderSystemMessage", msg);
     const isMe = msg.user_id._id === state._id;
 
     switch (msg.action) {
@@ -378,6 +410,7 @@ export default function ChatDetail() {
           images: "",
           roomChatId: roomChatId || null,
           file: res.data,
+          type: file,
         });
       } else {
         // Nếu BE trả về lỗi, set status error
@@ -431,6 +464,7 @@ export default function ChatDetail() {
         images: base64List,
         roomChatId: roomChatId || null,
         file: "",
+        type: "text",
       });
       // tắt typing ngay lập tức
       socket.emit("CLIENT_SEND_TYPING", false);
@@ -439,6 +473,15 @@ export default function ChatDetail() {
       input.current.value = "";
       setImages([]);
     }
+  };
+  const handleSendLike = () => {
+    socket.emit("CLIENT_SEND_MESSAGE", {
+      message,
+      images: "",
+      roomChatId: roomChatId || null,
+      file: "",
+      type: "emoji",
+    });
   };
 
   //lấy tin nhắn từ server gửi về
@@ -496,7 +539,8 @@ export default function ChatDetail() {
     if (hours < 24) return `Truy cập ${hours} giờ trước`;
     if (hours < 48) return `Hôm qua`;
     const days = Math.floor(hours / 24);
-    if (2 < days < 30) return `Truy cập ${days} ngày trước`;
+
+    if (days > 2 && days < 30) return `Truy cập ${days} ngày trước`;
     const months = Math.floor(days / 30);
     if (months < 12) return `Truy cập ${months} tháng trước`;
     const years = Math.floor(months / 12);
@@ -578,309 +622,451 @@ export default function ChatDetail() {
   //dark/mode && avatarBG
   const { mode: theme, useAvatarBg } = useSelector((state) => state.theme);
 
+  //link mời
+  const [tab, setTab] = useState(0);
+  const [rooms, setRooms] = useState([]);
+  const [formSend, setFormSend] = useState({
+    listRoom: [],
+  });
+  const handleTickSend = (room) => {
+    setFormSend((prev) => {
+      const exists = prev.listRoom.includes(room._id);
+
+      return {
+        ...prev,
+        listRoom: exists
+          ? prev.listRoom.filter((id) => id !== room._id)
+          : [...prev.listRoom, room._id],
+      };
+    });
+  };
+  //get all room chat
+  useEffect(() => {
+    const fetchRoomChat = async () => {
+      try {
+        const response = await getData("/auth/getAllRoomChat");
+        if (response.success) {
+          setRooms(response.data);
+        }
+      } catch (error) {
+        console.error("Lỗi khi lấy danh sách phòng chat:", error);
+      }
+    };
+    fetchRoomChat();
+  }, []);
+  const filteredRooms = rooms.filter((item) => {
+    switch (tab) {
+      case 0: // Tất cả
+        return true;
+
+      case 1: // Nhóm trò chuyện
+        return item.typeRoom === "group";
+
+      case 2: // Bạn bè
+        return item.typeRoom === "friend";
+
+      default:
+        return true;
+    }
+  });
+  const BootstrapDialog = styled(Dialog)(({ theme }) => ({
+    "& .MuiDialogContent-root": {
+      padding: theme.spacing(2),
+    },
+    "& .MuiDialogActions-root": {
+      padding: theme.spacing(1),
+    },
+  }));
+  const [openInvite, setOpenInvite] = useState(false);
+  const inviteUrl = `${window.location.origin}/invite/${roomInfo?.inviteToken}`;
+  const handleCopyInvite = () => {
+    navigator.clipboard
+      .writeText(inviteUrl)
+      .then(() => {
+        toast.success("Đã sao chép liên kết");
+      })
+      .catch(() => {
+        toast.error("Không thể sao chép liên kết");
+      });
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: roomInfo.title,
+          text: `Tham gia nhóm "${roomInfo.title}"`,
+          url: inviteUrl,
+        });
+      } catch (err) {}
+    } else {
+      await handleCopy();
+    }
+  };
+  const handleSendLink = async () => {
+    console.log(formSend.listRoom);
+    if (socket) {
+      socket.emit("CLIENT_SEND_MESSAGE", {
+        images: "",
+        file: "",
+        roomChatId: formSend.listRoom,
+        message: inviteUrl,
+        type: "invite",
+      });
+      setFormSend({
+        listRoom: [],
+      });
+    }
+  };
+
+  // Enter group
+  const handleEnterGroup = () => {};
   return (
-    <div
-      className={`w-full h-screen flex ${
-        theme == "dark" ? "bg-[#22262b] text-[#cbced3]" : ""
-      } `}
-    >
+    <React.Fragment>
       <div
-        className={`flex  flex-col h-full border-r ${
-          buttonActive || showMember ? "hidden md:flex md:w-2/3" : "w-full"
-        }`}
+        className={`w-full h-screen flex ${
+          theme == "dark" ? "bg-[#22262b] text-[#cbced3]" : ""
+        } `}
       >
-        <div className="flex h-[11%]  items-center justify-between px-5 py-1 border-b flex-shrink-0">
-          <div className="flex gap-3 relative">
-            {roomInfo.typeRoom === "group" ? (
-              <div className="flex gap-3 relative">
-                <img
-                  src={
-                    roomInfo.avatar ||
-                    "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                  }
-                  alt="avatar"
-                  className="w-[45px] rounded-full cursor-pointer"
-                  onClick={() => setOpenInfo(true)}
-                />
-
-                <div className="flex flex-col justify-between">
-                  <div className="text-[16px] font-[500] flex gap-2 items-center group">
-                    <span className="cursor-pointer">{roomInfo.title}</span>
-
-                    <AiOutlineEdit
-                      onClick={handleClickOpen}
-                      className=" text-[18px] opacity-0  group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
-                    />
-                    <Dialog
-                      open={openDialog}
-                      onClose={handleCloseOpen}
-                      aria-labelledby="alert-dialog-title"
-                      aria-describedby="alert-dialog-description"
+        <div
+          className={`flex  flex-col h-full border-r ${
+            buttonActive || showMember ? "hidden md:flex md:w-2/3" : "w-full"
+          }`}
+        >
+          <div className="flex h-[11%]  items-center justify-between px-5 py-1 border-b flex-shrink-0">
+            <div className="flex gap-3 relative">
+              {roomInfo.typeRoom === "group" ? (
+                <div className="flex gap-3 relative">
+                  {isMobile ? (
+                    <button
+                      onClick={() => navigate("/chat")}
+                      className="p-1 rounded-full hover:bg-gray-200"
                     >
-                      <div className="flex p-3 cursor-pointer text-[17px] font-[500]">
-                        Chỉnh sửa thông tin nhóm
-                      </div>
-                      <Divider sx={{ my: 0.2 }} />
-                      <div className="px-6 pb-4 py-5">
-                        <div className="text-[15px] text-gray-700 text-center mb-3">
-                          Bạn chắc muốn sửa thông tin nhóm chứ? Thông tin sau
-                          khi chỉnh sửa sẽ được hiển thị với tất cả thành viên.
-                        </div>
-                        <TextField
-                          name="title"
-                          id="standard-basic"
-                          label="Tên nhóm"
-                          variant="standard"
-                          size="small"
-                          className=" w-full"
-                          value={formInfo.title || roomInfo.title || ""}
-                          onChange={handleInputChangeRoom}
-                        />
-                        <div className="flex gap-4 items-center  py-4">
-                          <div className="text-[15px] text-gray-600">
-                            Ảnh đại diện nhóm:
-                          </div>
-                          <div className="relative">
-                            <img
-                              src={
-                                formInfo.image
-                                  ? URL.createObjectURL(formInfo.image)
-                                  : roomInfo.avatar ||
-                                    "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                              }
-                              alt="avatar"
-                              className=" block rounded-full w-[90px] border-2"
-                            />
+                      <IoArrowBack size={26} />
+                    </button>
+                  ) : (
+                    <img
+                      src={
+                        roomInfo.avatar ||
+                        "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                      }
+                      alt="avatar"
+                      className="w-[45px] rounded-full cursor-pointer"
+                      onClick={() => setOpenInfo(true)}
+                    />
+                  )}
 
-                            <div
-                              className="overlay rounded-full absolute top-0 left-0 w-full h-full
+                  <div className="flex flex-col justify-between">
+                    <div className="text-[16px] font-[500] flex gap-2 items-center group">
+                      <span className="cursor-pointer">{roomInfo.title}</span>
+
+                      <AiOutlineEdit
+                        onClick={handleClickOpen}
+                        className=" text-[18px] opacity-0  group-hover:opacity-100 transition-opacity duration-200 cursor-pointer"
+                      />
+                      <Dialog
+                        open={openDialog}
+                        onClose={handleCloseOpen}
+                        aria-labelledby="alert-dialog-title"
+                        aria-describedby="alert-dialog-description"
+                      >
+                        <div className="flex p-3 cursor-pointer text-[17px] font-[500]">
+                          Chỉnh sửa thông tin nhóm
+                        </div>
+                        <Divider sx={{ my: 0.2 }} />
+                        <div className="px-6 pb-4 py-5">
+                          <div className="text-[15px] text-gray-700 text-center mb-3">
+                            Bạn chắc muốn sửa thông tin nhóm chứ? Thông tin sau
+                            khi chỉnh sửa sẽ được hiển thị với tất cả thành
+                            viên.
+                          </div>
+                          <TextField
+                            name="title"
+                            id="standard-basic"
+                            label="Tên nhóm"
+                            variant="standard"
+                            size="small"
+                            className=" w-full"
+                            value={formInfo.title || roomInfo.title || ""}
+                            onChange={handleInputChangeRoom}
+                          />
+                          <div className="flex gap-4 items-center  py-4">
+                            <div className="text-[15px] text-gray-600">
+                              Ảnh đại diện nhóm:
+                            </div>
+                            <div className="relative">
+                              <img
+                                src={
+                                  formInfo.image
+                                    ? URL.createObjectURL(formInfo.image)
+                                    : roomInfo.avatar ||
+                                      "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                                }
+                                alt="avatar"
+                                className=" block rounded-full w-[90px] border-2"
+                              />
+
+                              <div
+                                className="overlay rounded-full absolute top-0 left-0 w-full h-full
                                   z-50 bg-[rgba(0,0,0,0.7)] flex items-center justify-center
                                   cursor-pointer opacity-0 transition-all hover:opacity-80"
-                            >
-                              <MdDriveFolderUpload className="text-white text-[25px]" />
-                              <input
-                                type="file"
-                                accept="image/*"
-                                className="absolute inset-0 opacity-0 cursor-pointer"
-                                name="image"
-                                onChange={handleInputChangeRoom}
-                              />
+                              >
+                                <MdDriveFolderUpload className="text-white text-[25px]" />
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="absolute inset-0 opacity-0 cursor-pointer"
+                                  name="image"
+                                  onChange={handleInputChangeRoom}
+                                />
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                      <Divider sx={{ my: 0.2 }} />
-                      <DialogActions>
-                        <Button onClick={handleCloseOpen}>Hủy</Button>
-                        <Button
-                          disabled={loading}
-                          onClick={handleConfirm}
-                          autoFocus
-                        >
-                          {loading ? (
-                            <div className="flex gap-2">
-                              <CircularProgress size={20} color="inherit" />{" "}
-                              Đang xử lí...
-                            </div>
-                          ) : (
-                            "Cập nhật"
-                          )}
-                        </Button>
-                      </DialogActions>
-                    </Dialog>
-                  </div>
+                        <Divider sx={{ my: 0.2 }} />
+                        <DialogActions>
+                          <Button onClick={handleCloseOpen}>Hủy</Button>
+                          <Button
+                            disabled={loading}
+                            onClick={handleConfirm}
+                            autoFocus
+                          >
+                            {loading ? (
+                              <div className="flex gap-2">
+                                <CircularProgress size={20} color="inherit" />{" "}
+                                Đang xử lí...
+                              </div>
+                            ) : (
+                              "Cập nhật"
+                            )}
+                          </Button>
+                        </DialogActions>
+                      </Dialog>
+                    </div>
 
-                  <div
-                    className={`text-[14px] ${
-                      theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                    } flex gap-1 cursor-pointer items-center hover:text-blue-500`}
-                    onClick={handleShowMember}
-                  >
-                    <FaRegUser />
-                    {dataUser.length} thành viên
+                    <div
+                      className={`text-[14px] ${
+                        theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                      } flex gap-1 cursor-pointer items-center hover:text-blue-500`}
+                      onClick={handleShowMember}
+                    >
+                      <FaRegUser />
+                      {dataUser.length} thành viên
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : roomInfo.typeRoom == "friend" ? (
-              <>
-                {dataUser?.map((item, index) => {
-                  const presence = onlineUsers[item.user_id._id];
+              ) : roomInfo.typeRoom == "friend" ? (
+                <>
+                  {dataUser?.map((item, index) => {
+                    const presence = onlineUsers[item.user_id._id];
 
-                  const isOnline = presence?.status === "online";
-                  const lastActive = presence?.lastActive;
-                  return (
-                    <div className="flex gap-3 relative" key={index}>
-                      <img
-                        src={
-                          item.user_id.avatar ||
-                          "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                        }
-                        alt="avatar"
-                        className="w-[45px] rounded-full cursor-pointer"
-                        onClick={() => setOpenInfo(true)}
-                      />
+                    const isOnline = presence?.status === "online";
+                    const lastActive = presence?.lastActive;
+                    return (
+                      <div className="flex gap-3 relative" key={index}>
+                        {isMobile ? (
+                          <button
+                            onClick={() => navigate("/chat")}
+                            className="p-1 rounded-full hover:bg-gray-200"
+                          >
+                            <IoArrowBack size={26} />
+                          </button>
+                        ) : (
+                          <img
+                            src={
+                              item.user_id.avatar ||
+                              "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                            }
+                            alt="avatar"
+                            className="w-[45px] rounded-full cursor-pointer"
+                            onClick={() => setOpenInfo(true)}
+                          />
+                        )}
 
-                      <InfoUser
-                        open={openInfo}
-                        onClose={() => setOpenInfo(false)}
-                        user={item.user_id}
-                        type="client"
-                      />
+                        <InfoUser
+                          open={openInfo}
+                          onClose={() => setOpenInfo(false)}
+                          user={item.user_id}
+                          type="client"
+                        />
 
-                      <div className="flex flex-col justify-between">
-                        <div className="text-[16px] font-[500]">
-                          {roomInfo.typeGroup === "group" ? (
-                            <>{roomInfo.title}</>
+                        <div className="flex flex-col justify-between">
+                          <div className="text-[16px] font-[500]">
+                            {roomInfo.typeGroup === "group" ? (
+                              <>{roomInfo.title}</>
+                            ) : (
+                              item.user_id.name
+                            )}
+                          </div>
+
+                          {isOnline ? (
+                            <div
+                              className={`text-[14px] ${
+                                theme == "dark"
+                                  ? "text-[#8b96a5]"
+                                  : "text-gray-700"
+                              }`}
+                            >
+                              Đang hoạt động
+                            </div>
                           ) : (
-                            item.user_id.name
+                            <div
+                              className={`text-[14px] ${
+                                theme == "dark"
+                                  ? "text-[#8b96a5]"
+                                  : "text-gray-700"
+                              }`}
+                            >
+                              {lastActive
+                                ? timeAgo(lastActive)
+                                : timeAgo(item.user_id.lastActive)}
+                            </div>
                           )}
                         </div>
 
-                        {isOnline ? (
-                          <div
-                            className={`text-[14px] ${
-                              theme == "dark"
-                                ? "text-[#8b96a5]"
-                                : "text-gray-700"
-                            }`}
-                          >
-                            Đang hoạt động
-                          </div>
-                        ) : (
-                          <div
-                            className={`text-[14px] ${
-                              theme == "dark"
-                                ? "text-[#8b96a5]"
-                                : "text-gray-700"
-                            }`}
-                          >
-                            {lastActive
-                              ? timeAgo(lastActive)
-                              : timeAgo(item.user_id.lastActive)}
-                          </div>
+                        {isOnline && (
+                          <span className="w-2 h-2 bg-green-600 rounded-full absolute left-9 bottom-1"></span>
                         )}
                       </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <div className="flex gap-3 relative">
+                  {isMobile ? (
+                    <button
+                      onClick={() => navigate("/chat")}
+                      className="p-1 rounded-full hover:bg-gray-200"
+                    >
+                      <IoArrowBack size={26} />
+                    </button>
+                  ) : (
+                    <img
+                      src={
+                        roomInfo.avatar ||
+                        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ-zvsfyRJwofBZJROisGYWZXLdBygcVh9Wgw&s"
+                      }
+                      alt="avatar"
+                      className="w-[45px] rounded-full cursor-pointer"
+                    />
+                  )}
 
-                      {isOnline && (
-                        <span className="w-2 h-2 bg-green-600 rounded-full absolute left-9 bottom-1"></span>
-                      )}
+                  <div className="flex flex-col justify-between">
+                    <div className="text-[16px] font-[500] flex gap-2 items-center group">
+                      <span className="cursor-pointer">{roomInfo.title}</span>
                     </div>
-                  );
-                })}
-              </>
-            ) : (
-              <div className="flex gap-3 relative">
-                <img
-                  src={
-                    roomInfo.avatar ||
-                    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ-zvsfyRJwofBZJROisGYWZXLdBygcVh9Wgw&s"
-                  }
-                  alt="avatar"
-                  className="w-[45px] rounded-full cursor-pointer"
-                />
 
-                <div className="flex flex-col justify-between">
-                  <div className="text-[16px] font-[500] flex gap-2 items-center group">
-                    <span className="cursor-pointer">{roomInfo.title}</span>
+                    <div
+                      className={`text-[14px] ${
+                        theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                      } flex gap-1 cursor-pointer items-center `}
+                    >
+                      Dành cho công việc riêng
+                    </div>
                   </div>
+                </div>
+              )}
+            </div>
+
+            <Button>
+              <MdDevicesFold
+                className={`text-[20px] ${
+                  buttonActive
+                    ? "text-blue-500"
+                    : theme === "dark"
+                      ? "text-white"
+                      : "text-gray-500"
+                }`}
+                onClick={handleClickInfoChat}
+              />
+            </Button>
+          </div>
+          <div
+            className={`flex-1 px-5 ${
+              theme === "dark" ? "bg-[#16191d]" : "bg-blue-50"
+            } flex flex-col gap-2 overflow-y-auto pt-2`}
+            style={{
+              backgroundRepeat: "no-repeat",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+
+              //  CHỈ hiện avatar khi switch = true
+              backgroundImage:
+                useAvatarBg && state.avatar ? `url(${state.avatar})` : "none",
+
+              //  fallback màu nền
+              backgroundColor: theme === "dark" ? "#16191d" : "#eff6ff",
+            }}
+          >
+            {chat.map((item, index) => {
+              if (item.type === "system") {
+                return (
+                  <div key={item._id} className="flex justify-center my-3">
+                    <span className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
+                      {renderSystemMessage(item)}
+                    </span>
+                  </div>
+                );
+              }
+              const isMe = item.user_id._id === state._id;
+
+              return (
+                <div
+                  key={index}
+                  className={`flex ${isMe ? "justify-end" : "gap-2"} mb-2`}
+                >
+                  {!isMe && (
+                    <img
+                      src={
+                        item.user_id.avatar ||
+                        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
+                      }
+                      className="w-6 h-6 md:w-8 md:h-8 rounded-full"
+                    />
+                  )}
 
                   <div
-                    className={`text-[14px] ${
-                      theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                    } flex gap-1 cursor-pointer items-center `}
+                    className={`group relative ${
+                      isMe
+                        ? `${
+                            theme === "dark" ? "bg-[#1f344d]" : "bg-blue-100"
+                          } rounded-xl rounded-br-none`
+                        : `${
+                            theme === "dark" ? "bg-[#262b30]" : "bg-white"
+                          }  rounded-xl rounded-bl-none`
+                    } p-2 max-w-[60%]`}
                   >
-                    Dành cho công việc riêng
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+                    {/* Nội dung text */}
 
-          <Button>
-            <MdDevicesFold
-              className={`text-[20px] ${
-                buttonActive
-                  ? "text-blue-500"
-                  : theme === "dark"
-                    ? "text-white"
-                    : "text-gray-500"
-              }`}
-              onClick={handleClickInfoChat}
-            />
-          </Button>
-        </div>
-        <div
-          className={`flex-1 px-5 ${
-            theme === "dark" ? "bg-[#16191d]" : "bg-blue-50"
-          } flex flex-col gap-2 overflow-y-auto pt-2`}
-          style={{
-            backgroundRepeat: "no-repeat",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-
-            //  CHỈ hiện avatar khi switch = true
-            backgroundImage:
-              useAvatarBg && state.avatar ? `url(${state.avatar})` : "none",
-
-            //  fallback màu nền
-            backgroundColor: theme === "dark" ? "#16191d" : "#eff6ff",
-          }}
-        >
-          {chat.map((item, index) => {
-            if (item.type === "system") {
-              return (
-                <div key={item._id} className="flex justify-center my-3">
-                  <span className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
-                    {renderSystemMessage(item)}
-                  </span>
-                </div>
-              );
-            }
-            const isMe = item.user_id._id === state._id;
-
-            return (
-              <div
-                key={index}
-                className={`flex ${isMe ? "justify-end" : "gap-2"} mb-2`}
-              >
-                {!isMe && (
-                  <img
-                    src={
-                      item.user_id.avatar ||
-                      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
-                    }
-                    className="w-6 h-6 md:w-8 md:h-8 rounded-full"
-                  />
-                )}
-
-                <div
-                  className={`group relative ${
-                    isMe
-                      ? `${
-                          theme === "dark" ? "bg-[#1f344d]" : "bg-blue-100"
-                        } rounded-xl rounded-br-none`
-                      : `${
-                          theme === "dark" ? "bg-[#262b30]" : "bg-white"
-                        }  rounded-xl rounded-bl-none`
-                  } p-2 max-w-[60%]`}
-                >
-                  {/* Nội dung text */}
-
-                  {item.deleted == true ? (
-                    <i className="text-gray-400">Tin nhắn đã bị xóa</i>
-                  ) : (
-                    <div
-                      className={`${
-                        theme == "dark" ? "text-white" : "text-gray-600"
-                      } mb-1`}
-                    >
-                      {item.content}
-                    </div>
-                  )}
-                  {isMe && (
-                    <Tooltip title="Xem thêm" placement="bottom-start">
+                    {item.deleted ? (
+                      <i className="text-gray-400">Tin nhắn đã bị xóa</i>
+                    ) : item.type === "emoji" ? (
+                      <div className="text-4xl">
+                        <AiFillLike className="text-yellow-500" />
+                      </div>
+                    ) : (
                       <div
-                        className={`
+                        className={`${
+                          theme === "dark" ? "text-white" : "text-gray-600"
+                        } mb-1`}
+                      >
+                        {item.type === "invite" ? (
+                          <div className="p-3 rounded-lg border">
+                            <QRCode value={item.content} size={120} />
+
+                            <Button onClick={handleEnterGroup}>
+                              Tham gia nhóm
+                            </Button>
+                          </div>
+                        ) : (
+                          <>{item.content}</>
+                        )}
+                      </div>
+                    )}
+                    {isMe && (
+                      <Tooltip title="Xem thêm" placement="bottom-start">
+                        <div
+                          className={`
                       absolute top-1/2 -translate-y-1/2
                       ${isMe ? "-left-10 " : "-right-10"}
                       opacity-0 group-hover:opacity-100
@@ -891,841 +1077,1007 @@ export default function ChatDetail() {
                           : "bg-white border-gray-200"
                       } p-1  
                     `}
-                        aria-controls={open ? "fade-menu" : undefined}
-                        aria-haspopup="true"
-                        aria-expanded={open ? "true" : undefined}
-                        onClick={(e) => handleClick(e, item._id, item.content)}
+                          aria-controls={open ? "fade-menu" : undefined}
+                          aria-haspopup="true"
+                          aria-expanded={open ? "true" : undefined}
+                          onClick={(e) =>
+                            handleClick(e, item._id, item.content)
+                          }
+                        >
+                          <BsThreeDots />
+                        </div>
+                      </Tooltip>
+                    )}
+
+                    <Menu
+                      id="fade-menu"
+                      slotProps={{
+                        list: {
+                          "aria-labelledby": "fade-button",
+                        },
+                      }}
+                      slots={{ transition: Fade }}
+                      anchorEl={anchorEl}
+                      open={open}
+                      onClose={handleClose}
+                    >
+                      <MenuItem
+                        onClick={handleCopy}
+                        className="flex items-center gap-3 !text-blue-500 !text-[14px]"
                       >
-                        <BsThreeDots />
+                        <MdOutlineContentCopy />
+                        Sao chép
+                      </MenuItem>
+                      <MenuItem
+                        onClick={handleDeleteMessage}
+                        className="flex items-center gap-3 !text-red-600 !text-[14px]"
+                      >
+                        <FiDelete />
+                        Xóa tin nhắn
+                      </MenuItem>
+                    </Menu>
+
+                    {/* HIỂN THỊ ẢNH */}
+                    {item.images?.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-1">
+                        <PhotoProvider>
+                          {item.images.map((img, i) => (
+                            <PhotoView key={i} src={img.url}>
+                              <img
+                                src={img.url}
+                                className="w-20 h-20 md:w-32 md:h-32 rounded-md object-cover"
+                              />
+                            </PhotoView>
+                          ))}
+                        </PhotoProvider>
                       </div>
-                    </Tooltip>
-                  )}
+                    )}
+                    {/* Hiển thị File */}
 
-                  <Menu
-                    id="fade-menu"
-                    slotProps={{
-                      list: {
-                        "aria-labelledby": "fade-button",
-                      },
-                    }}
-                    slots={{ transition: Fade }}
-                    anchorEl={anchorEl}
-                    open={open}
-                    onClose={handleClose}
-                  >
-                    <MenuItem
-                      onClick={handleCopy}
-                      className="flex items-center gap-3 !text-blue-500 !text-[14px]"
-                    >
-                      <MdOutlineContentCopy />
-                      Sao chép
-                    </MenuItem>
-                    <MenuItem
-                      onClick={handleDeleteMessage}
-                      className="flex items-center gap-3 !text-red-600 !text-[14px]"
-                    >
-                      <FiDelete />
-                      Xóa tin nhắn
-                    </MenuItem>
-                  </Menu>
-
-                  {/* HIỂN THỊ ẢNH */}
-                  {item.images?.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      <PhotoProvider>
-                        {item.images.map((img, i) => (
-                          <PhotoView key={i} src={img.url}>
-                            <img
-                              src={img.url}
-                              className="w-20 h-20 md:w-32 md:h-32 rounded-md object-cover"
-                            />
-                          </PhotoView>
-                        ))}
-                      </PhotoProvider>
-                    </div>
-                  )}
-                  {/* Hiển thị File */}
-
-                  {/* Hiển thị file đã gửi (item.files) */}
-                  {item?.files?.map((f, i) => (
-                    <div
-                      key={i}
-                      className={`flex items-center gap-2 p-2 rounded  ${
-                        theme == "dark"
-                          ? "hover:bg-[#2d3136]"
-                          : "hover:bg-gray-100"
-                      } transition-colors cursor-pointer`}
-                    >
-                      <MdAttachFile className="text-blue-500" />
-                      <a
-                        href={f.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 underline break-all hover:text-blue-800"
+                    {/* Hiển thị file đã gửi (item.files) */}
+                    {item?.files?.map((f, i) => (
+                      <div
+                        key={i}
+                        className={`flex items-center gap-2 p-2 rounded  ${
+                          theme == "dark"
+                            ? "hover:bg-[#2d3136]"
+                            : "hover:bg-gray-100"
+                        } transition-colors cursor-pointer`}
                       >
-                        {f.name}
-                      </a>
-                      <span className="text-gray-400 text-xs">
-                        ({(f.size / 1024).toFixed(1)} KB)
-                      </span>
-                    </div>
-                  ))}
+                        <MdAttachFile className="text-blue-500" />
+                        <a
+                          href={f.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 underline break-all hover:text-blue-800"
+                        >
+                          {f.name}
+                        </a>
+                        <span className="text-gray-400 text-xs">
+                          ({(f.size / 1024).toFixed(1)} KB)
+                        </span>
+                      </div>
+                    ))}
 
-                  {/* Thời gian */}
-                  <div className="text-[11px] text-gray-500 mt-1 text-right">
-                    {new Date(item.createdAt).toLocaleTimeString("vi-VN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {/* Thời gian */}
+                    <div className="text-[11px] text-gray-500 mt-1 text-right">
+                      {new Date(item.createdAt).toLocaleTimeString("vi-VN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
-          {/* Hiển thị file đang upload */}
-          {uploadingFiles.map((file) => (
-            <div className="flex justify-end">
-              <div
-                key={file.id}
-                className={`flex items-center gap-2 p-2 rounded  ${
-                  theme ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
-                } transition-colors cursor-pointer`}
-              >
-                <MdAttachFile className="text-gray-500" />
-                <span className="text-sm text-gray-700 break-all">
-                  {file.name}
-                </span>
+              );
+            })}
+            {/* Hiển thị file đang upload */}
+            {uploadingFiles.map((file) => (
+              <div className="flex justify-end">
+                <div
+                  key={file.id}
+                  className={`flex items-center gap-2 p-2 rounded  ${
+                    theme ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+                  } transition-colors cursor-pointer`}
+                >
+                  <MdAttachFile className="text-gray-500" />
+                  <span className="text-sm text-gray-700 break-all">
+                    {file.name}
+                  </span>
 
-                {/* Chỉ hiện spinner nếu đang upload */}
-                {file.status === "uploading" && (
-                  <svg
-                    className="animate-spin h-4 w-4 text-gray-500 ml-1"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="none"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                    />
-                  </svg>
-                )}
-              </div>
-            </div>
-          ))}
-          {/* typing ui */}
-          {typing.type == true && (
-            <div className=" flex gap-1 mt-auto items-center">
-              <div className="flex gap-2">
-                <img
-                  src={
-                    typing.avatar ||
-                    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
-                  }
-                  alt="avatar"
-                  className="w-5 h-5 rounded-full"
-                />
-                <div className="text-[13px] text-gray-700">Đang soạn tin</div>
-              </div>
-              <div className=" dot-typing">
-                <span></span>
-                <span></span>
-                <span></span>
-              </div>
-            </div>
-          )}
-
-          {/* điểm cuộn đến */}
-          <div ref={bottomRef}></div>
-        </div>
-
-        <div className="flex flex-col border-t-2 h-[13%]">
-          <div
-            ref={pickerWrapperRef}
-            className="p-3 relative border-b-2 flex gap-6"
-          >
-            <SiIconify
-              className="text-[18px] cursor-pointer"
-              onClick={() => setShowPicker(!showPicker)}
-            />
-            {showPicker && (
-              <div className="absolute top-[-470px] left-3 z-50">
-                <EmojiPicker
-                  open={showPicker}
-                  onEmojiClick={onEmojiClick}
-                  autoFocusSearch={false}
-                  theme="dark"
-                />
-              </div>
-            )}
-            <ImageUploading
-              multiple
-              value={images}
-              onChange={onChange}
-              maxNumber={maxNumber}
-              dataURLKey="data_url"
-            >
-              {({
-                imageList,
-                onImageUpload,
-                onImageUpdate,
-                onImageRemove,
-                dragProps,
-              }) => (
-                <div className="upload__image-wrapper">
-                  {/* ICON chọn ảnh */}
-                  <GrImage
-                    className="text-[18px] cursor-pointer relative"
-                    onClick={onImageUpload}
-                    {...dragProps}
-                  />
-                  {images.length > 0 && (
-                    <>
-                      {" "}
-                      {/* Hiển thị preview ảnh */}
-                      <div className="flex gap-2 mt-3 left-4 flex-wrap absolute top-[-100px] bg-gray-300 py-2 px-4 rounded-md">
-                        {imageList.map((image, index) => (
-                          <div key={index} className="relative">
-                            <img
-                              src={image.data_url}
-                              alt=""
-                              className="w-20 h-20 object-cover rounded-md"
-                            />
-
-                            {/* nút xóa */}
-                            <button
-                              onClick={() => onImageRemove(index)}
-                              className="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded"
-                            >
-                              X
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </>
+                  {/* Chỉ hiện spinner nếu đang upload */}
+                  {file.status === "uploading" && (
+                    <svg
+                      className="animate-spin h-4 w-4 text-gray-500 ml-1"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                      />
+                    </svg>
                   )}
                 </div>
-              )}
-            </ImageUploading>
+              </div>
+            ))}
+            {/* typing ui */}
+            {typing.type == true && (
+              <div className=" flex gap-1 mt-auto items-center">
+                <div className="flex gap-2">
+                  <img
+                    src={
+                      typing.avatar ||
+                      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
+                    }
+                    alt="avatar"
+                    className="w-5 h-5 rounded-full"
+                  />
+                  <div className="text-[13px] text-gray-700">Đang soạn tin</div>
+                </div>
+                <div className=" dot-typing">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            )}
 
-            <label htmlFor="upload-file">
-              <FiPaperclip className="text-[18px] cursor-pointer hover:text-blue-500" />
-            </label>
-            <input
-              type="file"
-              id="upload-file"
-              hidden
-              multiple
-              onChange={handleSendFile}
-            />
-
-            <MdOutlineOndemandVideo className="text-[18px] cursor-pointer" />
+            {/* điểm cuộn đến */}
+            <div ref={bottomRef}></div>
           </div>
 
-          <div className="flex items-center gap-2  px-3 h-12">
-            <input
-              className={`flex-1 px-3 py-1 rounded outline-none ${
-                theme === "dark"
-                  ? "bg-[#22262b] text-white "
-                  : "bg-white text-black "
-              }`}
-              type="text"
-              placeholder="Nhập tin nhắn"
-              ref={input}
-              onChange={handleInputChange}
-              onKeyDown={(e) => e.key === "Enter" && handleMessage()}
-              value={message}
-            />
-            {message.trim() !== "" || images.length > 0 ? (
-              <IoSend
-                className="text-blue-600 text-[23px]"
-                onClick={handleMessage}
+          <div className="flex flex-col border-t-2 h-[13%]">
+            <div
+              ref={pickerWrapperRef}
+              className="p-3 relative border-b-2 flex gap-6"
+            >
+              <SiIconify
+                className="text-[18px] cursor-pointer"
+                onClick={() => setShowPicker(!showPicker)}
               />
-            ) : (
-              <FaRegThumbsUp className="text-blue-600 text-[25px] cursor-pointer" />
-            )}
+              {showPicker && (
+                <div className="absolute top-[-470px] left-3 z-50">
+                  <EmojiPicker
+                    open={showPicker}
+                    onEmojiClick={onEmojiClick}
+                    autoFocusSearch={false}
+                    theme="dark"
+                  />
+                </div>
+              )}
+              <ImageUploading
+                multiple
+                value={images}
+                onChange={onChange}
+                maxNumber={maxNumber}
+                dataURLKey="data_url"
+              >
+                {({
+                  imageList,
+                  onImageUpload,
+                  onImageUpdate,
+                  onImageRemove,
+                  dragProps,
+                }) => (
+                  <div className="upload__image-wrapper">
+                    {/* ICON chọn ảnh */}
+                    <GrImage
+                      className="text-[18px] cursor-pointer relative"
+                      onClick={onImageUpload}
+                      {...dragProps}
+                    />
+                    {images.length > 0 && (
+                      <>
+                        {" "}
+                        {/* Hiển thị preview ảnh */}
+                        <div className="flex gap-2 mt-3 left-4 flex-wrap absolute top-[-100px] bg-gray-300 py-2 px-4 rounded-md">
+                          {imageList.map((image, index) => (
+                            <div key={index} className="relative">
+                              <img
+                                src={image.data_url}
+                                alt=""
+                                className="w-20 h-20 object-cover rounded-md"
+                              />
+
+                              {/* nút xóa */}
+                              <button
+                                onClick={() => onImageRemove(index)}
+                                className="absolute top-0 right-0 bg-red-500 text-white text-xs px-1 rounded"
+                              >
+                                X
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </ImageUploading>
+
+              <label htmlFor="upload-file">
+                <FiPaperclip className="text-[18px] cursor-pointer hover:text-blue-500" />
+              </label>
+              <input
+                type="file"
+                id="upload-file"
+                hidden
+                multiple
+                onChange={handleSendFile}
+              />
+
+              <MdOutlineOndemandVideo className="text-[18px] cursor-pointer" />
+            </div>
+
+            <div className="flex items-center gap-2  px-3 h-12">
+              <input
+                className={`flex-1 px-3 py-1 rounded outline-none ${
+                  theme === "dark"
+                    ? "bg-[#22262b] text-white "
+                    : "bg-white text-black "
+                }`}
+                type="text"
+                placeholder="Nhập tin nhắn"
+                ref={input}
+                onChange={handleInputChange}
+                onKeyDown={(e) => e.key === "Enter" && handleMessage()}
+                value={message}
+              />
+              {message.trim() !== "" || images.length > 0 ? (
+                <IoSend
+                  className="text-blue-600 text-[23px]"
+                  onClick={handleMessage}
+                />
+              ) : (
+                <FaRegThumbsUp
+                  className="text-blue-600 text-[25px] cursor-pointer"
+                  onClick={handleSendLike}
+                />
+              )}
+            </div>
           </div>
         </div>
-      </div>
-      {(buttonActive || showMember) &&
-        (showMember && roomInfo.typeRoom === "group" ? (
-          <div className="w-full  md:w-1/3 h-full overflow-y-auto">
-            <div className="flex h-[11%] gap-8 items-center border-b px-5 py-1 ">
-              <MdOutlineKeyboardDoubleArrowLeft
-                className="text-[25px]"
-                onClick={() => {
-                  setShowMember(!showMember);
-                }}
-              />
-              <div
-                className={`font-[500] text-[17px] ${
-                  theme == "dark" ? "text-white" : "text-gray-700"
-                } `}
-              >
-                Thành viên nhóm
+        {(buttonActive || showMember) &&
+          (showMember && roomInfo.typeRoom === "group" ? (
+            <div className="w-full  md:w-1/3 h-full overflow-y-auto">
+              <div className="flex h-[11%] gap-8 items-center border-b px-5 py-1 ">
+                <MdOutlineKeyboardDoubleArrowLeft
+                  className="text-[25px]"
+                  onClick={() => {
+                    setShowMember(!showMember);
+                  }}
+                />
+                <div
+                  className={`font-[500] text-[17px] ${
+                    theme == "dark" ? "text-white" : "text-gray-700"
+                  } `}
+                >
+                  Thành viên nhóm
+                </div>
               </div>
-            </div>
-            <div className="py-3 px-3 flex-1">
-              <Button
-                variant="contained"
-                size="small"
-                fullWidth
-                sx={{
-                  display: "flex",
-                  gap: 1,
-                }}
-                onClick={() => {
-                  setOpenGroup(true); // mở modal
-                }}
-              >
-                <AiOutlineUsergroupAdd className="text-[18px]" />
-                Thêm thành viên
-              </Button>
-              <AddMember
-                open={openGroup}
-                onClose={() => setOpenGroup(false)}
-                roomChatId={roomChatId}
-                dataUser={dataUser}
-              />
-              <div
-                className={`text-[15px] py-5  ${
-                  theme == "dark" ? "text-white" : "text-gray-700"
-                }`}
-              >
-                Danh sách thành viên ({dataUser.length})
-              </div>
-              <div className="overflow-y-auto ">
-                {dataUser?.map((item) => {
-                  const isMyself = item.user_id._id === state._id;
+              <div className="py-3 px-3 flex-1">
+                <Button
+                  variant="contained"
+                  size="small"
+                  fullWidth
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                  }}
+                  onClick={() => {
+                    setOpenGroup(true); // mở modal
+                  }}
+                >
+                  <AiOutlineUsergroupAdd className="text-[18px]" />
+                  Thêm thành viên
+                </Button>
+                <AddMember
+                  open={openGroup}
+                  onClose={() => setOpenGroup(false)}
+                  roomChatId={roomChatId}
+                  dataUser={dataUser}
+                />
+                <div
+                  className={`text-[15px] py-5  ${
+                    theme == "dark" ? "text-white" : "text-gray-700"
+                  }`}
+                >
+                  Danh sách thành viên ({dataUser.length})
+                </div>
+                <div className="overflow-y-auto ">
+                  {dataUser?.map((item) => {
+                    const isMyself = item.user_id._id === state._id;
 
-                  return (
-                    <div
-                      key={item._id}
-                      className="flex gap-2 items-center mb-4 relative group"
-                    >
-                      <img
-                        src={
-                          item.user_id.avatar ||
-                          "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                        }
-                        className="w-[37px] rounded-full"
-                      />
+                    return (
+                      <div
+                        key={item._id}
+                        className="flex gap-2 items-center mb-4 relative group"
+                      >
+                        <img
+                          src={
+                            item.user_id.avatar ||
+                            "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                          }
+                          className="w-[37px] rounded-full"
+                        />
 
-                      <div className="flex flex-col">
-                        <span className="text-[13px] font-[700]">
-                          {isMyself ? "Bạn" : item.user_id.name}
-                        </span>
-                        {item.role === "admin" && (
-                          <span className="text-[13px] text-gray-500">
-                            Trưởng nhóm
+                        <div className="flex flex-col">
+                          <span className="text-[13px] font-[700]">
+                            {isMyself ? "Bạn" : item.user_id.name}
                           </span>
-                        )}
-                      </div>
+                          {item.role === "admin" && (
+                            <span className="text-[13px] text-gray-500">
+                              Trưởng nhóm
+                            </span>
+                          )}
+                        </div>
 
-                      {/* NÚT 3 CHẤM */}
-                      {(isMyself || isCurrentUserAdmin) && (
-                        <div
-                          className="
+                        {/* NÚT 3 CHẤM */}
+                        {(isMyself || isCurrentUserAdmin) && (
+                          <div
+                            className="
             absolute right-2 top-1/2 -translate-y-1/2
             opacity-0 group-hover:opacity-100
             cursor-pointer rounded-full bg-white p-1 border
           "
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuId(item.user_id._id);
-                            setOpenMenu(!openMenu);
-                          }}
-                        >
-                          <BsThreeDots />
-                        </div>
-                      )}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(item.user_id._id);
+                              setOpenMenu(!openMenu);
+                            }}
+                          >
+                            <BsThreeDots />
+                          </div>
+                        )}
 
-                      {/* MENU */}
-                      {openMenuId == item.user_id._id && openMenu && (
-                        <div
-                          className="
+                        {/* MENU */}
+                        {openMenuId == item.user_id._id && openMenu && (
+                          <div
+                            className="
             absolute right-2 top-6 mt-2 z-50
             bg-white border rounded-md shadow-md
             min-w-[140px]
           "
-                        >
-                          {/* RỜI NHÓM: chỉ cho chính mình */}
-                          {isMyself && (
-                            <div
-                              className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-[14px]"
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                handleLeaveGroup(item);
-                              }}
-                            >
-                              Rời nhóm
-                            </div>
-                          )}
+                          >
+                            {/* RỜI NHÓM: chỉ cho chính mình */}
+                            {isMyself && (
+                              <div
+                                className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-[14px]"
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleLeaveGroup(item);
+                                }}
+                              >
+                                Rời nhóm
+                              </div>
+                            )}
 
-                          {/* XÓA KHỎI NHÓM: chỉ admin & không xóa chính mình */}
-                          {isCurrentUserAdmin && !isMyself && (
-                            <div
-                              className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-[14px] text-red-500"
-                              onClick={() => {
-                                setOpenMenuId(null);
-                                handleRemoveUser(item);
-                              }}
-                            >
-                              Xóa khỏi nhóm
+                            {/* XÓA KHỎI NHÓM: chỉ admin & không xóa chính mình */}
+                            {isCurrentUserAdmin && !isMyself && (
+                              <div
+                                className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-[14px] text-red-500"
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleRemoveUser(item);
+                                }}
+                              >
+                                Xóa khỏi nhóm
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : roomInfo.typeRoom === "system" ? (
+            <div className="w-full md:block md:w-1/3 h-full overflow-y-auto">
+              <div
+                className={`flex h-[11%] items-center justify-center px-5 py-1 border-b font-[500] text-[17px] ${
+                  theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                }`}
+              >
+                Thông tin hội thoại
+              </div>
+
+              <div className="flex flex-col items-center gap-3  py-5 border-b-8">
+                <img
+                  src={
+                    roomInfo.avatar ||
+                    "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                  }
+                  alt="avatar"
+                  className="w-[45px] h-[45px] rounded-full cursor-pointer"
+                />
+
+                <div className="text-[16px] font-[500]">{roomInfo.title}</div>
+              </div>
+
+              <div className="px-5 py-4  border-b-8">
+                <div
+                  className="flex items-center justify-between cursor-pointer select-none"
+                  onClick={() => setOpenImages(!openImages)}
+                >
+                  <span
+                    className={`${
+                      theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                    }font-medium`}
+                  >
+                    Ảnh
+                  </span>
+                  <IoChevronDownSharp
+                    className={`  transition-transform duration-200
+                    ${openImages ? "rotate-180" : ""}`}
+                  />
+                </div>
+                {openImages && (
+                  <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
+                    {chat.map((item, index) => {
+                      const isMe = item.user_id._id === state._id;
+
+                      return (
+                        <div key={index} className="">
+                          {item.images && item.images.length > 0 && (
+                            <div className="mb-1 flex gap-2 ">
+                              {item.images.map((image, idx) => (
+                                <img
+                                  key={idx}
+                                  src={image.url}
+                                  alt="chat-image"
+                                  className="w-20 h-20 rounded-md object-cover flex"
+                                />
+                              ))}
                             </div>
                           )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-        ) : roomInfo.typeRoom === "system" ? (
-          <div className="w-full md:block md:w-1/3 h-full overflow-y-auto">
-            <div
-              className={`flex h-[11%] items-center justify-center px-5 py-1 border-b font-[500] text-[17px] ${
-                theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-              }`}
-            >
-              Thông tin hội thoại
-            </div>
-
-            <div className="flex flex-col items-center gap-3  py-5 border-b-8">
-              <img
-                src={
-                  roomInfo.avatar ||
-                  "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                }
-                alt="avatar"
-                className="w-[45px] h-[45px] rounded-full cursor-pointer"
-              />
-
-              <div className="text-[16px] font-[500]">{roomInfo.title}</div>
-            </div>
-
-            <div className="px-5 py-4  border-b-8">
               <div
-                className="flex items-center justify-between cursor-pointer select-none"
-                onClick={() => setOpenImages(!openImages)}
+                className={`px-5 py-4  border-b-8 ${
+                  theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                }`}
               >
-                <span
-                  className={`${
-                    theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                  }font-medium`}
+                <div
+                  className="flex items-center justify-between cursor-pointer select-none"
+                  onClick={() => setOpenFiles(!openFiles)}
                 >
-                  Ảnh
-                </span>
-                <IoChevronDownSharp
-                  className={`  transition-transform duration-200
-                    ${openImages ? "rotate-180" : ""}`}
-                />
-              </div>
-              {openImages && (
-                <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
-                  {chat.map((item, index) => {
-                    const isMe = item.user_id._id === state._id;
-
-                    return (
-                      <div key={index} className="">
-                        {item.images && item.images.length > 0 && (
-                          <div className="mb-1 flex gap-2 ">
-                            {item.images.map((image, idx) => (
-                              <img
-                                key={idx}
-                                src={image.url}
-                                alt="chat-image"
-                                className="w-20 h-20 rounded-md object-cover flex"
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-            <div
-              className={`px-5 py-4  border-b-8 ${
-                theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-              }`}
-            >
-              <div
-                className="flex items-center justify-between cursor-pointer select-none"
-                onClick={() => setOpenFiles(!openFiles)}
-              >
-                <span className="font-medium">File</span>
-                <IoChevronDownSharp
-                  className={`  transition-transform duration-200
+                  <span className="font-medium">File</span>
+                  <IoChevronDownSharp
+                    className={`  transition-transform duration-200
                     ${openFiles ? "rotate-180" : ""}`}
-                />
-              </div>
-              {openFiles && (
-                <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
-                  {chat.map((item, index) => {
-                    const isMe = item.user_id._id === state._id;
-
-                    return (
-                      <div key={index} className="">
-                        {item.files && item.files.length > 0 && (
-                          <div className="mb-1  ">
-                            {item.files.map((f, idx) => (
-                              <div
-                                key={idx}
-                                className={`flex items-center gap-2 p-2 rounded  ${
-                                  theme == "dark"
-                                    ? "hover:bg-[#2d3136]"
-                                    : "hover:bg-gray-100"
-                                }  transition-colors cursor-pointer`}
-                              >
-                                <MdAttachFile className="text-blue-500" />
-                                <a
-                                  href={f.url}
-                                  rel="noopener noreferrer"
-                                  className="text-sm text-blue-600 underline break-all hover:text-blue-800"
-                                >
-                                  {f.name}
-                                </a>
-                                <span className="text-gray-400 text-xs">
-                                  ({(f.size / 1024).toFixed(1)} KB)
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="w-full md:block md:w-1/3 h-full overflow-y-auto">
-            <div
-              className={`flex h-[11%] items-center justify-between   px-5 py-1 border-b font-[500] text-[17px] ${
-                theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-              }`}
-            >
-              <MdOutlineKeyboardArrowLeft
-                className="text-[30px] cursor-pointer"
-                onClick={() => {
-                  setButtonActive(false);
-                }}
-              />
-              Thông tin hội thoại
-              <div></div>
-            </div>
-            {roomInfo.typeRoom === "group" ? (
-              <>
-                <div className="flex flex-col items-center gap-3  py-5 border-b-8">
-                  <img
-                    src={
-                      roomInfo.avatar ||
-                      "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                    }
-                    alt="avatar"
-                    className="w-[45px] rounded-full cursor-pointer"
-                    onClick={() => setOpenInfo(true)}
                   />
-                  {/* <InfoUser
+                </div>
+                {openFiles && (
+                  <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
+                    {chat.map((item, index) => {
+                      const isMe = item.user_id._id === state._id;
+
+                      return (
+                        <div key={index} className="">
+                          {item.files && item.files.length > 0 && (
+                            <div className="mb-1  ">
+                              {item.files.map((f, idx) => (
+                                <div
+                                  key={idx}
+                                  className={`flex items-center gap-2 p-2 rounded  ${
+                                    theme == "dark"
+                                      ? "hover:bg-[#2d3136]"
+                                      : "hover:bg-gray-100"
+                                  }  transition-colors cursor-pointer`}
+                                >
+                                  <MdAttachFile className="text-blue-500" />
+                                  <a
+                                    href={f.url}
+                                    rel="noopener noreferrer"
+                                    className="text-sm text-blue-600 underline break-all hover:text-blue-800"
+                                  >
+                                    {f.name}
+                                  </a>
+                                  <span className="text-gray-400 text-xs">
+                                    ({(f.size / 1024).toFixed(1)} KB)
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="w-full md:block md:w-1/3 h-full overflow-y-auto">
+              <div
+                className={`flex h-[11%] items-center justify-between   px-5 py-1 border-b font-[500] text-[17px] ${
+                  theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                }`}
+              >
+                <MdOutlineKeyboardArrowLeft
+                  className="text-[30px] cursor-pointer"
+                  onClick={() => {
+                    setButtonActive(false);
+                  }}
+                />
+                Thông tin hội thoại
+                <div></div>
+              </div>
+              {roomInfo.typeRoom === "group" ? (
+                <>
+                  <div className="flex flex-col items-center gap-3  py-5 border-b-8">
+                    <img
+                      src={
+                        roomInfo.avatar ||
+                        "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                      }
+                      alt="avatar"
+                      className="w-[45px] rounded-full cursor-pointer"
+                      onClick={() => setOpenInfo(true)}
+                    />
+                    {/* <InfoUser
                   open={openInfo}
                   onClose={() => setOpenInfo(false)}
                   user={item.user_id}
                   type="client"
                 /> */}
-                  <div className="flex gap-3 ml-8">
-                    <div className="text-[16px] font-[500]">
-                      {roomInfo.title}
-                    </div>
-                    <AiOutlineEdit
-                      onClick={handleClickOpen}
-                      className=" text-[18px]  cursor-pointer"
-                    />
-                  </div>
-                </div>
-                <div
-                  className={`${
-                    theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                  } border-b-8 pt-2`}
-                >
-                  <span className="text-[15px] font-[500] px-4  py-2 my-2">
-                    Thành viên nhóm
-                  </span>
-                  <div
-                    className={`flex gap-3 text-[14px] ${
-                      theme == "dark"
-                        ? "hover:bg-[#2d3136]"
-                        : "hover:bg-gray-100"
-                    } cursor-pointer p-3`}
-                  >
-                    <HiOutlineUserGroup className="text-[22px]" />
-                    <div onClick={handleShowMember}>
-                      {dataUser.length} thành viên
-                    </div>
-                  </div>
-                </div>
-                <div className="px-5 py-4  border-b-8">
-                  <div
-                    className="flex items-center justify-between cursor-pointer select-none"
-                    onClick={() => setOpenImages(!openImages)}
-                  >
-                    <span
-                      className={`${
-                        theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                      }font-medium`}
-                    >
-                      Ảnh
-                    </span>
-                    <IoChevronDownSharp
-                      className={`  transition-transform duration-200
-                    ${openImages ? "rotate-180" : ""}`}
-                    />
-                  </div>
-                  {openImages && (
-                    <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
-                      {chat.map((item, index) => {
-                        const isMe = item.user_id._id === state._id;
-
-                        return (
-                          <div key={index} className="">
-                            {item.images && item.images.length > 0 && (
-                              <div className="mb-1 flex gap-2 ">
-                                {item.images.map((image, idx) => (
-                                  <img
-                                    key={idx}
-                                    src={image.url}
-                                    alt="chat-image"
-                                    className="w-20 h-20 rounded-md object-cover flex"
-                                  />
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                <div
-                  className={`px-5 py-4  border-b-8 ${
-                    theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                  }`}
-                >
-                  <div
-                    className="flex items-center justify-between cursor-pointer select-none"
-                    onClick={() => setOpenFiles(!openFiles)}
-                  >
-                    <span className="font-medium">File</span>
-                    <IoChevronDownSharp
-                      className={`  transition-transform duration-200
-                    ${openFiles ? "rotate-180" : ""}`}
-                    />
-                  </div>
-                  {openFiles && (
-                    <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
-                      {chat.map((item, index) => {
-                        const isMe = item.user_id._id === state._id;
-
-                        return (
-                          <div key={index} className="">
-                            {item.files && item.files.length > 0 && (
-                              <div className="mb-1  ">
-                                {item.files.map((f, idx) => (
-                                  <div
-                                    key={idx}
-                                    className={`flex items-center gap-2 p-2 rounded  ${
-                                      theme == "dark"
-                                        ? "hover:bg-[#2d3136]"
-                                        : "hover:bg-gray-100"
-                                    }  transition-colors cursor-pointer`}
-                                  >
-                                    <MdAttachFile className="text-blue-500" />
-                                    <a
-                                      href={f.url}
-                                      rel="noopener noreferrer"
-                                      className="text-sm text-blue-600 underline break-all hover:text-blue-800"
-                                    >
-                                      {f.name}
-                                    </a>
-                                    <span className="text-gray-400 text-xs">
-                                      ({(f.size / 1024).toFixed(1)} KB)
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-                {dataUser?.map((item, idx) => {
-                  const isMe = item.user_id._id == state._id;
-                  const isAdmin = item.role == "admin";
-                  return (
-                    <div key={idx}>
-                      {isAdmin && isMe && (
-                        <div
-                          key={idx}
-                          className="px-5 pt-4 cursor-pointer flex items-center gap-2 text-[16px] text-red-700 "
-                          onClick={handleRemoveGroup}
-                        >
-                          <RiDeleteBin6Line />
-                          Giải tán nhóm
-                        </div>
-                      )}
-                      {isMe && (
-                        <div
-                          onClick={() => {
-                            handleLeaveGroup(item);
-                          }}
-                          className="px-5 py-4 flex items-center gap-2 text-[16px] text-red-700 cursor-pointer"
-                        >
-                          <MdOutlineExitToApp />
-                          Rời nhóm
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </>
-            ) : (
-              <>
-                {dataUser?.map((item) => (
-                  <>
-                    <div className="flex flex-col gap-3 items-center justify-center py-5 border-b-8">
-                      <img
-                        src={
-                          item.user_id.avatar ||
-                          "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
-                        }
-                        alt="avatar"
-                        className="w-[45px] rounded-full cursor-pointer"
-                        onClick={() => setOpenInfo(true)}
-                      />
-                      <InfoUser
-                        open={openInfo}
-                        onClose={() => setOpenInfo(false)}
-                        user={item.user_id}
-                        type="client"
-                      />
+                    <div className="flex gap-3 ml-8">
                       <div className="text-[16px] font-[500]">
-                        {roomInfo.typeGroup === "group" ? (
-                          <>{roomInfo.title}</>
-                        ) : (
-                          item.user_id.name
-                        )}
+                        {roomInfo.title}
+                      </div>
+                      <AiOutlineEdit
+                        onClick={handleClickOpen}
+                        className=" text-[18px]  cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                  <div
+                    className={`${
+                      theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                    } border-b-8 pt-2`}
+                  >
+                    <span className="text-[15px] font-[500] px-4  py-2 my-2">
+                      Thành viên nhóm
+                    </span>
+                    <div
+                      className={`flex gap-3 text-[14px] ${
+                        theme == "dark"
+                          ? "hover:bg-[#2d3136]"
+                          : "hover:bg-gray-100"
+                      } cursor-pointer p-3`}
+                    >
+                      <HiOutlineUserGroup className="text-[22px]" />
+                      <div onClick={handleShowMember}>
+                        {dataUser.length} thành viên
                       </div>
                     </div>
-                    {commonGroupCount > 0 && (
-                      <div className="flex item-center gap-2 px-5 py-4 text-gray-700 border-b-8">
-                        <HiOutlineUserGroup className="text-[22px]" />
-                        <span className="text-[15px]">
-                          {commonGroupCount} nhóm chung
-                        </span>
+                  </div>
+                  <div className="px-5 py-4  border-b-8">
+                    <div
+                      className="flex items-center justify-between cursor-pointer select-none"
+                      onClick={() => setOpenImages(!openImages)}
+                    >
+                      <span
+                        className={`${
+                          theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                        }font-medium`}
+                      >
+                        Ảnh
+                      </span>
+                      <IoChevronDownSharp
+                        className={`  transition-transform duration-200
+                    ${openImages ? "rotate-180" : ""}`}
+                      />
+                    </div>
+                    {openImages && (
+                      <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
+                        {chat.map((item, index) => {
+                          const isMe = item.user_id._id === state._id;
+
+                          return (
+                            <div key={index} className="">
+                              {item.images && item.images.length > 0 && (
+                                <div className="mb-1 flex gap-2 ">
+                                  {item.images.map((image, idx) => (
+                                    <img
+                                      key={idx}
+                                      src={image.url}
+                                      alt="chat-image"
+                                      className="w-20 h-20 rounded-md object-cover flex"
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
-
-                    <div className="px-5 py-4 text-gray-700 border-b-8">
-                      <div
-                        className="flex items-center justify-between cursor-pointer select-none"
-                        onClick={() => setOpenImages(!openImages)}
-                      >
-                        <span className="font-medium">Ảnh</span>
-                        <IoChevronDownSharp
-                          className={`  transition-transform duration-200
-                    ${openImages ? "rotate-180" : ""}`}
-                        />
-                      </div>
-                      {openImages && (
-                        <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
-                          {chat.map((item, index) => {
-                            return (
-                              <div key={index} className="">
-                                {item.images && item.images.length > 0 && (
-                                  <div className="mb-1 flex gap-2 ">
-                                    {item.images.map((image, idx) => (
-                                      <img
-                                        key={idx}
-                                        src={image.url}
-                                        alt="chat-image"
-                                        className="w-20 h-20 rounded-md object-cover flex"
-                                      />
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    <div className="px-5 py-4 text-gray-700 border-b-8">
-                      <div
-                        className="flex items-center justify-between cursor-pointer select-none"
-                        onClick={() => setOpenFiles(!openFiles)}
-                      >
-                        <span className="font-medium">File</span>
-                        <IoChevronDownSharp
-                          className={`  transition-transform duration-200
+                  </div>
+                  <div
+                    className={`px-5 py-4  border-b-8 ${
+                      theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
+                    }`}
+                  >
+                    <div
+                      className="flex items-center justify-between cursor-pointer select-none"
+                      onClick={() => setOpenFiles(!openFiles)}
+                    >
+                      <span className="font-medium">File</span>
+                      <IoChevronDownSharp
+                        className={`  transition-transform duration-200
                     ${openFiles ? "rotate-180" : ""}`}
-                        />
-                      </div>
-                      {openFiles && (
-                        <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
-                          {chat.map((item, index) => {
-                            return (
-                              <div key={index} className="">
-                                {item.files && item.files.length > 0 && (
-                                  <div className="mb-1  ">
-                                    {item?.files?.map((f, idx) => (
-                                      <div
-                                        key={idx}
-                                        className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+                      />
+                    </div>
+                    {openFiles && (
+                      <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
+                        {chat.map((item, index) => {
+                          const isMe = item.user_id._id === state._id;
+
+                          return (
+                            <div key={index} className="">
+                              {item.files && item.files.length > 0 && (
+                                <div className="mb-1  ">
+                                  {item.files.map((f, idx) => (
+                                    <div
+                                      key={idx}
+                                      className={`flex items-center gap-2 p-2 rounded  ${
+                                        theme == "dark"
+                                          ? "hover:bg-[#2d3136]"
+                                          : "hover:bg-gray-100"
+                                      }  transition-colors cursor-pointer`}
+                                    >
+                                      <MdAttachFile className="text-blue-500" />
+                                      <a
+                                        href={f.url}
+                                        rel="noopener noreferrer"
+                                        className="text-sm text-blue-600 underline break-all hover:text-blue-800"
                                       >
-                                        <MdAttachFile className="text-blue-500" />
-                                        <a
-                                          href={f.url}
-                                          rel="noopener noreferrer"
-                                          className="text-sm text-blue-600 underline break-all hover:text-blue-800"
-                                        >
-                                          {f.name}
-                                        </a>
-                                        <span className="text-gray-400 text-xs">
-                                          ({(f.size / 1024).toFixed(1)} KB)
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
+                                        {f.name}
+                                      </a>
+                                      <span className="text-gray-400 text-xs">
+                                        ({(f.size / 1024).toFixed(1)} KB)
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <div className="px-5 py-2 flex items-center gap-2 text-[14px]  cursor-pointer">
+                    <MdOutlineSettings />
+                    Cài đặt nhóm
+                  </div>
+                  <hr />
+                  <div className="px-5 py-4 border-b-8">
+                    <div className="flex items-center gap-2 text-[14px]  mb-3">
+                      <FaLink />
+                      <span>Link nhóm</span>
+                    </div>
+
+                    <div
+                      className={`rounded-lg border p-3 break-all text-sm ${
+                        theme === "dark"
+                          ? "bg-[#2d3136] border-[#3d434b] text-white"
+                          : "bg-gray-50 border-gray-200 text-gray-700"
+                      }`}
+                    >
+                      {inviteUrl}
+                    </div>
+
+                    <div className="flex gap-3 mt-3">
+                      <button
+                        onClick={handleCopyInvite}
+                        className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition"
+                      >
+                        <FaRegCopy />
+                        Sao chép
+                      </button>
+
+                      <button
+                        onClick={() => setOpenInvite(true)}
+                        className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-[#2d3136] transition"
+                      >
+                        <FaShareAlt />
+                        Chia sẻ
+                      </button>
+                    </div>
+                  </div>
+
+                  <hr />
+                  {dataUser?.map((item, idx) => {
+                    const isMe = item.user_id._id == state._id;
+                    const isAdmin = item.role == "admin";
+                    return (
+                      <div key={idx}>
+                        {isAdmin && isMe && (
+                          <div
+                            key={idx}
+                            className="px-5 pt-4 cursor-pointer flex items-center gap-2 text-[16px] text-red-700 "
+                            onClick={handleRemoveGroup}
+                          >
+                            <RiDeleteBin6Line />
+                            Giải tán nhóm
+                          </div>
+                        )}
+                        {isMe && (
+                          <div
+                            onClick={() => {
+                              handleLeaveGroup(item);
+                            }}
+                            className="px-5 py-4 flex items-center gap-2 text-[16px] text-red-700 cursor-pointer"
+                          >
+                            <MdOutlineExitToApp />
+                            Rời nhóm
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              ) : (
+                <>
+                  {dataUser?.map((item) => (
+                    <>
+                      <div className="flex flex-col gap-3 items-center justify-center py-5 border-b-8">
+                        <img
+                          src={
+                            item.user_id.avatar ||
+                            "https://jbagy.me/wp-content/uploads/2025/03/Hinh-anh-avatar-nam-cute-5-1.jpg"
+                          }
+                          alt="avatar"
+                          className="w-[45px] rounded-full cursor-pointer"
+                          onClick={() => setOpenInfo(true)}
+                        />
+                        <InfoUser
+                          open={openInfo}
+                          onClose={() => setOpenInfo(false)}
+                          user={item.user_id}
+                          type="client"
+                        />
+                        <div className="text-[16px] font-[500]">
+                          {roomInfo.typeGroup === "group" ? (
+                            <>{roomInfo.title}</>
+                          ) : (
+                            item.user_id.name
+                          )}
+                        </div>
+                      </div>
+                      {commonGroupCount > 0 && (
+                        <div className="flex item-center gap-2 px-5 py-4 text-gray-700 border-b-8">
+                          <HiOutlineUserGroup className="text-[22px]" />
+                          <span className="text-[15px]">
+                            {commonGroupCount} nhóm chung
+                          </span>
                         </div>
                       )}
-                    </div>
-                    <div className="px-5 py-4 cursor-pointer flex items-center gap-2 text-[16px] text-red-700 ">
-                      <RiDeleteBin6Line />
-                      Xóa lịch sử trò chuyện
-                    </div>
-                  </>
-                ))}
-              </>
-            )}
+
+                      <div className="px-5 py-4 text-gray-700 border-b-8">
+                        <div
+                          className="flex items-center justify-between cursor-pointer select-none"
+                          onClick={() => setOpenImages(!openImages)}
+                        >
+                          <span className="font-medium">Ảnh</span>
+                          <IoChevronDownSharp
+                            className={`  transition-transform duration-200
+                    ${openImages ? "rotate-180" : ""}`}
+                          />
+                        </div>
+                        {openImages && (
+                          <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
+                            {chat.map((item, index) => {
+                              return (
+                                <div key={index} className="">
+                                  {item.images && item.images.length > 0 && (
+                                    <div className="mb-1 flex gap-2 ">
+                                      {item.images.map((image, idx) => (
+                                        <img
+                                          key={idx}
+                                          src={image.url}
+                                          alt="chat-image"
+                                          className="w-20 h-20 rounded-md object-cover flex"
+                                        />
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      <div className="px-5 py-4 text-gray-700 border-b-8">
+                        <div
+                          className="flex items-center justify-between cursor-pointer select-none"
+                          onClick={() => setOpenFiles(!openFiles)}
+                        >
+                          <span className="font-medium">File</span>
+                          <IoChevronDownSharp
+                            className={`  transition-transform duration-200
+                    ${openFiles ? "rotate-180" : ""}`}
+                          />
+                        </div>
+                        {openFiles && (
+                          <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
+                            {chat.map((item, index) => {
+                              return (
+                                <div key={index} className="">
+                                  {item.files && item.files.length > 0 && (
+                                    <div className="mb-1  ">
+                                      {item?.files?.map((f, idx) => (
+                                        <div
+                                          key={idx}
+                                          className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+                                        >
+                                          <MdAttachFile className="text-blue-500" />
+                                          <a
+                                            href={f.url}
+                                            rel="noopener noreferrer"
+                                            className="text-sm text-blue-600 underline break-all hover:text-blue-800"
+                                          >
+                                            {f.name}
+                                          </a>
+                                          <span className="text-gray-400 text-xs">
+                                            ({(f.size / 1024).toFixed(1)} KB)
+                                          </span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                      <div className="px-5 py-4 cursor-pointer flex items-center gap-2 text-[16px] text-red-700 ">
+                        <RiDeleteBin6Line />
+                        Xóa lịch sử trò chuyện
+                      </div>
+                    </>
+                  ))}
+                </>
+              )}
+            </div>
+          ))}
+      </div>
+      <BootstrapDialog
+        aria-labelledby="customized-dialog-title"
+        open={openInvite}
+        transitionDuration={0}
+        onClose={() => setOpenInvite(false)}
+        PaperProps={{
+          sx: {
+            width: "450px",
+            height: "85vh",
+            maxWidth: "90vw",
+          },
+        }}
+      >
+        <div className="flex items-center justify-between px-5 py-2 ">
+          <div className="text-[16px] font-[500]">Chia sẻ</div>
+          <Button
+            sx={{
+              color: "black",
+              transition: "all 0.3s ease-in-out",
+              "&:hover": {
+                backgroundColor: "#ff5252",
+                color: "white",
+                transform: "scale(1.05)",
+              },
+            }}
+            onClick={() => setOpenInvite(false)}
+          >
+            <IoClose className="text-[22px] cursor-pointer" />
+          </Button>
+        </div>
+        <DialogContent dividers className="flex flex-col p-0">
+          {/* Search */}
+          <div className="p-4">
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Tìm kiếm..."
+              InputProps={{
+                startAdornment: (
+                  <IoSearchCircleOutline
+                    fontSize="small"
+                    className="mr-2 text-gray-500"
+                  />
+                ),
+              }}
+            />
           </div>
-        ))}
-    </div>
+
+          {/* Tabs */}
+          <div className="px-2">
+            <Tabs
+              value={tab}
+              onChange={(e, value) => setTab(value)}
+              variant="scrollable"
+              scrollButtons={false}
+            >
+              <Tab label="Tất cả" />
+              <Tab label="Nhóm trò chuyện" />
+              <Tab label="Bạn bè" />
+            </Tabs>
+          </div>
+
+          <Divider />
+
+          {/* List */}
+          <div className="flex-1 overflow-y-auto max-h-[420px]">
+            <div className="flex-1 overflow-y-auto max-h-[420px]">
+              {filteredRooms.map((item) => (
+                <div
+                  key={item._id}
+                  className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 rounded-md cursor-pointer"
+                >
+                  <Checkbox
+                    size="small"
+                    checked={formSend.listRoom.includes(item._id)}
+                    onChange={() => handleTickSend(item)}
+                  />
+
+                  <Avatar src={item.avatar} />
+
+                  <div className="flex flex-col">
+                    <span className="text-sm">
+                      {item.typeRoom === "friend"
+                        ? item.users.find((u) => u.user_id?._id !== state._id)
+                            ?.user_id?.name
+                        : item.title}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+        <div className="py-2 px-4 flex justify-end gap-2">
+          <Button
+            variant="contained"
+            sx={{
+              textTransform: "none",
+              backgroundColor: "gray",
+              color: "#fff",
+            }}
+            onClick={() => setOpenInvite(false)}
+          >
+            Hủy
+          </Button>
+          <Button
+            variant="contained"
+            sx={{
+              backgroundColor: "#ff5252",
+              textTransform: "none",
+              color: "#fff",
+            }}
+            disabled={formSend.listRoom.length > 0 ? false : true}
+            onClick={handleSendLink}
+          >
+            Chia sẽ
+          </Button>
+        </div>
+      </BootstrapDialog>
+    </React.Fragment>
   );
 }

@@ -13,7 +13,8 @@ import { logout } from "../../redux/userSlice";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { socket } from "../../socket";
 import useIsMobile from "../IsMobile";
-export default function SideBarUser() {
+import { TbLogout2 } from "react-icons/tb";
+export default function SideBarUser({ hideBottomNav }) {
   const isMobile = useIsMobile();
   const documentId = localStorage.getItem("documentId") || "";
   const dispatch = useDispatch();
@@ -55,122 +56,192 @@ export default function SideBarUser() {
       }
     }
   };
-
   return (
-    <div className=" w-[11%] md:w-[4%]   flex flex-col py-7 items-center justify-between bg-gray-500 h-screen max-h-screen">
-      <div className="flex flex-col items-center justify-center gap-5">
-        <img
-          src={
-            user.avatar ||
-            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
-          }
-          alt="avatar"
-          className="w-[45px] rounded-full cursor-pointer"
-          onClick={handleClick}
-        />
+    <>
+      {/* Desktop */}
+      {!isMobile && (
+        <div className="w-[11%] md:w-[4%] flex flex-col py-7 items-center justify-between bg-gray-500 h-screen">
+          <div className="flex flex-col items-center justify-center gap-5">
+            <img
+              src={
+                user.avatar ||
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
+              }
+              alt="avatar"
+              className="w-[45px] rounded-full cursor-pointer"
+              onClick={handleClick}
+            />
 
-        <Menu
-          id="basic-menu"
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleClose}
-          slotProps={{
-            paper: {
-              sx: {
-                width: 200,
-                borderRadius: 2,
-                py: 1,
-                px: 1,
-              },
-            },
-            list: {
-              sx: {
-                p: 0,
-              },
-            },
-          }}
-        >
-          {/* Header */}
-          <Box sx={{ px: 1.5, py: 1, fontWeight: 500 }}>{user.name}</Box>
+            <Menu
+              id="basic-menu"
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleClose}
+              slotProps={{
+                paper: {
+                  sx: {
+                    width: 200,
+                    borderRadius: 2,
+                    py: 1,
+                    px: 1,
+                  },
+                },
+                list: {
+                  sx: {
+                    p: 0,
+                  },
+                },
+              }}
+            >
+              {/* Header */}
+              <Box sx={{ px: 1.5, py: 1, fontWeight: 500 }}>{user.name}</Box>
 
-          <Divider sx={{ my: 0.3 }} />
+              <Divider sx={{ my: 0.3 }} />
 
-          <MenuItem
-            sx={{ py: 0.7, px: 1.5 }}
+              <MenuItem
+                sx={{ py: 0.7, px: 1.5 }}
+                onClick={() => {
+                  handleClose(); // đóng menu
+                  setOpenInfo(true); // mở modal
+                }}
+              >
+                Thông tin cá nhân
+              </MenuItem>
+
+              <MenuItem
+                sx={{ py: 0.7, px: 1.5 }}
+                onClick={() => {
+                  (handleClose(), setOpenSetting(true));
+                }}
+              >
+                Cài đặt
+              </MenuItem>
+
+              <Divider sx={{ my: 0.3 }} />
+
+              <MenuItem sx={{ py: 0.7, px: 1.5 }} onClick={handleLogout}>
+                Đăng xuất
+              </MenuItem>
+            </Menu>
+            <InfoUser
+              open={openInfo}
+              onClose={() => setOpenInfo(false)}
+              user={user}
+              type="personal"
+            />
+            <NavLink
+              to="/chat/"
+              end={false}
+              className={({ isActive }) =>
+                `p-2 rounded ${isActive ? "bg-gray-700" : ""}`
+              }
+            >
+              <Tooltip title="Tin nhắn" placement="right-start">
+                <LuMessageSquareText className="text-[26px] text-white" />
+              </Tooltip>
+            </NavLink>
+            <NavLink
+              to={isMobile ? "/friend" : "/friend/1"}
+              className={({ isActive }) =>
+                `p-2 rounded ${isActive ? "bg-gray-700" : ""}`
+              }
+            >
+              <Tooltip title="Danh bạ" placement="right-start">
+                <div className="relative">
+                  <GrDocumentUser className="text-[26px] text-white" />
+
+                  {total > 0 && (
+                    <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
+                  )}
+                </div>
+              </Tooltip>
+            </NavLink>
+          </div>
+
+          <div className="flex flex-col items-center justify-center gap-5">
+            <Tooltip title="My documents" placement="right-start">
+              <Link to={`/chat/${documentId}`}>
+                <IoMdCloudOutline className="text-[26px] text-white" />
+              </Link>
+            </Tooltip>
+            <Tooltip title="Cài đặt" placement="right-start">
+              <IoSettingsOutline
+                className="text-[26px] text-white cursor-pointer"
+                onClick={() => {
+                  setOpenSetting(true); // mở modal
+                }}
+              />
+            </Tooltip>
+            <Setting open={openSetting} onClose={() => setOpenSetting(false)} />
+          </div>
+        </div>
+      )}
+
+      {/* Mobile */}
+      {isMobile && !hideBottomNav && (
+        <div className="fixed bottom-0 left-0 right-0 h-16 bg-gray-100 border-t border-gray-400 flex items-center justify-around z-50">
+          <NavLink
+            to="/chat"
+            className={({ isActive }) =>
+              `flex flex-col items-center ${
+                isActive ? "text-blue-600" : "text-gray-800"
+              }`
+            }
+          >
+            <LuMessageSquareText size={24} />
+            <span className="text-[10px]">Tin nhắn</span>
+          </NavLink>
+
+          <NavLink
+            to="/friend"
+            className={({ isActive }) =>
+              `flex flex-col items-center relative ${
+                isActive ? "text-blue-600" : "text-gray-800"
+              }`
+            }
+          >
+            <GrDocumentUser size={22} />
+
+            {total > 0 && (
+              <span className="absolute top-0 right-2 h-2.5 w-2.5 rounded-full bg-red-500"></span>
+            )}
+
+            <span className="text-[10px]">Bạn bè</span>
+          </NavLink>
+
+          <button
             onClick={() => {
-              handleClose(); // đóng menu
               setOpenInfo(true); // mở modal
             }}
+            className="flex flex-col items-center"
           >
-            Thông tin cá nhân
-          </MenuItem>
+            <img
+              src={
+                user.avatar ||
+                "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
+              }
+              className="w-6 h-6 rounded-full"
+            />
 
-          <MenuItem
-            sx={{ py: 0.7, px: 1.5 }}
-            onClick={() => {
-              (handleClose(), setOpenSetting(true));
-            }}
-          >
-            Cài đặt
-          </MenuItem>
+            <span className="text-[10px] text-gray-800 mt-1">Cá nhân</span>
+          </button>
+          <div className=" flex flex-col items-center" onClick={handleLogout}>
+            <TbLogout2 />
+            <span className="text-[10px] text-gray-800 mt-1">Đăng xuất</span>
+          </div>
+        </div>
+      )}
 
-          <Divider sx={{ my: 0.3 }} />
+      {/* Menu cá nhân */}
 
-          <MenuItem sx={{ py: 0.7, px: 1.5 }} onClick={handleLogout}>
-            Đăng xuất
-          </MenuItem>
-        </Menu>
-        <InfoUser
-          open={openInfo}
-          onClose={() => setOpenInfo(false)}
-          user={user}
-          type="personal"
-        />
-        <NavLink
-          to="/chat/"
-          end={false}
-          className={({ isActive }) =>
-            `p-2 rounded ${isActive ? "bg-gray-700" : ""}`
-          }
-        >
-          <Tooltip title="Tin nhắn" placement="right-start">
-            <LuMessageSquareText className="text-[26px] text-white" />
-          </Tooltip>
-        </NavLink>
-        <NavLink
-          to={isMobile ? "/friend" : "/friend/1"}
-          className={({ isActive }) =>
-            `p-2 rounded ${isActive ? "bg-gray-700" : ""}`
-          }
-        >
-          <Tooltip title="Danh bạ" placement="right-start">
-            <div className="relative">
-              <GrDocumentUser className="text-[26px] text-white" />
+      <InfoUser
+        open={openInfo}
+        onClose={() => setOpenInfo(false)}
+        user={user}
+        type="personal"
+      />
 
-              {total > 0 && (
-                <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
-              )}
-            </div>
-          </Tooltip>
-        </NavLink>
-      </div>
-
-      <div className="flex flex-col items-center justify-center gap-5">
-        <Tooltip title="My documents" placement="right-start">
-          <Link to={`/chat/${documentId}`}>
-            <IoMdCloudOutline className="text-[26px] text-white" />
-          </Link>
-        </Tooltip>
-        <Tooltip title="Cài đặt" placement="right-start">
-          <IoSettingsOutline
-            className="text-[26px] text-white cursor-pointer"
-            onClick={() => {
-              setOpenSetting(true); // mở modal
-            }}
-          />
-        </Tooltip>
-        <Setting open={openSetting} onClose={() => setOpenSetting(false)} />
-      </div>
-    </div>
+      <Setting open={openSetting} onClose={() => setOpenSetting(false)} />
+    </>
   );
 }
