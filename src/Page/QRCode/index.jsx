@@ -3,6 +3,7 @@ import { Scanner } from "@yudiel/react-qr-scanner";
 import axios from "axios";
 import { socket } from "../../socket";
 import { toast } from "react-toastify";
+import { postData } from "../../utils/api";
 
 export default function QRScannerModal({ open, onClose }) {
   const handleScan = async (result) => {
@@ -20,11 +21,11 @@ export default function QRScannerModal({ open, onClose }) {
       }
     } catch (error) {
       const errorMessage =
-      error.response?.data?.message ||
-      error.message ||
-      "Không thể kết nối đến máy chủ";
-      
-    toast.error(errorMessage);
+        error.response?.data?.message ||
+        error.message ||
+        "Không thể kết nối đến máy chủ";
+
+      toast.error(errorMessage);
     }
   };
 

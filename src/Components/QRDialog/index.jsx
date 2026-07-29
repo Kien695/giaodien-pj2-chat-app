@@ -19,7 +19,7 @@ import { useDispatch } from "react-redux";
 
 export default function QRDialog() {
   const dispatch = useDispatch();
-  const naviagte = useNavigate();
+  const navigate = useNavigate();
   const [openQR, setOpenQR] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [sessionId, setSessionId] = useState("");
@@ -31,8 +31,13 @@ export default function QRDialog() {
         setOpenQR(true);
         setTimeLeft(res.data.expiresIn);
         setSessionId(res.data.sessionId);
-
-        socket.emit("JOIN_QR", res.data.sessionId);
+        if (socket) {
+          if (!socket.connected) {
+            socket.connect();
+          }
+          console.log("Socket ID:", socket.id);
+          socket.emit("JOIN_QR", res.data.sessionId);
+        }
       }
     } catch (error) {
       if (error.response) {
@@ -52,9 +57,10 @@ export default function QRDialog() {
           sessionId,
         });
 
-        if (res?.success) {
+        if (res.success) {
+          console.log("ok");
           toast.success("Đăng nhập thành công!");
-
+          setOpenQR(false);
           // 1. Lưu thông tin đăng nhập
           localStorage.setItem("accessToken", res.data.accessToken);
           localStorage.setItem("documentId", res.data.documentId);
