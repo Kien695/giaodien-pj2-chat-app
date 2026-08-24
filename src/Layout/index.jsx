@@ -23,9 +23,9 @@ export default function Layout() {
   }, [roomChatId]);
 
   return (
-    <div className="flex h-screen max-h-screen">
+    <div className="app-shell flex h-screen max-h-screen overflow-hidden">
       <SideBarUser hideBottomNav={!!isChatDetail} />
-      <div className="flex-1">
+      <div className="min-w-0 flex-1">
         <Outlet />
       </div>
     </div>

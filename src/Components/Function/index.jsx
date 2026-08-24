@@ -54,7 +54,7 @@ export default function Function({ setSearchText, setUser }) {
   //dark/mode
   const theme = useSelector((state) => state.theme.mode);
   return (
-    <div className="flex h-[10%] items-center justify-between px-3 gap-2">
+    <div className="sidebar-search flex h-[72px] items-center justify-between px-3 gap-2 border-b border-slate-100">
       <TextField
         variant="outlined"
         placeholder="Tìm kiếm..."

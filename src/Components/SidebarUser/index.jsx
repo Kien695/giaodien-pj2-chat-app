@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { LuMessageSquareText } from "react-icons/lu";
 import { GrDocumentUser } from "react-icons/gr";
 import { IoMdCloudOutline } from "react-icons/io";
@@ -13,7 +13,7 @@ import { logout } from "../../redux/userSlice";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { socket } from "../../socket";
 import useIsMobile from "../IsMobile";
-import { TbLogout2 } from "react-icons/tb";
+import { LuClapperboard } from "react-icons/lu";
 export default function SideBarUser({ hideBottomNav }) {
   const isMobile = useIsMobile();
   const documentId = localStorage.getItem("documentId") || "";
@@ -22,7 +22,6 @@ export default function SideBarUser({ hideBottomNav }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [openInfo, setOpenInfo] = useState(false);
   const [openSetting, setOpenSetting] = useState(false);
-  const [lengthAccept, setLengthAccept] = useState(0);
   const open = Boolean(anchorEl);
   const user = useSelector((state) => state.user);
 
@@ -60,15 +59,15 @@ export default function SideBarUser({ hideBottomNav }) {
     <>
       {/* Desktop */}
       {!isMobile && (
-        <div className="w-[11%] md:w-[4%] flex flex-col py-7 items-center justify-between bg-gray-500 h-screen">
-          <div className="flex flex-col items-center justify-center gap-5">
+        <aside className="primary-sidebar w-[68px] shrink-0 flex flex-col py-5 items-center justify-between bg-[#0068ff] h-screen">
+          <div className="flex flex-col items-center justify-center gap-3">
             <img
               src={
                 user.avatar ||
                 "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
               }
               alt="avatar"
-              className="w-[45px] rounded-full cursor-pointer"
+              className="h-10 w-10 rounded-full object-cover cursor-pointer ring-2 ring-white/80"
               onClick={handleClick}
             />
 
@@ -133,7 +132,7 @@ export default function SideBarUser({ hideBottomNav }) {
               to="/chat/"
               end={false}
               className={({ isActive }) =>
-                `p-2 rounded ${isActive ? "bg-gray-700" : ""}`
+                `sidebar-action p-2.5 rounded-lg ${isActive ? "bg-white/20" : ""}`
               }
             >
               <Tooltip title="Tin nhắn" placement="right-start">
@@ -143,7 +142,7 @@ export default function SideBarUser({ hideBottomNav }) {
             <NavLink
               to={isMobile ? "/friend" : "/friend/1"}
               className={({ isActive }) =>
-                `p-2 rounded ${isActive ? "bg-gray-700" : ""}`
+                `sidebar-action p-2.5 rounded-lg ${isActive ? "bg-white/20" : ""}`
               }
             >
               <Tooltip title="Danh bạ" placement="right-start">
@@ -156,9 +155,19 @@ export default function SideBarUser({ hideBottomNav }) {
                 </div>
               </Tooltip>
             </NavLink>
+            <NavLink
+              to="/video"
+              className={({ isActive }) =>
+                `sidebar-action p-2.5 rounded-lg ${isActive ? "bg-white/20" : ""}`
+              }
+            >
+              <Tooltip title="Video" placement="right-start">
+                <LuClapperboard className="text-[26px] text-white" />
+              </Tooltip>
+            </NavLink>
           </div>
 
-          <div className="flex flex-col items-center justify-center gap-5">
+          <div className="flex flex-col items-center justify-center gap-3">
             <Tooltip title="My documents" placement="right-start">
               <Link to={`/chat/${documentId}`}>
                 <IoMdCloudOutline className="text-[26px] text-white" />
@@ -174,16 +183,16 @@ export default function SideBarUser({ hideBottomNav }) {
             </Tooltip>
             <Setting open={openSetting} onClose={() => setOpenSetting(false)} />
           </div>
-        </div>
+        </aside>
       )}
 
       {/* Mobile */}
       {isMobile && !hideBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 h-16 bg-gray-100 border-t border-gray-400 flex items-center justify-around z-50">
+        <nav className="mobile-nav fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 flex items-center z-50">
           <NavLink
             to="/chat"
             className={({ isActive }) =>
-              `flex flex-col items-center ${
+              `mobile-nav-item flex flex-col items-center ${
                 isActive ? "text-blue-600" : "text-gray-800"
               }`
             }
@@ -195,7 +204,7 @@ export default function SideBarUser({ hideBottomNav }) {
           <NavLink
             to="/friend"
             className={({ isActive }) =>
-              `flex flex-col items-center relative ${
+              `mobile-nav-item flex flex-col items-center relative ${
                 isActive ? "text-blue-600" : "text-gray-800"
               }`
             }
@@ -209,11 +218,21 @@ export default function SideBarUser({ hideBottomNav }) {
             <span className="text-[10px]">Bạn bè</span>
           </NavLink>
 
+          <NavLink
+            to="/video"
+            className={({ isActive }) =>
+              `mobile-nav-item flex flex-col items-center ${isActive ? "text-blue-600" : "text-gray-800"}`
+            }
+          >
+            <LuClapperboard size={22} />
+            <span className="text-[10px]">Video</span>
+          </NavLink>
+
           <button
             onClick={() => {
               setOpenInfo(true); // mở modal
             }}
-            className="flex flex-col items-center"
+            className="mobile-nav-item flex flex-col items-center"
           >
             <img
               src={
@@ -225,11 +244,7 @@ export default function SideBarUser({ hideBottomNav }) {
 
             <span className="text-[10px] text-gray-800 mt-1">Cá nhân</span>
           </button>
-          <div className=" flex flex-col items-center" onClick={handleLogout}>
-            <TbLogout2 />
-            <span className="text-[10px] text-gray-800 mt-1">Đăng xuất</span>
-          </div>
-        </div>
+        </nav>
       )}
 
       {/* Menu cá nhân */}

@@ -13,6 +13,7 @@ import SideBar from "../Components/SidebarInfo";
 import ChatDetail from "../Page/ChatDetail";
 import Friend from "../Components/Friend";
 import Friends from "../Page/Friends";
+import Video from "../Page/Video";
 
 export const routes = [
   { path: "/auth", element: <Auth /> },
@@ -38,6 +39,7 @@ export const routes = [
         element: <Friend />,
         children: [{ path: ":id", element: <Friends /> }],
       },
+      { path: "video", element: <Video /> },
     ],
   },
 ];

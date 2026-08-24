@@ -246,17 +246,17 @@ export function Auth() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4 ">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#eef3f9] px-4 ">
       {/* Background decoration */}
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-red-500/20 blur-3xl" />
+        <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
         <div className="absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
         <div className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-3xl" />
       </div>
 
-      <section className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-white/10 bg-white shadow-2xl lg:grid-cols-2">
+      <section className="relative grid w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl lg:grid-cols-2">
         {/* Phần giới thiệu */}
-        <div className="relative hidden overflow-hidden bg-gradient-to-br from-red-600 via-red-500 to-orange-400 p-6 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="relative hidden overflow-hidden bg-gradient-to-br from-[#005ae0] via-[#0068ff] to-[#39a0ff] p-8 text-white lg:flex lg:flex-col lg:justify-between">
           <div className="absolute -right-20 -top-20 h-50 w-20 rounded-full bg-white/10" />
           <div className="absolute -bottom-24 -left-24 h-42 w-20 rounded-full bg-black/10" />
 
@@ -268,7 +268,7 @@ export function Auth() {
 
               <div>
                 <h1 className="text-xl font-bold">Chat Together</h1>
-                <p className="text-sm text-red-100">
+                <p className="text-sm text-blue-100">
                   Kết nối mọi người dễ dàng hơn
                 </p>
               </div>
@@ -278,7 +278,7 @@ export function Auth() {
               Trò chuyện, chia sẻ và kết nối mọi lúc
             </h2>
 
-            <p className="mt-5 max-w-md leading-7 text-red-50">
+            <p className="mt-5 max-w-md leading-7 text-blue-50">
               Đăng nhập để tiếp tục cuộc trò chuyện với bạn bè và những người
               quan trọng.
             </p>
@@ -295,7 +295,7 @@ export function Auth() {
         {/* Form */}
         <div className="flex min-h-[450] flex-col justify-center bg-white px-6 py-8 sm:px-10 lg:px-12">
           <div className="mb-6">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-50 text-xl font-bold text-red-500 lg:hidden">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-xl font-bold text-blue-600 lg:hidden">
               CT
             </div>
 
@@ -317,7 +317,7 @@ export function Auth() {
               onClick={() => setIsLogin(true)}
               className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-300 ${
                 isLogin
-                  ? "bg-white text-red-500 shadow-sm"
+                  ? "bg-white text-blue-600 shadow-sm"
                   : "text-slate-500 hover:text-slate-900"
               }`}
             >
@@ -329,7 +329,7 @@ export function Auth() {
               onClick={() => setIsLogin(false)}
               className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-300 ${
                 !isLogin
-                  ? "bg-white text-red-500 shadow-sm"
+                  ? "bg-white text-blue-600 shadow-sm"
                   : "text-slate-500 hover:text-slate-900"
               }`}
             >
@@ -383,7 +383,7 @@ export function Auth() {
                   <button
                     type="button"
                     onClick={handleClickForgot}
-                    className="text-[13px] font-medium text-slate-500 transition hover:text-red-500"
+                    className="text-[13px] font-medium text-slate-500 transition hover:text-blue-600"
                   >
                     Quên mật khẩu?
                   </button>
@@ -570,7 +570,7 @@ export function Auth() {
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  <MdFingerprint className="text-2xl text-red-500" />
+                  <MdFingerprint className="text-2xl text-blue-600" />
                   Passkey
                 </span>
               )}

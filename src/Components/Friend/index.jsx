@@ -59,11 +59,11 @@ function Friend() {
   //dark/mode
   const theme = useSelector((state) => state.theme.mode);
   return (
-    <div className="flex">
+    <div className="friend-layout flex min-w-0">
       <div
-        className={`w-full md:w-[300px]  ${id ? "hidden md:block" : "block"} ${
-          theme == "dark" ? "bg-[#22262b] text-[#c2c5cd]" : "bg-gray-50 "
-        }   border border-r h-screen`}
+        className={`friend-sidebar w-full md:w-[340px] md:shrink-0 ${id ? "hidden md:block" : "block"} ${
+          theme == "dark" ? "bg-[#22262b] text-[#c2c5cd]" : "bg-white "
+        } border-r border-slate-200 h-screen`}
       >
         <Function setSearchText={setSearchText} setUser={setUser} />
         {searchText !== "" ? (

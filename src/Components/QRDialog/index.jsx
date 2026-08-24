@@ -6,10 +6,11 @@ import {
   Typography,
   IconButton,
   Tooltip,
+  Button,
 } from "@mui/material";
 import { IoReloadSharp } from "react-icons/io5";
 import QRCode from "react-qr-code";
-import { MdQrCode2 } from "react-icons/md";
+import { MdQrCode2, MdPhonelinkRing, MdOutlineErrorOutline } from "react-icons/md";
 import { socket } from "../../socket";
 import { toast } from "react-toastify";
 import { postData } from "../../utils/api";
@@ -17,16 +18,38 @@ import { setLogin } from "../../redux/userSlice";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 
+const getDeviceInfo = () => {
+  const ua = navigator.userAgent;
+  let browser = "Trình duyệt Web";
+  if (ua.includes("Firefox")) browser = "Firefox";
+  else if (ua.includes("Edg")) browser = "Microsoft Edge";
+  else if (ua.includes("Chrome")) browser = "Google Chrome";
+  else if (ua.includes("Safari")) browser = "Safari";
+
+  let os = "Windows";
+  if (ua.includes("Mac")) os = "macOS";
+  else if (ua.includes("Linux")) os = "Linux";
+  else if (ua.includes("Android")) os = "Android";
+  else if (ua.includes("iPhone") || ua.includes("iPad")) os = "iOS";
+
+  return `${browser} (${os})`;
+};
+
 export default function QRDialog() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [openQR, setOpenQR] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
   const [sessionId, setSessionId] = useState("");
+  // status: "waiting" | "scanned" | "rejected"
+  const [qrStatus, setQrStatus] = useState("waiting");
 
   const handleCreateQr = async () => {
     try {
-      const res = await postData("/auth/qr/create");
+      setQrStatus("waiting");
+      const deviceInfo = getDeviceInfo();
+      const res = await postData("/auth/qr/create", { deviceInfo });
+
       if (res.success) {
         setOpenQR(true);
         setTimeLeft(res.data.expiresIn);
@@ -40,36 +63,50 @@ export default function QRDialog() {
         }
       }
     } catch (error) {
-      if (error.response) {
+      if (error?.response) {
         toast.error(error.response.data.message);
       } else {
         toast.error("Không thể kết nối server!");
       }
     }
   };
+
   useEffect(() => {
-    // Nếu chưa có sessionId thì không đăng ký sự kiện
     if (!sessionId) return;
 
-    const handleQrApproved = async () => {
-      try {
-        const res = await postData("/auth/qr/confirm", {
-          sessionId,
-        });
+    // 1. Lắng nghe sự kiện đã quét
+    const handleQrScanned = (data) => {
+      console.log("QR scanned event received on desktop:", data);
+      setQrStatus("scanned");
+    };
 
-        if (res.success) {
-          console.log("ok");
+    // 2. Lắng nghe sự kiện chấp nhận đăng nhập từ điện thoại
+    const handleQrApproved = async (data) => {
+      console.log("QR approved event received on desktop:", data);
+      try {
+        let accessToken = data?.accessToken;
+        let documentId = data?.documentId;
+
+        // Nếu socket trả về chưa có token (fallback API call)
+        if (!accessToken) {
+          const res = await postData("/auth/qr/confirm", { sessionId });
+          if (res.success) {
+            accessToken = res.data.accessToken;
+            documentId = res.data.documentId;
+          }
+        }
+
+        if (accessToken) {
           toast.success("Đăng nhập thành công!");
           setOpenQR(false);
-          // 1. Lưu thông tin đăng nhập
-          localStorage.setItem("accessToken", res.data.accessToken);
-          localStorage.setItem("documentId", res.data.documentId);
+
+          localStorage.setItem("accessToken", accessToken);
+          localStorage.setItem("documentId", documentId);
           localStorage.setItem("theme", "light");
 
-          // 2. Cập nhật lại Socket Auth
-          socket.disconnect(); // Ngắt kết nối socket cũ
-          socket.auth = { token: res.data.accessToken };
-          socket.connect(); // Kết nối lại socket mới
+          socket.disconnect();
+          socket.auth = { token: accessToken };
+          socket.connect();
 
           dispatch(setLogin(true));
           navigate("/chat");
@@ -78,23 +115,33 @@ export default function QRDialog() {
         if (error?.response) {
           toast.error(error.response.data.message);
         } else {
-          toast.error("Không thể kết nối server!");
+          toast.error("Không thể hoàn tất đăng nhập!");
         }
       }
     };
 
-    // Lắng nghe sự kiện từ socket
-    socket.on("QR_APPROVED", handleQrApproved);
-
-    // hủy nghe khi unmount hoặc khi sessionId đổi!
-    return () => {
-      socket.off("QR_APPROVED", handleQrApproved);
+    // 3. Lắng nghe sự kiện bị từ chối
+    const handleQrRejected = () => {
+      console.log("QR rejected on phone");
+      setQrStatus("rejected");
+      toast.warn("Yêu cầu đăng nhập đã bị từ chối từ điện thoại.");
     };
-  }, [sessionId, dispatch]);
+
+    socket.on("QR_SCANNED", handleQrScanned);
+    socket.on("QR_APPROVED", handleQrApproved);
+    socket.on("QR_REJECTED", handleQrRejected);
+
+    return () => {
+      socket.off("QR_SCANNED", handleQrScanned);
+      socket.off("QR_APPROVED", handleQrApproved);
+      socket.off("QR_REJECTED", handleQrRejected);
+    };
+  }, [sessionId, dispatch, navigate]);
 
   useEffect(() => {
     if (!openQR) {
-      setTimeLeft(20);
+      setTimeLeft(60);
+      setQrStatus("waiting");
       return;
     }
 
@@ -110,34 +157,133 @@ export default function QRDialog() {
   return (
     <>
       <div
-        className="flex gap-1 items-center text-[13px] cursor-pointer font-medium text-slate-500 transition hover:text-red-500"
+        className="flex gap-1.5 items-center text-[13px] cursor-pointer font-semibold text-slate-600 transition hover:text-red-500 hover:scale-105"
         onClick={handleCreateQr}
       >
-        Quét QR
-        <MdQrCode2 />
+        <span>Quét QR</span>
+        <MdQrCode2 className="text-base text-red-500" />
       </div>
+
       <Dialog
         open={openQR}
         onClose={() => setOpenQR(false)}
         PaperProps={{
-          style: { borderRadius: 16, padding: "8px" },
+          style: {
+            borderRadius: 24,
+            padding: "8px",
+            boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+            background: "linear-gradient(145deg, #ffffff, #f8fafc)",
+          },
         }}
       >
-        <DialogContent className="flex flex-col items-center justify-center p-6">
-          {/* Box chứa QRCode, Tia Laser và Lớp Hết Hạn */}
+        <DialogContent className="flex flex-col items-center justify-center p-6 w-[340px]">
+          {/* Header text */}
+          <Typography
+            variant="h6"
+            className="font-bold text-slate-800 text-center mb-1"
+            sx={{ fontSize: "1.1rem" }}
+          >
+            {qrStatus === "scanned"
+              ? "Đã quét thành công!"
+              : qrStatus === "rejected"
+              ? "Yêu cầu bị từ chối"
+              : "Đăng nhập bằng mã QR"}
+          </Typography>
+
+          <Typography
+            variant="caption"
+            className="text-slate-500 text-center mb-5 block max-w-[260px]"
+          >
+            {qrStatus === "scanned"
+              ? "Vui lòng kiểm tra điện thoại và nhấn 'Đăng nhập' để xác nhận."
+              : qrStatus === "rejected"
+              ? "Bạn đã hủy yêu cầu đăng nhập từ điện thoại."
+              : "Dùng ứng dụng trên điện thoại để quét mã QR bên dưới."}
+          </Typography>
+
+          {/* Core Visual Box */}
           <Box
             sx={{
               position: "relative",
               display: "inline-flex",
-              padding: "16px",
+              padding: "20px",
               backgroundColor: "#fff",
-              borderRadius: "12px",
+              borderRadius: "20px",
               overflow: "hidden",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+              boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+              border: "1px solid #e2e8f0",
             }}
           >
-            {/*  Thanh Laser Quét (Chỉ hiện khi CHƯA hết hạn) */}
-            {timeLeft > 0 && (
+            {/* Scanned state overlay */}
+            {qrStatus === "scanned" && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: "rgba(240, 253, 244, 0.95)",
+                  backdropFilter: "blur(6px)",
+                  zIndex: 30,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 3,
+                  textAlign: "center",
+                }}
+              >
+                <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-3 animate-bounce shadow-md">
+                  <MdPhonelinkRing className="text-3xl text-emerald-600" />
+                </div>
+                <Typography variant="subtitle2" className="font-bold text-emerald-800">
+                  Đã quét thành công!
+                </Typography>
+                <Typography variant="caption" className="text-emerald-600 mt-1">
+                  Đang chờ xác nhận trên điện thoại...
+                </Typography>
+              </Box>
+            )}
+
+            {/* Rejected state overlay */}
+            {qrStatus === "rejected" && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  backgroundColor: "rgba(254, 242, 242, 0.95)",
+                  backdropFilter: "blur(6px)",
+                  zIndex: 30,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 2,
+                  textAlign: "center",
+                }}
+              >
+                <div className="w-14 h-14 rounded-full bg-rose-100 flex items-center justify-center mb-2">
+                  <MdOutlineErrorOutline className="text-3xl text-rose-600" />
+                </div>
+                <Typography variant="subtitle2" className="font-bold text-rose-800">
+                  Đã từ chối
+                </Typography>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={handleCreateQr}
+                  sx={{
+                    mt: 1.5,
+                    borderRadius: "10px",
+                    textTransform: "none",
+                    background: "linear-gradient(135deg, #ef4444, #f97316)",
+                  }}
+                >
+                  Thử lại
+                </Button>
+              </Box>
+            )}
+
+            {/* Scanning Laser (active when waiting and not expired) */}
+            {qrStatus === "waiting" && timeLeft > 0 && (
               <Box
                 sx={{
                   position: "absolute",
@@ -151,21 +297,21 @@ export default function QRDialog() {
                   pointerEvents: "none",
                   animation: "scan 2s infinite ease-in-out",
                   "@keyframes scan": {
-                    "0%": { top: "0%" },
-                    "50%": { top: "calc(100% - 3px)" },
-                    "100%": { top: "0%" },
+                    "0%": { top: "5%" },
+                    "50%": { top: "95%" },
+                    "100%": { top: "5%" },
                   },
                 }}
               />
             )}
 
-            {/*  Overlay đè lên khi HẾT HẠN + NÚT RELOAD */}
-            {timeLeft === 0 && (
+            {/* Expired Overlay */}
+            {qrStatus === "waiting" && timeLeft === 0 && (
               <Box
                 sx={{
                   position: "absolute",
                   inset: 0,
-                  backgroundColor: "rgba(255, 255, 255, 0.9)",
+                  backgroundColor: "rgba(255, 255, 255, 0.92)",
                   backdropFilter: "blur(4px)",
                   zIndex: 20,
                   display: "flex",
@@ -181,7 +327,7 @@ export default function QRDialog() {
                   sx={{
                     color: "error.main",
                     fontWeight: 700,
-                    fontSize: "0.95rem",
+                    fontSize: "0.9rem",
                     textTransform: "uppercase",
                     letterSpacing: "0.5px",
                     mb: 1,
@@ -190,7 +336,6 @@ export default function QRDialog() {
                   Mã QR đã hết hạn
                 </Typography>
 
-                {/*  Nút Reload */}
                 <Tooltip title="Tải lại mã QR">
                   <IconButton
                     onClick={handleCreateQr}
@@ -199,15 +344,15 @@ export default function QRDialog() {
                       backgroundColor: "primary.main",
                       color: "#fff",
                       padding: "12px",
-                      boxShadow: "0 4px 12px rgba(25, 118, 210, 0.4)",
+                      boxShadow: "0 4px 14px rgba(239, 68, 68, 0.4)",
+                      background: "linear-gradient(135deg, #ef4444, #f97316)",
                       transition: "all 0.2s ease-in-out",
                       "&:hover": {
-                        backgroundColor: "primary.dark",
-                        transform: "rotate(180deg)", // Hiệu ứng xoay tròn khi hover
+                        transform: "rotate(180deg)",
                       },
                     }}
                   >
-                    <IoReloadSharp sx={{ fontSize: 28 }} />
+                    <IoReloadSharp style={{ fontSize: 24 }} />
                   </IconButton>
                 </Tooltip>
 
@@ -220,31 +365,38 @@ export default function QRDialog() {
               </Box>
             )}
 
-            {/*  Component Mã QR */}
+            {/* Component Mã QR */}
             <Box
               sx={{
-                filter: timeLeft === 0 ? "blur(2px) grayscale(60%)" : "none",
+                filter:
+                  qrStatus === "waiting" && timeLeft === 0
+                    ? "blur(2px) grayscale(60%)"
+                    : "none",
               }}
             >
-              <QRCode value={sessionId} size={200} />
+              <QRCode value={sessionId || "placeholder"} size={190} />
             </Box>
           </Box>
 
-          {/*  Thời gian đếm ngược bên dưới */}
-          <Typography
-            variant="body2"
-            sx={{
-              mt: 2,
-              color: timeLeft > 10 ? "text.secondary" : "error.main",
-              fontWeight: 600,
-            }}
-          >
-            {timeLeft > 0
-              ? `Mã QR có hiệu lực trong: ${timeLeft}s`
-              : "Mã QR đã dừng hoạt động"}
-          </Typography>
+          {/* Bottom Countdown */}
+          {qrStatus === "waiting" && (
+            <Typography
+              variant="body2"
+              sx={{
+                mt: 2.5,
+                color: timeLeft > 10 ? "text.secondary" : "error.main",
+                fontWeight: 600,
+                fontSize: "0.85rem",
+              }}
+            >
+              {timeLeft > 0
+                ? `Mã QR có hiệu lực trong: ${timeLeft}s`
+                : "Mã QR đã dừng hoạt động"}
+            </Typography>
+          )}
         </DialogContent>
       </Dialog>
     </>
   );
 }
+

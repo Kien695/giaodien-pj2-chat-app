@@ -266,13 +266,13 @@ function SideBar() {
   //dark/mode
   const theme = useSelector((state) => state.theme.mode);
   return (
-    <div className="flex">
+    <div className="conversation-layout flex min-w-0">
       <div
-        className={`w-full md:max-w-[300px]  ${
+        className={`conversation-sidebar w-full md:w-[340px] md:max-w-[340px] shrink-0 ${
           roomChatId ? "hidden md:block" : "block"
         } ${
-          theme == "dark" ? "bg-[#22262b] text-white" : "bg-gray-50 "
-        }    border border-r h-screen`}
+          theme == "dark" ? "bg-[#22262b] text-white" : "bg-white "
+        } border-r border-slate-200 h-screen`}
       >
         <Function setSearchText={setSearchText} setUser={setUser} />
 
@@ -487,7 +487,7 @@ function SideBar() {
                     }}
                   >
                     <div
-                      className={`flex gap-3 cursor-pointer px-3 py-4
+                      className={`conversation-item flex gap-3 cursor-pointer px-3 py-3
                         ${
                           theme == "dark"
                             ? "hover:bg-[#2d3136]"
