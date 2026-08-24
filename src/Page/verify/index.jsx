@@ -40,8 +40,15 @@ export default function Verify() {
           otp: otp,
         });
         if (res.success) {
+          const { resetTicket, expiresIn } = res.data;
+          sessionStorage.setItem("passwordResetTicket", resetTicket);
+          sessionStorage.setItem(
+            "passwordResetExpiresAt",
+            String(Date.now() + expiresIn * 1000),
+          );
           toast.success("Xác minh OTP thành công. Vui lòng đặt lại mật khẩu !");
           localStorage.removeItem("actionType");
+          localStorage.removeItem("userEmail");
           navigate("/reset-password");
         }
       } catch (error) {

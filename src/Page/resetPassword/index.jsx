@@ -8,8 +8,10 @@ import { toast } from "react-toastify";
 export default function ResetPassword() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [resetTicket] = useState(() =>
+    sessionStorage.getItem("passwordResetTicket"),
+  );
   const [formPassword, setFormPassword] = useState({
-    email: localStorage.getItem("userEmail"),
     newPassword: "",
     confirmPassword: "",
   });
@@ -17,6 +19,20 @@ export default function ResetPassword() {
     newPassword: useRef(),
     confirmPassword: useRef(),
   };
+
+  React.useEffect(() => {
+    const expiresAt = Number(
+      sessionStorage.getItem("passwordResetExpiresAt") || 0,
+    );
+
+    if (!resetTicket || expiresAt <= Date.now()) {
+      sessionStorage.removeItem("passwordResetTicket");
+      sessionStorage.removeItem("passwordResetExpiresAt");
+      toast.error("Phiên đặt lại mật khẩu không hợp lệ hoặc đã hết hạn");
+      navigate("/auth", { replace: true });
+    }
+  }, [navigate, resetTicket]);
+
   const handleInput = (e) => {
     const { name, value } = e.target;
     setFormPassword((prev) => ({
@@ -36,7 +52,7 @@ export default function ResetPassword() {
     }
     // Regex password
     const passwordRegex =
-      /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[{\]};:'",.<>/?\\|]).{8,}$/;
+      /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=[\]{};:'",.<>/?\\|]).{8,128}$/;
 
     if (!passwordRegex.test(formPassword.newPassword)) {
       toast.error(
@@ -59,15 +75,25 @@ export default function ResetPassword() {
       return;
     }
     try {
-      const res = await postData("/auth/reset-password", formPassword);
+      const res = await postData("/auth/reset-password", {
+        resetTicket,
+        ...formPassword,
+      });
       if (res.success) {
         toast.success("Đổi mật khẩu thành công!");
         localStorage.removeItem("userEmail");
-        navigate("/login");
+        sessionStorage.removeItem("passwordResetTicket");
+        sessionStorage.removeItem("passwordResetExpiresAt");
+        navigate("/auth", { replace: true });
       }
     } catch (error) {
       if (error.response) {
         toast.error(error.response.data.message);
+        if (error.response.status === 400) {
+          sessionStorage.removeItem("passwordResetTicket");
+          sessionStorage.removeItem("passwordResetExpiresAt");
+          navigate("/auth", { replace: true });
+        }
       } else {
         toast.error("Không thể kết nối server!");
       }
