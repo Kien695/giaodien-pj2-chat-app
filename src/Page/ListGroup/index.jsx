@@ -33,9 +33,6 @@ export default function ListGroup() {
       const res = await patchData(`/auth/leaveGroup/${roomChatId}`);
       if (res.success) {
         setAnchorEl(null);
-        socket.emit("CLIENT_LEAVE_ROOM_PERSON", {
-          roomChatId,
-        });
       }
     } catch (error) {
       if (error.response) {

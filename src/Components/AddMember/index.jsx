@@ -21,7 +21,6 @@ import { getData, patchData } from "../../utils/api";
 import { FcSearch } from "react-icons/fc";
 import { useSelector } from "react-redux";
 import { CgCloseO } from "react-icons/cg";
-import { socket } from "../../socket";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -99,11 +98,6 @@ export default function AddMember({ open, onClose, roomChatId, dataUser }) {
     try {
       const res = await patchData(`/auth/addMember/${roomChatId}`, formData);
       if (res.success) {
-        socket.emit("CLIENT_ADD_MEMBER", {
-          roomChatId,
-          member: formData.members,
-          role: "member",
-        });
         onClose();
       }
     } catch (error) {

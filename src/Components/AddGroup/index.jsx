@@ -29,7 +29,6 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     padding: theme.spacing(1),
   },
 }));
-import { socket } from "../../socket";
 export default function AddGroup({ open, onClose }) {
   const friend = useSelector((state) => state.user.listFriend);
   const state = useSelector((state) => state.user);
@@ -105,7 +104,6 @@ export default function AddGroup({ open, onClose }) {
 
       const res = await postData("/auth/createRoom", formData);
       if (res.success) {
-        socket.emit("CLIENT_CREATE_ROOM", { room: res.data });
         toast.success("Tạo nhóm thành công");
         onClose();
       }

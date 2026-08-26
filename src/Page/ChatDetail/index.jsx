@@ -254,11 +254,6 @@ export default function ChatDetail() {
 
       const res = await patchData("/auth/editRoom/" + roomChatId, formData);
       if (res.success) {
-        socket.emit("CLIENT_UPDATE_ROOM_INFO", {
-          roomChatId,
-          title: res.data.title,
-          avatar: res.data.avatar,
-        });
         setOpenDialog(false);
       }
     } catch (error) {
@@ -625,12 +620,7 @@ export default function ChatDetail() {
       const res = await patchData(`/auth/removeMember/${roomChatId}`, {
         memberId: item.user_id._id,
       });
-      if (res.success) {
-        socket.emit("CLIENT_REMOVE_MEMBER", {
-          roomChatId,
-          member: item.user_id._id,
-        });
-      }
+      if (!res.success) return;
     } catch (error) {
       if (error.response) {
         toast.error(error.response.data.message);
@@ -645,11 +635,7 @@ export default function ChatDetail() {
       const res = await patchData(`/auth/leaveGroup/${roomChatId}`, {
         memberId: item.user_id._id,
       });
-      if (res.success) {
-        socket.emit("CLIENT_LEAVE_GROUP", {
-          roomChatId,
-        });
-      }
+      if (!res.success) return;
     } catch (error) {
       if (error.response) {
         toast.error(error.response.data.message);
@@ -664,7 +650,6 @@ export default function ChatDetail() {
       const res = await deleteData(`/auth/removeRoom/${roomChatId}`);
       if (res.success) {
         toast.success(res.message || "Xóa thành công!");
-        socket.emit("CLIENT_REMOVE_ROOM", { roomChatId });
       }
     } catch (error) {
       if (error.response) {
