@@ -59,7 +59,10 @@ export default function QRDialog() {
             socket.connect();
           }
           console.log("Socket ID:", socket.id);
-          socket.emit("JOIN_QR", res.data.sessionId);
+          socket.emit("JOIN_QR", {
+            sessionId: res.data.sessionId,
+            subscriberToken: res.data.subscriberToken,
+          });
         }
       }
     } catch (error) {

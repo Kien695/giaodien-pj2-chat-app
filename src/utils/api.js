@@ -24,8 +24,15 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const isRefreshRequest = originalRequest?.url?.includes(
+      "/auth/refreshToken",
+    );
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !isRefreshRequest
+    ) {
       if (isRefreshing) {
         // request chờ refresh xong
         return new Promise((resolve, reject) => {

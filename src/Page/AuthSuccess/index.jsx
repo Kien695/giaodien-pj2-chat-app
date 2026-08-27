@@ -1,7 +1,6 @@
-import React from "react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { getData } from "../../utils/api";
+import { postData } from "../../utils/api";
 import { toast } from "react-toastify";
 import { useDispatch } from "react-redux";
 import { setLogin } from "../../redux/userSlice";
@@ -10,33 +9,38 @@ import { socket } from "../../socket";
 export default function AuthSuccess() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const exchangeStarted = useRef(false);
 
   useEffect(() => {
+    if (exchangeStarted.current) return;
+    exchangeStarted.current = true;
     const params = new URLSearchParams(window.location.search);
-    const accessToken = params.get("token");
-    const documentId = params.get("documentId");
+    const code = params.get("code");
+    window.history.replaceState({}, document.title, window.location.pathname);
 
-    // Kiểm tra xem đã có token chưa
-    if (accessToken) {
-      // Lưu vào Storage
-      localStorage.setItem("accessToken", accessToken);
-      socket.auth = {
-        token: accessToken,
-      };
+    const exchangeCode = async () => {
+      if (!code) {
+        navigate("/login", { replace: true });
+        return;
+      }
+      try {
+        const response = await postData("/auth/oauth/exchange", { code });
+        const { accessToken, documentId } = response.data;
+        localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("documentId", documentId);
+        localStorage.setItem("theme", "light");
+        socket.auth = { token: accessToken };
+        socket.connect();
+        dispatch(setLogin(true));
+        toast.success("Đăng nhập thành công");
+        navigate("/chat", { replace: true });
+      } catch (error) {
+        toast.error(error?.response?.data?.message || "Không thể hoàn tất đăng nhập");
+        navigate("/login", { replace: true });
+      }
+    };
 
-      socket.connect();
-      if (documentId) localStorage.setItem("documentId", documentId);
-      localStorage.setItem("theme", "light");
-
-      // Cập nhật State
-      dispatch(setLogin(true));
-      toast.success("Đăng nhập thành công");
-
-      navigate("/chat", { replace: true });
-    } else {
-      console.error("No token found in URL");
-      navigate("/login");
-    }
+    exchangeCode();
   }, [dispatch, navigate]);
 
   return <div>Đang xử lý đăng nhập...</div>;

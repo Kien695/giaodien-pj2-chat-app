@@ -88,6 +88,12 @@ import { FaLinkSlash } from "react-icons/fa6";
 import useIsMobile from "../../Components/IsMobile";
 import CallDialog from "../../Components/CallDialog";
 import { LuPhone, LuVideo } from "react-icons/lu";
+import {
+  CHAT_FILE_ACCEPT,
+  IMAGE_ACCEPT,
+  validateChatFilesForUpload,
+  validateImageForUpload,
+} from "../../utils/uploadValidation";
 
 export default function ChatDetail() {
   const menuRef = useRef(null);
@@ -277,6 +283,12 @@ export default function ChatDetail() {
   const handleInputChangeRoom = (e) => {
     const { name, value, files } = e.target;
     if (name === "image") {
+      const validationError = validateImageForUpload(files[0]);
+      if (validationError) {
+        toast.error(validationError);
+        e.target.value = "";
+        return;
+      }
       setFormInfo((prev) => ({
         ...prev,
         image: files[0],
@@ -456,6 +468,12 @@ export default function ChatDetail() {
   const handleSendFile = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
+    const validationError = validateChatFilesForUpload(files);
+    if (validationError) {
+      toast.error(validationError);
+      e.target.value = "";
+      return;
+    }
 
     // 1️ Thêm file vào state uploading
     const tempFiles = files.map((file) => ({
@@ -915,7 +933,7 @@ export default function ChatDetail() {
                                 <MdDriveFolderUpload className="text-white text-[25px]" />
                                 <input
                                   type="file"
-                                  accept="image/*"
+                                  accept={IMAGE_ACCEPT}
                                   className="absolute inset-0 opacity-0 cursor-pointer"
                                   name="image"
                                   onChange={handleInputChangeRoom}
@@ -1404,6 +1422,7 @@ export default function ChatDetail() {
               )}
               <ImageUploading
                 multiple
+                accept={CHAT_FILE_ACCEPT}
                 value={images}
                 onChange={onChange}
                 maxNumber={maxNumber}

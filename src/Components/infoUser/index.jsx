@@ -26,10 +26,14 @@ import {
 import { useState } from "react";
 import { useDispatch } from "react-redux";
 import { MdDriveFolderUpload, MdOutlineArrowBackIosNew } from "react-icons/md";
-import { patchData, putData } from "../../utils/api";
+import { patchData } from "../../utils/api";
 import { setUser } from "../../redux/userSlice";
 import { toast } from "react-toastify";
 import { useRef } from "react";
+import {
+  IMAGE_ACCEPT,
+  validateImageForUpload,
+} from "../../utils/uploadValidation";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -71,6 +75,11 @@ export default function InfoUser({ open, onClose, user, type }) {
 
   //Edit avatar or background
   const handleUpload = async (file, type) => {
+    const validationError = validateImageForUpload(file);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     try {
       // tạo preview để show ngay
       if (type === "avatar") {
@@ -85,7 +94,7 @@ export default function InfoUser({ open, onClose, user, type }) {
       formData.append("image", file);
       formData.append("type", type);
 
-      const response = await putData("/auth/updateImage", formData);
+      const response = await patchData("/auth/updateImage", formData);
 
       if (response.success) {
         if (type == "avatar") {
@@ -246,7 +255,7 @@ export default function InfoUser({ open, onClose, user, type }) {
 
           <input
             type="file"
-            accept="image/*"
+            accept={IMAGE_ACCEPT}
             ref={fileCoverRef}
             style={{ display: "none" }}
             onChange={(e) => {
@@ -286,7 +295,7 @@ export default function InfoUser({ open, onClose, user, type }) {
                     <MdDriveFolderUpload className="text-white text-[25px]" />
                     <input
                       type="file"
-                      accept="image/*"
+                      accept={IMAGE_ACCEPT}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       onChange={(e) => {
                         if (e.target.files && e.target.files[0]) {
