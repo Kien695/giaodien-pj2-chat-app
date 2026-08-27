@@ -206,6 +206,54 @@ export default function ChatDetail() {
   const maxNumber = 5;
   const typingTimeoutRef = useRef(null);
 
+  const emitChatMessage = (payload, { optimistic = true } = {}) => {
+    const clientMessageId = window.crypto.randomUUID();
+    const isCurrentRoom =
+      !Array.isArray(payload.roomChatId) &&
+      payload.roomChatId?.toString() === roomChatId?.toString();
+
+    if (optimistic && isCurrentRoom) {
+      setChat((previous) => [
+        ...previous,
+        {
+          _id: `pending-${clientMessageId}`,
+          clientMessageId,
+          user_id: { _id: state._id, avatar: state.avatar },
+          content: payload.message,
+          images: [],
+          files: Array.isArray(payload.file) ? payload.file : [],
+          type: payload.type,
+          createdAt: new Date(),
+          deleted: false,
+          deliveryStatus: "pending",
+        },
+      ]);
+    }
+
+    socket.emit(
+      "CLIENT_SEND_MESSAGE",
+      { ...payload, clientMessageId },
+      (acknowledgement) => {
+        const delivered = acknowledgement?.success === true;
+        setChat((previous) =>
+          previous.map((item) =>
+            item.clientMessageId === clientMessageId
+              ? {
+                  ...item,
+                  deliveryStatus: delivered ? "sent" : "failed",
+                }
+              : item,
+          ),
+        );
+        if (!delivered) {
+          toast.error("Không thể gửi tin nhắn");
+        }
+      },
+    );
+
+    return clientMessageId;
+  };
+
   const onEmojiClick = (emojiData) => {
     setMessage((prev) => prev + emojiData.emoji);
     if (socket) {
@@ -431,7 +479,7 @@ export default function ChatDetail() {
         setUploadingFiles([]);
         console.log(res.data);
         // 4️ Gửi message qua socket
-        socket.emit("CLIENT_SEND_MESSAGE", {
+        emitChatMessage({
           message,
           images: "",
           roomChatId: roomChatId || null,
@@ -509,7 +557,7 @@ export default function ChatDetail() {
   const handleMessage = async () => {
     if (socket) {
       const base64List = await convertImagesToBase64();
-      socket.emit("CLIENT_SEND_MESSAGE", {
+      emitChatMessage({
         message,
         images: base64List,
         roomChatId: roomChatId || null,
@@ -525,7 +573,7 @@ export default function ChatDetail() {
     }
   };
   const handleSendLike = () => {
-    socket.emit("CLIENT_SEND_MESSAGE", {
+    emitChatMessage({
       message,
       images: "",
       roomChatId: roomChatId || null,
@@ -555,7 +603,20 @@ export default function ChatDetail() {
         createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
       };
 
-      setChat((prev) => [...prev, formatted]);
+      setChat((prev) => {
+        const pendingIndex = prev.findIndex(
+          (item) =>
+            item.clientMessageId &&
+            item.clientMessageId === formatted.clientMessageId,
+        );
+        if (pendingIndex === -1) {
+          return [...prev, { ...formatted, deliveryStatus: "sent" }];
+        }
+
+        const next = [...prev];
+        next[pendingIndex] = { ...formatted, deliveryStatus: "sent" };
+        return next;
+      });
     };
 
     const handleTyping = (data) => {
@@ -745,13 +806,13 @@ export default function ChatDetail() {
   };
   const handleSendLink = async () => {
     if (socket) {
-      socket.emit("CLIENT_SEND_MESSAGE", {
+      emitChatMessage({
         images: "",
         file: "",
         roomChatId: formSend.listRoom,
         message: inviteUrl,
         type: "invite",
-      });
+      }, { optimistic: false });
       setFormSend({
         listRoom: [],
       });
