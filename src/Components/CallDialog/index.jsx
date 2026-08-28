@@ -127,6 +127,7 @@ const CallDialog = ({
     if (!open || !isVideo) return undefined;
 
     let cancelled = false;
+    let handleCallAccepted;
     const localVideoElement = localVideoRef.current;
     const remoteVideoElement = remoteVideoRef.current;
 
@@ -187,14 +188,15 @@ const CallDialog = ({
           }
         });
         //  Listen for "callAccepted" event from the server (when the recipient accepts the call)
-        socket.once("callAccepted", (data) => {
+        handleCallAccepted = (data) => {
           callIdRef.current = data.callId;
           setCallRejectedPopUp(false);
           setCallAccepted(true); //  Mark call as accepted
 
           setCaller(data.from); //  Store caller's ID
           peer.signal(data.signal); //  Pass the received WebRTC signal to establish the connection
-        });
+        };
+        socket.once("callAccepted", handleCallAccepted);
         connectionRef.current = peer;
       } catch (error) {
         if (cancelled) return;
@@ -212,6 +214,9 @@ const CallDialog = ({
 
     return () => {
       cancelled = true;
+      if (handleCallAccepted) {
+        socket.off("callAccepted", handleCallAccepted);
+      }
       peerRef.current?.destroy();
       peerRef.current = null;
       localStreamRef.current?.getTracks().forEach((track) => track.stop());
@@ -219,10 +224,10 @@ const CallDialog = ({
       if (localVideoElement) localVideoElement.srcObject = null;
       if (remoteVideoElement) remoteVideoElement.srcObject = null;
     };
-  }, [open, isVideo, callAttempt]);
+  }, [open, isVideo, callAttempt, friendInfo._id, type]);
 
   useEffect(() => {
-    socket.on("makeUser", (data) => {
+    const handleIncomingCall = (data) => {
       callIdRef.current = data.callId;
       setReciveCall(true); // Set state to indicate an incoming call.
       setCaller(data); // Store caller's information in state.
@@ -232,9 +237,9 @@ const CallDialog = ({
       setCallAccepted(false);
       //  Start playing ringtone
       ringtoneRef.current?.play();
-    });
+    };
     //reject call
-    socket.on("callRejected", (data) => {
+    const handleCallRejected = (data) => {
       callIdRef.current = null;
       peerRef.current?.destroy();
       peerRef.current = null;
@@ -243,14 +248,14 @@ const CallDialog = ({
       setCallRejectedPopUp(true);
       setCallrejectorData(data);
       ringtoneRef.current?.stop();
-    });
-    socket.on("userUnavailable", (data) => {
+    };
+    const handleUserUnavailable = (data) => {
       toast.info(data.message || "Người dùng không online!");
-    });
+    };
 
-    socket.on("userBusy", (data) => {
+    const handleUserBusy = (data) => {
       toast.info(data.message || "Người dùng đang trong cuộc gọi khác!");
-    });
+    };
     const handleCallEnded = () => {
       peerRef.current?.destroy();
       peerRef.current = null;
@@ -265,13 +270,16 @@ const CallDialog = ({
       ringtoneRef.current?.stop();
       onClose?.();
     };
+    socket.on("makeUser", handleIncomingCall);
+    socket.on("callRejected", handleCallRejected);
+    socket.on("userUnavailable", handleUserUnavailable);
+    socket.on("userBusy", handleUserBusy);
     socket.on("callEnded", handleCallEnded);
     return () => {
-      socket.off("makeUser"); // Remove listener for incoming calls.
-      socket.off("callRejected"); // Remove listener for rejected calls.
-
-      socket.off("userUnavailable"); // Remove listener for unavailable user.
-      socket.off("userBusy"); // Remove listener for busy user.
+      socket.off("makeUser", handleIncomingCall);
+      socket.off("callRejected", handleCallRejected);
+      socket.off("userUnavailable", handleUserUnavailable);
+      socket.off("userBusy", handleUserBusy);
       socket.off("callEnded", handleCallEnded);
     };
   }, [roomChatId, onClose]);

@@ -7,10 +7,8 @@ import React from "react";
 import { FaRegSmile } from "react-icons/fa";
 import { MdDevicesFold, MdOutlineKeyboardArrowLeft } from "react-icons/md";
 import { LuUserRoundCheck } from "react-icons/lu";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BsThreeDotsVertical } from "react-icons/bs";
-import { useEffect } from "react";
-import { getData } from "../../utils/api";
 import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import InfoUser from "../../Components/infoUser";
@@ -22,8 +20,6 @@ export default function ListFriend() {
   const [openInfo, setOpenInfo] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const dispatch = useDispatch();
-  const state = useSelector((state) => state.user);
-
   const openMenu = Boolean(anchorEl);
 
   const handleClick = (event, item) => {

@@ -31,8 +31,6 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 }));
 export default function AddGroup({ open, onClose }) {
   const friend = useSelector((state) => state.user.listFriend);
-  const state = useSelector((state) => state.user);
-
   const [user, setUser] = React.useState(null);
   const [keyword, setKeyword] = React.useState("");
   const [searchText, setSearchText] = useState("");

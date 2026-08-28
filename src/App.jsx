@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { socket } from "./socket.js";
 
 //toastyfy
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 import "./App.css";
@@ -17,7 +17,6 @@ import {
   setCurrentRoom,
   unfriendSuccess,
   removeGroup,
-  removeUserFromRoom,
   addGroup,
   acceptFriendSuccess,
   setIncreaseAcceptFriend,
@@ -34,11 +33,9 @@ import {
 
 function App() {
   const state = useSelector((state) => state.user);
-  const socketConnection = state.socketConnection;
   const isLogin = useSelector((state) => state.user.isLogin);
   const dispatch = useDispatch();
   const currentRoomId = useSelector((state) => state.user.currentRoomId);
-  const listGroup = useSelector((state) => state.user.listGroup);
 
   useEffect(() => {
     // 1️ Fetch initial data
@@ -97,6 +94,15 @@ function App() {
         dispatch(decreaseAcceptFriend());
       }
     };
+    const handleOnlineUsers = (users) => {
+      dispatch(setOnlineUsers(users));
+    };
+    const handleUserOnline = ({ userId }) => {
+      dispatch(setUserOnline(userId));
+    };
+    const handleUserOffline = ({ userId, lastActive }) => {
+      dispatch(setUserOffline({ userId, lastActive }));
+    };
     socket.on("SERVER_RETURN_INFO_A", handleAdd);
     socket.on("SERVER_DELETE_INFO_A", handleDelete);
     socket.on("SERVER_RETURN_LIST_FRIEND", handleAcceptfriend);
@@ -104,25 +110,17 @@ function App() {
     socket.on("SERVER_LEAVE_ROOM_PERSON", handleLeaveGroup);
     socket.on("SERVER_ROOM_UPDATED_SIDEBAR", handleRoomUpdateSideBar);
 
-    socket.on("SERVER_ONLINE_USERS", (users) => {
-      dispatch(setOnlineUsers(users));
-    });
-
-    socket.on("SERVER_USER_ONLINE", ({ userId }) => {
-      dispatch(setUserOnline(userId));
-    });
-
-    socket.on("SERVER_USER_OFFLINE", ({ userId, lastActive }) => {
-      dispatch(setUserOffline({ userId, lastActive }));
-    });
+    socket.on("SERVER_ONLINE_USERS", handleOnlineUsers);
+    socket.on("SERVER_USER_ONLINE", handleUserOnline);
+    socket.on("SERVER_USER_OFFLINE", handleUserOffline);
 
     return () => {
       socket.off("SERVER_UNFRIEND_SUCCESS", handleUnfriend);
       socket.off("SERVER_LEAVE_ROOM_PERSON", handleLeaveGroup);
       socket.off("SERVER_ROOM_UPDATED_SIDEBAR", handleRoomUpdateSideBar);
-      socket.off("SERVER_ONLINE_USERS");
-      socket.off("SERVER_USER_ONLINE");
-      socket.off("SERVER_USER_OFFLINE");
+      socket.off("SERVER_ONLINE_USERS", handleOnlineUsers);
+      socket.off("SERVER_USER_ONLINE", handleUserOnline);
+      socket.off("SERVER_USER_OFFLINE", handleUserOffline);
       socket.off("SERVER_RETURN_INFO_A", handleAdd);
       socket.off("SERVER_DELETE_INFO_A", handleDelete);
     };

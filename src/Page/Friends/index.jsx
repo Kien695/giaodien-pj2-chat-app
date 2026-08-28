@@ -3,7 +3,7 @@ import { SiIconify } from "react-icons/si";
 import { GrImage } from "react-icons/gr";
 import { FiPaperclip } from "react-icons/fi";
 import { IoSend } from "react-icons/io5";
-import React, { useState } from "react";
+import React from "react";
 import { FaRegSmile } from "react-icons/fa";
 import { MdDevicesFold } from "react-icons/md";
 import { LuUserRoundCheck } from "react-icons/lu";

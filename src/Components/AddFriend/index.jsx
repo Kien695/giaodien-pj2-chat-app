@@ -19,7 +19,6 @@ import React, { useEffect, useState } from "react";
 import { IoClose, IoSearch } from "react-icons/io5";
 import { getData } from "../../utils/api";
 import { FcSearch } from "react-icons/fc";
-import { useSelector } from "react-redux";
 import { CgCloseO } from "react-icons/cg";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -40,14 +39,6 @@ export default function AddFriend({ open, onClose }) {
   //dialog
   const [openDialog, setOpenDialog] = React.useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const handleClickOpen = () => {
-    setOpenDialog(true);
-  };
-
-  const handleClose = () => {
-    setOpenDialog(false);
-  };
-
   //gửi lên server
   const handleSendRequire = (userId) => {
     setOpenDialog(false);
@@ -78,7 +69,7 @@ export default function AddFriend({ open, onClose }) {
       if (res.success) {
         setSearchUser(res.data);
       }
-    } catch (error) {
+    } catch {
       toast.error("Tìm kiếm thất bại. Vui lòng thử lại sau.");
     }
   };

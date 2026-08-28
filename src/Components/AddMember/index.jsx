@@ -12,10 +12,9 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { toast } from "react-toastify";
 import { styled } from "@mui/material/styles";
 import Dialog from "@mui/material/Dialog";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { IoClose, IoSearch } from "react-icons/io5";
 import { getData, patchData } from "../../utils/api";
 import { FcSearch } from "react-icons/fc";
@@ -31,8 +30,6 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 }));
 
 export default function AddMember({ open, onClose, roomChatId, dataUser }) {
-  const state = useSelector((state) => state.user);
-
   const friend = useSelector((state) => state.user.listFriend);
   const [user, setUser] = React.useState(null);
   const [keyword, setKeyword] = React.useState("");
@@ -41,9 +38,6 @@ export default function AddMember({ open, onClose, roomChatId, dataUser }) {
     members: [],
   });
   const [memberUI, setMemberUI] = useState([]);
-  const ref = {
-    title: useRef(),
-  };
   const handleToggleMember = (user) => {
     setFormData((prev) => {
       const alreadySelected = prev.members.includes(user._id);

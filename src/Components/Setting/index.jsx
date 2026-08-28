@@ -159,7 +159,7 @@ export default function Setting({ open, onClose }) {
     }
     // Regex password
     const passwordRegex =
-      /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[{\]};:'",.<>/?\\|]).{8,}$/;
+      /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=[{\]};:'",.<>/?\\|]).{8,}$/;
 
     if (!passwordRegex.test(formData.passwordNew)) {
       toast.error(
@@ -227,7 +227,7 @@ export default function Setting({ open, onClose }) {
   //passkey
   const hasPasskey = useSelector((state) => state.user).hasPasskey;
   const [openGuide, setOpenGuide] = useState(false);
-  const [openPasskeyModal, setOpenPasskeyModal] = useState(false);
+  const [, setOpenPasskeyModal] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [deletePasskey, setDeletePasskey] = useState(false);
   const [checkPassKey, setCheckPasskey] = useState(false);
@@ -714,12 +714,11 @@ export default function Setting({ open, onClose }) {
                       </div>
 
                       <IOSSwitch
-                        onClick={() => {
-                          (setCheckPasskey(!checkPassKey),
-                            setRegisterPassKey(!registerPassKey));
-                        }}
                         checked={checkPassKey}
-                        onChange={(e) => setEnablePasskey(e.target.checked)}
+                        onChange={(e) => {
+                          setCheckPasskey(e.target.checked);
+                          setRegisterPassKey(e.target.checked);
+                        }}
                         disabled={hasPasskey}
                       />
                     </div>

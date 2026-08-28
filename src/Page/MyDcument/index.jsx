@@ -8,10 +8,12 @@ import { GrImage } from "react-icons/gr";
 import { FiPaperclip } from "react-icons/fi";
 import { FaRegThumbsUp } from "react-icons/fa";
 import { IoChevronDownSharp } from "react-icons/io5";
+import { IoSend } from "react-icons/io5";
+import { toast } from "react-toastify";
 export default function MyDocument() {
   const [buttonActive, setButtonActive] = useState(false);
-  const [message, setMessage] = useState("");
-  const [images, setImages] = useState([]);
+  const [message] = useState("");
+  const [images] = useState([]);
   //button info chat
   const handleClickInfoChat = () => {
     setButtonActive(!buttonActive);
@@ -59,7 +61,6 @@ export default function MyDocument() {
               {({
                 imageList,
                 onImageUpload,
-                onImageUpdate,
                 onImageRemove,
                 dragProps,
               }) => (

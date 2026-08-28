@@ -322,7 +322,11 @@ export default function InfoUser({ open, onClose, user, type }) {
                 Giới tính:
               </div>
               <div className="text-[15px]">
-                {user?.gender == "Female" ? "Nữ" : "Nam" || "Chưa xác định"}
+                {user?.gender === "Female"
+                  ? "Nữ"
+                  : user?.gender === "Male"
+                    ? "Nam"
+                    : "Chưa xác định"}
               </div>
             </div>
             <div className="flex items-center py-1">

@@ -1,12 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FcSearch } from "react-icons/fc";
-import logoMyDocument from "../../assets/my-documents-icon-260nw-21989287.webp";
 import {
   Link,
   NavLink,
   Outlet,
-  useLocation,
-  useMatch,
   useNavigate,
   useParams,
 } from "react-router-dom";
@@ -40,25 +37,15 @@ function SideBar() {
 
   const { roomChatId } = useParams();
 
-  const [currentRoomId, setCurrentRoomId] = useState(roomChatId);
   const currentRoomIdRef = useRef(roomChatId); // init luôn với roomChatId
 
   useEffect(() => {
-    setCurrentRoomId(roomChatId); // cập nhật state
     currentRoomIdRef.current = roomChatId; // cập nhật ref
   }, [roomChatId]);
 
   //dialog
   const [open, setOpen] = React.useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
-
   //update time- render mỗi phút
   const [, forceRender] = useState(0);
 
@@ -93,7 +80,7 @@ function SideBar() {
     return () => {
       socket.off("SERVER_FRIEND_STATUS", handleStatus);
     };
-  }, [socket, state._id]);
+  }, []);
 
   //get all room chat
   useEffect(() => {
@@ -128,7 +115,6 @@ function SideBar() {
     };
     const handleRoomremoveUser = ({
       roomChatId,
-      users,
       removedUserId,
       action,
     }) => {
@@ -165,29 +151,13 @@ function SideBar() {
       socket.off("SERVER_RETURN_ROOM", handleRemoveRoom);
       socket.off("SERVER_RETURN_NEW_ROOM", handleCreateRoom);
     };
-  }, [socket, state._id]);
-  //server trả về message hiện thị lên sidebar
-  useEffect(() => {
-    if (!socket) return;
+  }, [state._id]);
 
-    const handleMessage = (data) => {
-      updateSidebar(data);
-    };
-
-    socket.on("SERVER_RETURN_SIDEBAR", handleMessage);
-
-    return () => {
-      socket.off("SERVER_RETURN_SIDEBAR", handleMessage);
-    };
-  }, [socket]);
-
-  const updateSidebar = (message) => {
+  const updateSidebar = useCallback((message) => {
     setRooms((prev) => {
       const updated = prev.map((room) => {
         if (room._id === message.roomChatId) {
           const currentUserId = state._id;
-
-          // Nếu đang ở phòng đó thì unread = 0, chữ không in đậm
           const unread =
             currentRoomIdRef.current === message.roomChatId
               ? 0
@@ -205,18 +175,29 @@ function SideBar() {
               ...room.unreadCount,
               [currentUserId]: unread,
             },
-            updatedAt: message.createdAt, // dùng để sort room lên đầu
+            updatedAt: message.createdAt,
           };
         }
         return room;
       });
-
-      // Sort room mới nhất lên đầu
       updated.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
-
       return updated;
     });
-  };
+  }, [state._id]);
+  //server trả về message hiện thị lên sidebar
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessage = (data) => {
+      updateSidebar(data);
+    };
+
+    socket.on("SERVER_RETURN_SIDEBAR", handleMessage);
+
+    return () => {
+      socket.off("SERVER_RETURN_SIDEBAR", handleMessage);
+    };
+  }, [updateSidebar]);
 
   //update sidebar khi click vào tin nhắn mới
   useEffect(() => {
@@ -243,7 +224,7 @@ function SideBar() {
     return () => {
       socket.off("SERVER_READ_ROOM", handleReadRoom);
     };
-  }, [socket]);
+  }, []);
   // Hàm định format thời gian
   const timeAgo = (date) => {
     if (!date) return "";

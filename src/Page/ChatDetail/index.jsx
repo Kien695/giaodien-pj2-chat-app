@@ -94,6 +94,18 @@ import {
   validateChatFilesForUpload,
   validateImageForUpload,
 } from "../../utils/uploadValidation";
+import { filterChatRooms } from "../../utils/filterChatRooms";
+import { formatLastActive } from "../../utils/formatLastActive";
+import { formatSystemMessage } from "../../utils/formatSystemMessage";
+
+const BootstrapDialog = styled(Dialog)(({ theme }) => ({
+  "& .MuiDialogContent-root": {
+    padding: theme.spacing(2),
+  },
+  "& .MuiDialogActions-root": {
+    padding: theme.spacing(1),
+  },
+}));
 
 export default function ChatDetail() {
   const menuRef = useRef(null);
@@ -107,7 +119,6 @@ export default function ChatDetail() {
   const state = useSelector((state) => state.user);
 
   const navigate = useNavigate();
-  const params = useParams();
   const { roomChatId } = useParams();
 
   //online/offline user
@@ -133,7 +144,7 @@ export default function ChatDetail() {
     setSelectedMessageId(messageId);
     setSelectedMessage(message);
   };
-  const handleClose = (event) => {
+  const handleClose = () => {
     setAnchorEl(null);
   };
   const handleCopy = async () => {
@@ -172,14 +183,6 @@ export default function ChatDetail() {
     handleClose();
   };
 
-  const [anchorElUser, setAnchorElUser] = React.useState(null);
-  const openUser = Boolean(anchorElUser);
-  const handleClickUser = (event) => {
-    setAnchorElUser(event.currentTarget);
-  };
-  const handleCloseUser = () => {
-    setAnchorElUser(null);
-  };
   //end menu chat
   //dialog edit chat info
   const [openDialog, setOpenDialog] = React.useState(false);
@@ -200,7 +203,6 @@ export default function ChatDetail() {
   const [dataUser, setDataUser] = useState([]);
   const [message, setMessage] = useState("");
   const [showPicker, setShowPicker] = useState(false);
-  const pickerRef = useRef(null);
   const pickerWrapperRef = useRef(null);
   const [openImages, setOpenImages] = useState(true);
   const [openFiles, setOpenFiles] = useState(true);
@@ -274,7 +276,6 @@ export default function ChatDetail() {
 
   //edit rooms
   const [loading, setLoading] = useState(false);
-  const [loadingAvatar, setLoadingAvatar] = useState(false);
   const [formInfo, setFormInfo] = useState({
     title: roomInfo.title || "",
     image: null,
@@ -343,7 +344,7 @@ export default function ChatDetail() {
     const handleRoomUpdated = ({ title, avatar }) => {
       updateRoom({ title, avatar });
     };
-    const handleRoomUpdateUser = ({ roomChat, users }) => {
+    const handleRoomUpdateUser = ({ users }) => {
       setDataUser((prev) => {
         const existingIds = prev.map((u) => u.user_id._id);
 
@@ -354,12 +355,7 @@ export default function ChatDetail() {
         return [...prev, ...newUsers];
       });
     };
-    const handleRoomremoveUser = ({
-      roomChatId,
-      users,
-      removedUserId,
-      action,
-    }) => {
+    const handleRoomremoveUser = ({ users }) => {
       setDataUser(users);
     };
 
@@ -373,40 +369,11 @@ export default function ChatDetail() {
       socket.off("SERVER_ROOM_UPDATED_USER", handleRoomUpdateUser);
       socket.off("SERVER_ROOM_REMOVE_USERS", handleRoomremoveUser);
     };
-  }, [socket]);
+  }, []);
   //end
 
   //render message
-  const renderSystemMessage = (msg) => {
-    const isMe = msg.user_id._id === state._id;
 
-    switch (msg.action) {
-      case "rename_group":
-        return `${isMe ? "Bạn" : msg.user_id.name} đã đổi tên nhóm thành "${
-          msg.content
-        }"`;
-
-      case "add_member": {
-        const names = msg.content_user
-          ?.map((u) => (String(u._id) === String(state._id) ? "bạn" : u.name))
-          .join(", ");
-
-        return `${isMe ? "Bạn" : msg.user_id.name} đã thêm ${names} vào nhóm`;
-      }
-
-      case "leave_group":
-        return `${msg.user_id.name} đã rời khỏi nhóm`;
-      case "remove_member":
-        const names = msg.content_user
-          ?.map((u) => (String(u._id) === String(state._id) ? "bạn" : u.name))
-          .join(", ");
-        return `${
-          isMe ? "Bạn" : msg.user_id.name
-        } đã xóa ${names} ra khỏi nhóm`;
-      default:
-        return "";
-    }
-  };
 
   //typing input
   const resetTyping = () => {
@@ -514,7 +481,7 @@ export default function ChatDetail() {
           ),
         );
       }
-    } catch (error) {
+    } catch {
       // Nếu upload lỗi, set status = error
       setUploadingFiles((prev) =>
         prev.map((f) =>
@@ -545,7 +512,7 @@ export default function ChatDetail() {
     };
 
     fetchChat();
-  }, [roomChatId]);
+  }, [navigate, roomChatId]);
 
   //dán ảnh
   const handlePaste = async (e) => {
@@ -655,26 +622,10 @@ export default function ChatDetail() {
       socket.off("SERVER_RETURN_TYPING", handleTyping);
       socket.off("SERVER_MESSAGE_DELETED", handleRemoveMeassage);
     };
-  }, [socket]);
+  }, []);
 
   //thời gian hoạt động trước đó
-  const timeAgo = (date) => {
-    if (!date) return "";
-    const diff = Date.now() - new Date(date).getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    if (minutes < 1) return `Vừa xong`;
-    if (minutes < 60) return `Truy cập ${minutes} phút trước`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `Truy cập ${hours} giờ trước`;
-    if (hours < 48) return `Hôm qua`;
-    const days = Math.floor(hours / 24);
 
-    if (days > 2 && days < 30) return `Truy cập ${days} ngày trước`;
-    const months = Math.floor(days / 30);
-    if (months < 12) return `Truy cập ${months} tháng trước`;
-    const years = Math.floor(months / 12);
-    return `Truy cập ${years} năm trước`;
-  };
   //luôn cuộn xuống dưới
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -773,29 +724,7 @@ export default function ChatDetail() {
     };
     fetchRoomChat();
   }, []);
-  const filteredRooms = rooms.filter((item) => {
-    switch (tab) {
-      case 0: // Tất cả
-        return true;
-
-      case 1: // Nhóm trò chuyện
-        return item.typeRoom === "group";
-
-      case 2: // Bạn bè
-        return item.typeRoom === "friend";
-
-      default:
-        return true;
-    }
-  });
-  const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-    "& .MuiDialogContent-root": {
-      padding: theme.spacing(2),
-    },
-    "& .MuiDialogActions-root": {
-      padding: theme.spacing(1),
-    },
-  }));
+  const filteredRooms = filterChatRooms(rooms, tab);
   const [openInvite, setOpenInvite] = useState(false);
   const inviteUrl = `${window.location.origin}/invite/${roomInfo?.inviteToken}`;
   const handleCopyInvite = () => {
@@ -809,19 +738,6 @@ export default function ChatDetail() {
       });
   };
 
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: roomInfo.title,
-          text: `Tham gia nhóm "${roomInfo.title}"`,
-          url: inviteUrl,
-        });
-      } catch (err) {}
-    } else {
-      await handleCopy();
-    }
-  };
   const handleSendLink = async () => {
     if (socket) {
       emitChatMessage({
@@ -1037,8 +953,8 @@ export default function ChatDetail() {
                               }`}
                             >
                               {lastActive
-                                ? timeAgo(lastActive)
-                                : timeAgo(item.user_id.lastActive)}
+                                ? formatLastActive(lastActive)
+                                : formatLastActive(item.user_id.lastActive)}
                             </div>
                           )}
                         </div>
@@ -1143,7 +1059,7 @@ export default function ChatDetail() {
                 return (
                   <div key={item._id} className="flex justify-center my-3">
                     <span className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
-                      {renderSystemMessage(item)}
+                      {formatSystemMessage(item, state._id)}
                     </span>
                   </div>
                 );
@@ -1431,7 +1347,6 @@ export default function ChatDetail() {
                 {({
                   imageList,
                   onImageUpload,
-                  onImageUpdate,
                   onImageRemove,
                   dragProps,
                 }) => (
@@ -1692,8 +1607,6 @@ export default function ChatDetail() {
                 {openImages && (
                   <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
                     {chat.map((item, index) => {
-                      const isMe = item.user_id._id === state._id;
-
                       return (
                         <div key={index} className="">
                           {item.images && item.images.length > 0 && (
@@ -1734,8 +1647,6 @@ export default function ChatDetail() {
                     {chat
                       .filter((item) => item.files?.length > 0)
                       .map((item, index) => {
-                        const isMe = item.user_id._id === state._id;
-
                         return (
                           <div key={index} className="">
                             {item.files && item.files.length > 0 && (
@@ -1860,8 +1771,6 @@ export default function ChatDetail() {
                     {openImages && (
                       <div className="flex gap-1 pt-2 overflow-y-auto h-[100px] flex-wrap">
                         {chat.map((item, index) => {
-                          const isMe = item.user_id._id === state._id;
-
                           return (
                             <div key={index} className="">
                               {item.images && item.images.length > 0 && (
@@ -1902,8 +1811,6 @@ export default function ChatDetail() {
                         {chat
                           .filter((item) => item.files?.length > 0)
                           .map((item, index) => {
-                            const isMe = item.user_id._id === state._id;
-
                             return (
                               <div key={index} className="">
                                 {item.files && item.files.length > 0 && (

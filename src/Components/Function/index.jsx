@@ -50,7 +50,7 @@ export default function Function({ setSearchText, setUser }) {
     };
 
     fetchData();
-  }, [keyword]);
+  }, [keyword, setUser]);
   //dark/mode
   const theme = useSelector((state) => state.theme.mode);
   return (

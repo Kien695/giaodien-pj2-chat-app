@@ -21,7 +21,6 @@ import { setLogin } from "../../redux/userSlice";
 import { socket } from "../../socket";
 import { startAuthentication } from "@simplewebauthn/browser";
 import QRDialog from "../../Components/QRDialog";
-import { useEffect } from "react";
 import useIsMobile from "../../Components/IsMobile";
 export function Auth() {
   const dispatch = useDispatch();
@@ -78,7 +77,7 @@ export function Auth() {
     }
     // Regex password
     const passwordRegex =
-      /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=\[{\]};:'",.<>/?\\|]).{8,}$/;
+      /^(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_\-+=[{\]};:'",.<>/?\\|]).{8,}$/;
 
     if (!passwordRegex.test(formRegister.password)) {
       toast.error(

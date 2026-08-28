@@ -1,21 +1,15 @@
 import { Button } from "@mui/material";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { PiChatCenteredDotsThin } from "react-icons/pi";
 import { LuUserPlus } from "react-icons/lu";
-import { getData } from "../../utils/api";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { MdOutlineKeyboardArrowLeft } from "react-icons/md";
-import {
-  decreaseAcceptFriend,
-  setIncreaseAcceptFriend,
-} from "../../redux/userSlice";
 import { socket } from "../../socket";
 export default function AddFriend() {
   const navigate = useNavigate();
   const state = useSelector((state) => state.user);
 
-  const dispatch = useDispatch();
   const invite = state.listAddFriend;
 
   const totalAccept = invite.length;
@@ -87,7 +81,7 @@ export default function AddFriend() {
         Lời mời đã nhận ({totalAccept})
       </div>
       <div className="flex flex-wrap gap-3">
-        {invite.map((item, index) => (
+        {invite.map((item) => (
           <div
             className={`${
               theme == "dark" ? "bg-[#2d3136] " : "bg-gray-100"

@@ -17,20 +17,12 @@ function Friend() {
   const { id } = useParams();
   const totalAccept = state.lengthAcceptFriend ?? 0;
 
-  const [active, setActive] = useState(1);
   const [searchText, setSearchText] = useState("");
   const [user, setUser] = useState([]);
   const [text, setText] = useState("");
   //dialog
   const [open, setOpen] = React.useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
   //gửi lên server
   const handleSendRequire = (userId) => {
     setOpen(false);
@@ -55,7 +47,7 @@ function Friend() {
     return () => {
       socket.off("SERVER_FRIEND_STATUS", handleStatus);
     };
-  }, [socket]);
+  }, []);
   //dark/mode
   const theme = useSelector((state) => state.theme.mode);
   return (

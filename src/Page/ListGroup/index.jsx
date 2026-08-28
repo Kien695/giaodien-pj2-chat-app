@@ -1,5 +1,5 @@
 import { Menu, MenuItem } from "@mui/material";
-import React, { useEffect } from "react";
+import React from "react";
 import { useState } from "react";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { FiUsers } from "react-icons/fi";
@@ -11,9 +11,6 @@ import { patchData } from "../../utils/api";
 import { MdOutlineKeyboardArrowLeft } from "react-icons/md";
 
 export default function ListGroup() {
-  const state = useSelector((state) => state.user);
-
-  const count = useSelector((state) => state.user.countGroup);
   const room = useSelector((state) => state.user.listGroup);
   const navigate = useNavigate();
   const [selectedItem, setSelectedItem] = useState(null);
@@ -113,7 +110,7 @@ export default function ListGroup() {
               }}
             >
               <MenuItem
-                onClick={(e) => {
+                onClick={() => {
                   handleLeaveGroup(selectedItem._id);
                 }}
                 sx={{
