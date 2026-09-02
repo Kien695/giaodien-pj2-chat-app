@@ -54,9 +54,13 @@ export const userSlice = createSlice({
     // friendSlice.js
     unfriendSuccess: (state, action) => {
       const friendId = action.payload;
+      const hadFriend = state.listFriend.some((item) => item._id === friendId);
       state.listFriend = state.listFriend.filter(
         (item) => item._id !== friendId,
       );
+      if (hadFriend) {
+        state.countFriend = Math.max(state.countFriend - 1, 0);
+      }
     },
     acceptFriendSuccess: (state, action) => {
       const newFriend = action.payload;

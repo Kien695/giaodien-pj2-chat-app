@@ -270,17 +270,37 @@ const CallDialog = ({
       ringtoneRef.current?.stop();
       onClose?.();
     };
+    const handleCallAnsweredElsewhere = ({ callId }) => {
+      if (!callId || callIdRef.current !== callId) return;
+      peerRef.current?.destroy();
+      peerRef.current = null;
+      localStreamRef.current?.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
+      callIdRef.current = null;
+      setCaller(null);
+      setCallerName("");
+      setCallerSignal(null);
+      setStream(null);
+      setRemoteStream(null);
+      setCallAccepted(false);
+      setReciveCall(false);
+      setIncomingCallType(null);
+      ringtoneRef.current?.stop();
+      onClose?.();
+    };
     socket.on("makeUser", handleIncomingCall);
     socket.on("callRejected", handleCallRejected);
     socket.on("userUnavailable", handleUserUnavailable);
     socket.on("userBusy", handleUserBusy);
     socket.on("callEnded", handleCallEnded);
+    socket.on("callAnsweredElsewhere", handleCallAnsweredElsewhere);
     return () => {
       socket.off("makeUser", handleIncomingCall);
       socket.off("callRejected", handleCallRejected);
       socket.off("userUnavailable", handleUserUnavailable);
       socket.off("userBusy", handleUserBusy);
       socket.off("callEnded", handleCallEnded);
+      socket.off("callAnsweredElsewhere", handleCallAnsweredElsewhere);
     };
   }, [roomChatId, onClose]);
 

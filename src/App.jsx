@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { socket } from "./socket.js";
 
 //toastyfy
@@ -32,10 +32,20 @@ import {
 } from "./redux/socketSlice";
 
 function App() {
-  const state = useSelector((state) => state.user);
+  const userId = useSelector((state) => state.user._id);
   const isLogin = useSelector((state) => state.user.isLogin);
   const dispatch = useDispatch();
   const currentRoomId = useSelector((state) => state.user.currentRoomId);
+  const currentRoomIdRef = useRef(currentRoomId);
+  const userIdRef = useRef(userId);
+
+  useEffect(() => {
+    currentRoomIdRef.current = currentRoomId;
+  }, [currentRoomId]);
+
+  useEffect(() => {
+    userIdRef.current = userId;
+  }, [userId]);
 
   useEffect(() => {
     // 1️ Fetch initial data
@@ -44,21 +54,26 @@ function App() {
       if (!token) return;
       socket.auth = { token };
       socket.connect();
-      const resUser = await getData("/auth/getUser");
-      if (resUser.success) dispatch(setUser(resUser.data));
+      const [userResult, friendResult, requestResult, groupResult] =
+        await Promise.allSettled([
+          getData("/auth/getUser"),
+          getData("/auth/friendList"),
+          getData("/auth/getAcceptFriend"),
+          getData("/auth/getRoom"),
+        ]);
 
-      const resListFriend = await getData("/auth/friendList");
-      if (resListFriend.success) {
-        dispatch(setListFriend(resListFriend.data));
-        dispatch(setCountFriend(resListFriend.count));
+      if (userResult.status === "fulfilled" && userResult.value.success) {
+        dispatch(setUser(userResult.value.data));
       }
-      const resListAddFriend = await getData("/auth/getAcceptFriend");
-      if (resListAddFriend.success) {
-        dispatch(setListAddFriend(resListAddFriend.data));
+      if (friendResult.status === "fulfilled" && friendResult.value.success) {
+        dispatch(setListFriend(friendResult.value.data));
+        dispatch(setCountFriend(friendResult.value.count));
       }
-      const resListGroup = await getData("/auth/getRoom");
-      if (resListGroup.success) {
-        dispatch(setListGroup(resListGroup.data));
+      if (requestResult.status === "fulfilled" && requestResult.value.success) {
+        dispatch(setListAddFriend(requestResult.value.data));
+      }
+      if (groupResult.status === "fulfilled" && groupResult.value.success) {
+        dispatch(setListGroup(groupResult.value.data));
       }
     };
 
@@ -67,10 +82,9 @@ function App() {
     // 2️ socket listeners
     const handleUnfriend = ({ friendId, roomChatId }) => {
       dispatch(unfriendSuccess(friendId));
-      if (currentRoomId === roomChatId) {
+      if (currentRoomIdRef.current === roomChatId) {
         dispatch(setCurrentRoom(null));
       }
-      fetchData();
     };
     const handleAcceptfriend = ({ friend }) => {
       dispatch(acceptFriendSuccess(friend));
@@ -83,13 +97,13 @@ function App() {
       dispatch(addGroup(roomChat));
     };
     const handleAdd = (data) => {
-      if (state._id === data.userId) {
+      if (userIdRef.current === data.userId) {
         dispatch(addInvite(data.infoUserA));
         dispatch(setIncreaseAcceptFriend());
       }
     };
     const handleDelete = (data) => {
-      if (state._id === data.userIdB) {
+      if (userIdRef.current === data.userIdB) {
         dispatch(removeInvite(data.userIdA));
         dispatch(decreaseAcceptFriend());
       }
@@ -124,7 +138,7 @@ function App() {
       socket.off("SERVER_RETURN_INFO_A", handleAdd);
       socket.off("SERVER_DELETE_INFO_A", handleDelete);
     };
-  }, [dispatch, currentRoomId, state._id, isLogin]);
+  }, [dispatch, isLogin]);
 
   return (
     <>

@@ -20,9 +20,11 @@ import { CiSettings } from "react-icons/ci";
 import Setting from "../Setting";
 import { MdOutlineQrCodeScanner } from "react-icons/md";
 import QRScannerModal from "../../Page/QRCode";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 
 export default function Function({ setSearchText, setUser }) {
   const [keyword, setKeyword] = useState("");
+  const debouncedKeyword = useDebouncedValue(keyword.trim());
   const [openGroup, setOpenGroup] = useState(false);
   const [openSearchFriend, setOpenSearchFriend] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -37,20 +39,30 @@ export default function Function({ setSearchText, setUser }) {
   };
 
   useEffect(() => {
-    if (!keyword) {
+    if (!debouncedKeyword) {
       setUser([]);
       return;
     }
+    let active = true;
 
     const fetchData = async () => {
-      const res = await getData(`/auth/getUserFind?keyword=${keyword}`);
-      if (res.success) {
-        setUser(res.data);
+      try {
+        const res = await getData(
+          `/auth/getUserFind?keyword=${encodeURIComponent(debouncedKeyword)}`,
+        );
+        if (active && res.success) {
+          setUser(res.data);
+        }
+      } catch {
+        if (active) setUser([]);
       }
     };
 
     fetchData();
-  }, [keyword, setUser]);
+    return () => {
+      active = false;
+    };
+  }, [debouncedKeyword, setUser]);
   //dark/mode
   const theme = useSelector((state) => state.theme.mode);
   return (

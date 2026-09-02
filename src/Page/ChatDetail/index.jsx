@@ -35,7 +35,7 @@ import {
   IoSearchCircleOutline,
   IoSend,
 } from "react-icons/io5";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import {
   FaRegSmile,
   FaRegThumbsUp,
@@ -97,6 +97,7 @@ import {
 import { filterChatRooms } from "../../utils/filterChatRooms";
 import { formatLastActive } from "../../utils/formatLastActive";
 import { formatSystemMessage } from "../../utils/formatSystemMessage";
+import { prependUniqueMessages } from "../../utils/mergeMessagePages";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -200,6 +201,10 @@ export default function ChatDetail() {
   const [openGroup, setOpenGroup] = useState(false);
   const input = useRef();
   const bottomRef = useRef(null);
+  const messageCanvasRef = useRef(null);
+  const pendingScrollRestoreRef = useRef(null);
+  const shouldScrollToBottomRef = useRef(true);
+  const activeRoomIdRef = useRef(roomChatId);
   const [dataUser, setDataUser] = useState([]);
   const [message, setMessage] = useState("");
   const [showPicker, setShowPicker] = useState(false);
@@ -207,9 +212,16 @@ export default function ChatDetail() {
   const [openImages, setOpenImages] = useState(true);
   const [openFiles, setOpenFiles] = useState(true);
   const [chat, setChat] = useState([]);
+  const [messagePagination, setMessagePagination] = useState({
+    nextCursor: null,
+    hasMore: false,
+    limit: 30,
+  });
+  const [isLoadingOlder, setIsLoadingOlder] = useState(false);
   const [roomInfo, setRoomInfo] = useState({});
   const [typing, setTyping] = useState({});
   const [images, setImages] = useState([]);
+  const [isUploadingImages, setIsUploadingImages] = useState(false);
   const [commonGroupCount, setCommonGroupCount] = useState(0);
   const maxNumber = 5;
   const typingTimeoutRef = useRef(null);
@@ -221,6 +233,7 @@ export default function ChatDetail() {
       payload.roomChatId?.toString() === roomChatId?.toString();
 
     if (optimistic && isCurrentRoom) {
+      shouldScrollToBottomRef.current = true;
       setChat((previous) => [
         ...previous,
         {
@@ -228,7 +241,7 @@ export default function ChatDetail() {
           clientMessageId,
           user_id: { _id: state._id, avatar: state.avatar },
           content: payload.message,
-          images: [],
+          images: Array.isArray(payload.images) ? payload.images : [],
           files: Array.isArray(payload.file) ? payload.file : [],
           type: payload.type,
           createdAt: new Date(),
@@ -338,6 +351,7 @@ export default function ChatDetail() {
     if (!socket) return;
 
     const handleNewMessage = (msg) => {
+      shouldScrollToBottomRef.current = true;
       setChat((prev) => [...prev, msg]);
     };
 
@@ -394,20 +408,14 @@ export default function ChatDetail() {
     // reset timeout 3s
     resetTyping();
   };
-  //upload image
-  const convertImagesToBase64 = async () => {
-    const promises = images.map((img) => {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.readAsDataURL(img.file);
-      });
-    });
-
-    return await Promise.all(promises);
-  };
-
   const onChange = (imageList) => {
+    const validationError = imageList
+      .map((image) => validateImageForUpload(image.file))
+      .find(Boolean);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
     setImages(imageList);
   };
   //click ra ngoài thì mất Emoji
@@ -495,24 +503,77 @@ export default function ChatDetail() {
 
   // hiện chat ra UI
   useEffect(() => {
+    let active = true;
+    activeRoomIdRef.current = roomChatId;
+    pendingScrollRestoreRef.current = null;
+    shouldScrollToBottomRef.current = true;
+    setIsLoadingOlder(false);
+    setMessagePagination({ nextCursor: null, hasMore: false, limit: 30 });
+    setChat([]);
+
     const fetchChat = async () => {
       try {
-        const res = await getData(`/chat/${roomChatId}`);
-        if (res.success) {
+        const res = await getData(`/chat/${roomChatId}?limit=30`);
+        if (active && res.success) {
           setChat(res.data);
+          setMessagePagination(
+            res.pagination || { nextCursor: null, hasMore: false, limit: 30 },
+          );
           setDataUser(res.users);
           setRoomInfo(res.room);
           setCommonGroupCount(res.commonGroupCount);
         }
       } catch (error) {
-        if (error.response?.data?.link) {
+        if (active && error.response?.data?.link) {
           navigate(error.response.data.link);
         }
       }
     };
 
     fetchChat();
+    return () => {
+      active = false;
+    };
   }, [navigate, roomChatId]);
+
+  const handleLoadOlderMessages = async () => {
+    if (
+      isLoadingOlder ||
+      !messagePagination.hasMore ||
+      !messagePagination.nextCursor
+    ) {
+      return;
+    }
+
+    const requestedRoomId = roomChatId;
+    const canvas = messageCanvasRef.current;
+    if (canvas) {
+      pendingScrollRestoreRef.current = {
+        scrollHeight: canvas.scrollHeight,
+        scrollTop: canvas.scrollTop,
+      };
+    }
+    shouldScrollToBottomRef.current = false;
+    setIsLoadingOlder(true);
+
+    try {
+      const cursor = encodeURIComponent(messagePagination.nextCursor);
+      const res = await getData(
+        `/chat/${requestedRoomId}?limit=${messagePagination.limit}&cursor=${cursor}`,
+      );
+      if (activeRoomIdRef.current !== requestedRoomId || !res.success) return;
+
+      setChat((current) => prependUniqueMessages(current, res.data));
+      setMessagePagination(res.pagination);
+    } catch {
+      pendingScrollRestoreRef.current = null;
+      toast.error("Không thể tải tin nhắn cũ");
+    } finally {
+      if (activeRoomIdRef.current === requestedRoomId) {
+        setIsLoadingOlder(false);
+      }
+    }
+  };
 
   //dán ảnh
   const handlePaste = async (e) => {
@@ -540,11 +601,24 @@ export default function ChatDetail() {
   };
   // Gửi tin nhắn đến server
   const handleMessage = async () => {
-    if (socket) {
-      const base64List = await convertImagesToBase64();
+    if (!socket || isUploadingImages) return;
+
+    setIsUploadingImages(images.length > 0);
+    try {
+      let uploadedImages = [];
+      if (images.length > 0) {
+        const formData = new FormData();
+        images.forEach((image) => formData.append("images", image.file));
+        const response = await postData(`/chat/${roomChatId}/images`, formData);
+        if (!response.success || !Array.isArray(response.data)) {
+          throw new Error("Invalid image upload response");
+        }
+        uploadedImages = response.data;
+      }
+
       emitChatMessage({
         message,
-        images: base64List,
+        images: uploadedImages,
         roomChatId: roomChatId || null,
         file: "",
         type: "text",
@@ -555,6 +629,10 @@ export default function ChatDetail() {
       setMessage("");
       input.current.value = "";
       setImages([]);
+    } catch {
+      toast.error("Không thể tải ảnh lên");
+    } finally {
+      setIsUploadingImages(false);
     }
   };
   const handleSendLike = () => {
@@ -588,6 +666,7 @@ export default function ChatDetail() {
         createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
       };
 
+      shouldScrollToBottomRef.current = true;
       setChat((prev) => {
         const pendingIndex = prev.findIndex(
           (item) =>
@@ -627,9 +706,33 @@ export default function ChatDetail() {
   //thời gian hoạt động trước đó
 
   //luôn cuộn xuống dưới
+  useLayoutEffect(() => {
+    const canvas = messageCanvasRef.current;
+    const pending = pendingScrollRestoreRef.current;
+
+    if (canvas && pending) {
+      canvas.scrollTop =
+        canvas.scrollHeight - pending.scrollHeight + pending.scrollTop;
+      pendingScrollRestoreRef.current = null;
+      return;
+    }
+
+    if (shouldScrollToBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      shouldScrollToBottomRef.current = false;
+    }
+  }, [chat]);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat, typing]);
+    const canvas = messageCanvasRef.current;
+    if (!canvas) return;
+
+    const distanceFromBottom =
+      canvas.scrollHeight - canvas.scrollTop - canvas.clientHeight;
+    if (distanceFromBottom < 120) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [typing]);
 
   //button info chat
   const handleClickInfoChat = () => {
@@ -695,6 +798,9 @@ export default function ChatDetail() {
   //link mời
   const [tab, setTab] = useState(0);
   const [rooms, setRooms] = useState([]);
+  const [openInvite, setOpenInvite] = useState(false);
+  const [isLoadingShareRooms, setIsLoadingShareRooms] = useState(false);
+  const shareRoomsLoadedRef = useRef(false);
   const [formSend, setFormSend] = useState({
     listRoom: [],
   });
@@ -712,20 +818,32 @@ export default function ChatDetail() {
   };
   //get all room chat
   useEffect(() => {
+    if (!openInvite || shareRoomsLoadedRef.current) return;
+    let active = true;
+
     const fetchRoomChat = async () => {
+      setIsLoadingShareRooms(true);
       try {
         const response = await getData("/auth/getAllRoomChat");
-        if (response.success) {
+        if (active && response.success) {
           setRooms(response.data);
+          shareRoomsLoadedRef.current = true;
         }
-      } catch (error) {
-        console.error("Lỗi khi lấy danh sách phòng chat:", error);
+      } catch {
+        if (active) {
+          toast.error("Không thể tải danh sách cuộc trò chuyện");
+        }
+      } finally {
+        if (active) setIsLoadingShareRooms(false);
       }
     };
+
     fetchRoomChat();
-  }, []);
+    return () => {
+      active = false;
+    };
+  }, [openInvite]);
   const filteredRooms = filterChatRooms(rooms, tab);
-  const [openInvite, setOpenInvite] = useState(false);
   const inviteUrl = `${window.location.origin}/invite/${roomInfo?.inviteToken}`;
   const handleCopyInvite = () => {
     navigator.clipboard
@@ -1038,6 +1156,7 @@ export default function ChatDetail() {
             </div>
           </div>
           <div
+            ref={messageCanvasRef}
             className={`message-canvas flex-1 px-5 ${
               theme === "dark" ? "bg-[#16191d]" : "bg-blue-50"
             } flex flex-col gap-2 overflow-y-auto pt-2`}
@@ -1054,6 +1173,18 @@ export default function ChatDetail() {
               backgroundColor: theme === "dark" ? "#16191d" : "#eff6ff",
             }}
           >
+            {messagePagination.hasMore && (
+              <div className="flex justify-center py-2">
+                <button
+                  type="button"
+                  onClick={handleLoadOlderMessages}
+                  disabled={isLoadingOlder}
+                  className="rounded-full bg-white px-4 py-2 text-sm text-blue-600 shadow disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isLoadingOlder ? "Đang tải..." : "Tải tin nhắn cũ"}
+                </button>
+              </div>
+            )}
             {chat.map((item, index) => {
               if (item.type === "system") {
                 return (
@@ -1412,12 +1543,16 @@ export default function ChatDetail() {
                 placeholder="Nhập tin nhắn"
                 ref={input}
                 onChange={handleInputChange}
-                onKeyDown={(e) => e.key === "Enter" && handleMessage()}
+                onKeyDown={(e) =>
+                  e.key === "Enter" && !isUploadingImages && handleMessage()
+                }
                 value={message}
               />
               {message.trim() !== "" || images.length > 0 ? (
                 <IoSend
-                  className="text-blue-600 text-[23px]"
+                  className={`text-blue-600 text-[23px] ${
+                    isUploadingImages ? "opacity-50 pointer-events-none" : "cursor-pointer"
+                  }`}
                   onClick={handleMessage}
                 />
               ) : (
@@ -2124,7 +2259,11 @@ export default function ChatDetail() {
           {/* List */}
           <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
             <div className="flex flex-col gap-1">
-              {filteredRooms.map((item) => (
+              {isLoadingShareRooms ? (
+                <div className="flex justify-center py-8">
+                  <CircularProgress size={26} />
+                </div>
+              ) : filteredRooms.map((item) => (
                 <div
                   key={item._id}
                   className={`share-room-item flex items-center gap-3 rounded-lg px-2 py-2 cursor-pointer ${formSend.listRoom.includes(item._id) ? "is-selected" : ""}`}

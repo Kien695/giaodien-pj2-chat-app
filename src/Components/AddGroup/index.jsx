@@ -21,6 +21,7 @@ import { getData, postData } from "../../utils/api";
 import { FcSearch } from "react-icons/fc";
 import { useSelector } from "react-redux";
 import { CgCloseO } from "react-icons/cg";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -33,6 +34,7 @@ export default function AddGroup({ open, onClose }) {
   const friend = useSelector((state) => state.user.listFriend);
   const [user, setUser] = React.useState(null);
   const [keyword, setKeyword] = React.useState("");
+  const debouncedKeyword = useDebouncedValue(keyword.trim());
   const [searchText, setSearchText] = useState("");
   const [formData, setFormData] = useState({
     title: "",
@@ -77,20 +79,30 @@ export default function AddGroup({ open, onClose }) {
   };
 
   useEffect(() => {
-    if (!keyword.trim()) {
+    if (!open || !debouncedKeyword) {
       setUser(null); // chưa tìm
       return;
     }
+    let active = true;
 
     const fetchData = async () => {
-      const res = await getData(`/auth/searchUser?keyword=${keyword}`);
-      if (res.success) {
-        setUser(res.data);
+      try {
+        const res = await getData(
+          `/auth/searchUser?keyword=${encodeURIComponent(debouncedKeyword)}`,
+        );
+        if (active && res.success) {
+          setUser(res.data);
+        }
+      } catch {
+        if (active) setUser(null);
       }
     };
 
     fetchData();
-  }, [keyword]);
+    return () => {
+      active = false;
+    };
+  }, [debouncedKeyword, open]);
 
   const handleCreateRoom = async () => {
     try {

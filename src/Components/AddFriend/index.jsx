@@ -51,21 +51,36 @@ export default function AddFriend({ open, onClose }) {
     }
   }, [keyword]);
   useEffect(() => {
+    if (!open) return;
+    let active = true;
+
     const fetchData = async () => {
-      const res = await getData(`/auth/getAllUser`);
-      if (res.success) {
-        setUsers(res.data);
+      try {
+        const res = await getData("/auth/getAllUser");
+        if (active && res.success) {
+          setUsers(res.data);
+        }
+      } catch {
+        if (active) {
+          toast.error("Không thể tải danh sách gợi ý kết bạn");
+        }
       }
     };
+
     fetchData();
-  }, [keyword]);
+    return () => {
+      active = false;
+    };
+  }, [open]);
   const handleClickSearchFriend = async () => {
     if (keyword.trim() === "") {
       toast.error("Vui lòng nhập thông tin tìm kiếm");
       return;
     }
     try {
-      const res = await getData(`/auth/searchUser?keyword=${keyword}`);
+      const res = await getData(
+        `/auth/searchUser?keyword=${encodeURIComponent(keyword.trim())}`,
+      );
       if (res.success) {
         setSearchUser(res.data);
       }
