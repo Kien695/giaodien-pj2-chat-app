@@ -30,7 +30,9 @@ export default function DeviceSessionSetting({ enabled }) {
       if (error.response?.data?.code === "SESSION_UPGRADE_REQUIRED") {
         setUpgradeRequired(true);
       } else {
-        toast.error(error.response?.data?.message || "Không thể tải danh sách thiết bị");
+        toast.error(
+          error.response?.data?.message || "Không thể tải danh sách thiết bị",
+        );
       }
     } finally {
       setLoading(false);
@@ -46,10 +48,14 @@ export default function DeviceSessionSetting({ enabled }) {
     setRevoking(sessionId);
     try {
       await deleteData(`/auth/sessions/${encodeURIComponent(sessionId)}`);
-      setSessions((current) => current.filter((item) => item.sessionId !== sessionId));
+      setSessions((current) =>
+        current.filter((item) => item.sessionId !== sessionId),
+      );
       toast.success("Đã đăng xuất thiết bị");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Không thể đăng xuất thiết bị");
+      toast.error(
+        error.response?.data?.message || "Không thể đăng xuất thiết bị",
+      );
     } finally {
       setRevoking(null);
     }
@@ -61,9 +67,14 @@ export default function DeviceSessionSetting({ enabled }) {
     try {
       const response = await deleteData("/auth/sessions/others");
       setSessions((current) => current.filter((item) => item.current));
-      toast.success(`Đã đăng xuất ${response.data?.revokedCount || 0} thiết bị`);
+      toast.success(
+        `Đã đăng xuất ${response.data?.revokedCount || 0} thiết bị`,
+      );
     } catch (error) {
-      toast.error(error.response?.data?.message || "Không thể đăng xuất các thiết bị khác");
+      toast.error(
+        error.response?.data?.message ||
+          "Không thể đăng xuất các thiết bị khác",
+      );
     } finally {
       setRevoking(null);
     }
@@ -72,9 +83,9 @@ export default function DeviceSessionSetting({ enabled }) {
   const otherSessions = sessions.filter((session) => !session.current);
 
   return (
-    <div className="mt-5">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-[14px] font-[500] text-gray-700">
+    <div className="mt-5 w-full min-w-0 overflow-hidden">
+      <div className="mb-3 flex min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+        <div className="flex min-w-0 items-center gap-2 text-[14px] font-[500] text-gray-700">
           <MdDevices className="text-lg" /> Thiết bị đã đăng nhập
         </div>
         {otherSessions.length > 0 && (
@@ -83,7 +94,7 @@ export default function DeviceSessionSetting({ enabled }) {
             size="small"
             disabled={Boolean(revoking)}
             onClick={revokeOthers}
-            sx={{ textTransform: "none" }}
+            sx={{ alignSelf: "flex-end", flexShrink: 0, textTransform: "none" }}
           >
             Đăng xuất tất cả thiết bị khác
           </Button>
@@ -92,27 +103,43 @@ export default function DeviceSessionSetting({ enabled }) {
 
       <div className="rounded-lg bg-white p-3 shadow-md">
         {loading ? (
-          <div className="flex justify-center py-5"><CircularProgress size={24} /></div>
+          <div className="flex justify-center py-5">
+            <CircularProgress size={24} />
+          </div>
         ) : upgradeRequired ? (
           <div className="text-sm text-gray-600">
             Hãy đăng xuất và đăng nhập lại để bắt đầu quản lý thiết bị.
           </div>
         ) : sessions.length === 0 ? (
-          <div className="text-sm text-gray-500">Không có phiên đăng nhập đang hoạt động.</div>
+          <div className="text-sm text-gray-500">
+            Không có phiên đăng nhập đang hoạt động.
+          </div>
         ) : (
           <div className="divide-y divide-gray-100">
             {sessions.map((session) => (
-              <div key={session.sessionId} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+              <div
+                key={session.sessionId}
+                className="flex w-full min-w-0 items-center gap-2 py-3 first:pt-0 last:pb-0 sm:gap-3"
+              >
                 <MdOutlineComputer className="shrink-0 text-2xl text-gray-500" />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-medium">
+                <div className="min-w-0 flex-1 overflow-hidden">
+                  <div
+                    className="block w-full truncate text-sm font-medium"
+                    title={session.deviceInfo || "Thiết bị không xác định"}
+                  >
                     {session.deviceInfo || "Thiết bị không xác định"}
                   </div>
-                  <div className="mt-1 text-xs text-gray-500">
-                    Hoạt động: {formatDate(session.lastUsedAt)} · {session.loginMethod || "legacy"}
+                  <div
+                    className="mt-1 w-full truncate text-xs text-gray-500"
+                    title={`Hoạt động: ${formatDate(session.lastUsedAt)} · ${session.loginMethod || "legacy"}`}
+                  >
+                    Hoạt động: {formatDate(session.lastUsedAt)} ·{" "}
+                    {session.loginMethod || "legacy"}
                   </div>
                   {session.current && (
-                    <div className="mt-1 text-xs font-medium text-green-600">Thiết bị này</div>
+                    <div className="mt-1 text-xs font-medium text-green-600">
+                      Thiết bị này
+                    </div>
                   )}
                 </div>
                 {!session.current && (
@@ -121,9 +148,13 @@ export default function DeviceSessionSetting({ enabled }) {
                     size="small"
                     disabled={Boolean(revoking)}
                     onClick={() => revokeOne(session.sessionId)}
-                    sx={{ minWidth: 88, textTransform: "none" }}
+                    sx={{ flexShrink: 0, minWidth: 88, textTransform: "none" }}
                   >
-                    {revoking === session.sessionId ? <CircularProgress size={18} /> : "Đăng xuất"}
+                    {revoking === session.sessionId ? (
+                      <CircularProgress size={18} />
+                    ) : (
+                      "Đăng xuất"
+                    )}
                   </Button>
                 )}
               </div>

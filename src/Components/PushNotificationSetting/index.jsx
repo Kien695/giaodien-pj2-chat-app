@@ -35,13 +35,17 @@ export default function PushNotificationSetting({ switchComponent }) {
         setStatus("enabled");
         toast.success("Đã bật thông báo trên thiết bị này");
       } else {
-        await disablePushNotifications();
+        const result = await disablePushNotifications();
         setStatus("disabled");
-        toast.success("Đã tắt thông báo trên thiết bị này");
+        if (result?.serverSynced === false) {
+          toast.info("Đã tắt thông báo trên trình duyệt. Máy chủ sẽ tự dọn đăng ký cũ.");
+        } else {
+          toast.success("Đã tắt thông báo trên thiết bị này");
+        }
       }
     } catch (error) {
       setStatus(window.Notification?.permission === "denied" ? "denied" : "disabled");
-      toast.error(error.message || "Không thể cập nhật quyền thông báo");
+      toast.error(error.userMessage || "Không thể cập nhật quyền thông báo");
     } finally {
       setUpdating(false);
     }
@@ -52,7 +56,7 @@ export default function PushNotificationSetting({ switchComponent }) {
     status === "denied"
       ? "Quyền thông báo đang bị chặn trong trình duyệt."
       : status === "unsupported"
-        ? "Trình duyệt này không hỗ trợ Web Push."
+        ? "Trình duyệt hoặc kết nối này không hỗ trợ Web Push."
         : "Nhận thông báo tin nhắn khi ứng dụng không ở phía trước.";
 
   return (

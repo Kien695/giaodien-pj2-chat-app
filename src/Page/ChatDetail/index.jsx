@@ -6,7 +6,6 @@ import {
   Dialog,
   DialogActions,
   DialogContent,
-  DialogTitle,
   Divider,
   IconButton,
   styled,
@@ -18,8 +17,8 @@ import {
 
 import { HiOutlineUserGroup } from "react-icons/hi2";
 import { RiDeleteBin6Line } from "react-icons/ri";
-import { SiIconify, SiTruenas } from "react-icons/si";
-import { GrImage } from "react-icons/gr";
+import { SiIconify } from "react-icons/si";
+import { GrImage, GrSearch } from "react-icons/gr";
 import {
   FiDelete,
   FiDownload,
@@ -35,19 +34,19 @@ import {
   IoSearchCircleOutline,
   IoSend,
 } from "react-icons/io5";
-import React, { useEffect, useLayoutEffect, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useState,
+} from "react";
 import {
-  FaRegSmile,
   FaRegThumbsUp,
   FaRegUser,
   FaLink,
   FaRegCopy,
   FaShareAlt,
-  FaRegFolderOpen,
 } from "react-icons/fa";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import Fade from "@mui/material/Fade";
 import {
   MdAttachFile,
   MdDevicesFold,
@@ -79,12 +78,11 @@ import {
   AiOutlineUsergroupAdd,
 } from "react-icons/ai";
 import QRCode from "react-qr-code";
-import AddGroup from "../../Components/AddGroup";
+
 import AddMember from "../../Components/AddMember";
 import { toast } from "react-toastify";
 import { socket } from "../../socket";
-import { CiSettings } from "react-icons/ci";
-import { FaLinkSlash } from "react-icons/fa6";
+
 import useIsMobile from "../../Components/IsMobile";
 import CallDialog from "../../Components/CallDialog";
 import { LuPhone, LuVideo } from "react-icons/lu";
@@ -101,6 +99,7 @@ import {
   appendUniqueMessages,
   prependUniqueMessages,
 } from "../../utils/mergeMessagePages";
+import MessageSearchPanel from "../../Components/MessageSearchPanel";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -115,6 +114,25 @@ const MAX_MESSAGE_OUTBOX_SIZE = 100;
 const MEDIA_OUTBOX_TTL_MS = 10 * 60 * 1000;
 const MESSAGE_ACK_TIMEOUT_MS = 10 * 1000;
 
+const renderHighlightedText = (content, keyword) => {
+  if (!content || !keyword) return content;
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return String(content)
+    .split(new RegExp(`(${escaped})`, "gi"))
+    .map((part, index) =>
+      index % 2 === 1 ? (
+        <mark
+          className="rounded bg-yellow-200 px-0.5 text-inherit"
+          key={`${part}-${index}`}
+        >
+          {part}
+        </mark>
+      ) : (
+        part
+      ),
+    );
+};
+
 export default function ChatDetail() {
   const menuRef = useRef(null);
   const isMobile = useIsMobile();
@@ -123,6 +141,9 @@ export default function ChatDetail() {
   const [openMenu, setOpenMenu] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState([]);
   const [callType, setCallType] = useState(null);
+  const [messageSearchOpen, setMessageSearchOpen] = useState(false);
+  const [activeSearchKeyword, setActiveSearchKeyword] = useState("");
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
 
   const state = useSelector((state) => state.user);
 
@@ -211,6 +232,9 @@ export default function ChatDetail() {
   const messageCanvasRef = useRef(null);
   const pendingScrollRestoreRef = useRef(null);
   const shouldScrollToBottomRef = useRef(true);
+  const isNearBottomRef = useRef(true);
+  const stickToBottomRef = useRef(true);
+  const initialRoomScrollRef = useRef(true);
   const activeRoomIdRef = useRef(roomChatId);
   const latestIncomingMessageRef = useRef(null);
   const syncCursorRef = useRef(null);
@@ -230,6 +254,7 @@ export default function ChatDetail() {
     limit: 30,
   });
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
+  const [newMessageCount, setNewMessageCount] = useState(0);
   const [roomInfo, setRoomInfo] = useState({});
   const [typing, setTyping] = useState({});
   const [images, setImages] = useState([]);
@@ -237,6 +262,73 @@ export default function ChatDetail() {
   const [commonGroupCount, setCommonGroupCount] = useState(0);
   const maxNumber = 5;
   const typingTimeoutRef = useRef(null);
+
+  const handleCloseMessageSearch = () => {
+    setMessageSearchOpen(false);
+    setActiveSearchKeyword("");
+    setHighlightedMessageId(null);
+  };
+
+  const handleOpenMobileMessageSearch = () => {
+    setButtonActive(false);
+    setShowMember(false);
+    setMessageSearchOpen(true);
+  };
+
+  const handleSelectSearchResult = async (result, keyword) => {
+    const requestedRoomId = roomChatId;
+    try {
+      const response = await getData(
+        `/chat/${requestedRoomId}/messages/${encodeURIComponent(result._id)}/context`,
+      );
+      if (activeRoomIdRef.current !== requestedRoomId || !response.success)
+        return;
+      shouldScrollToBottomRef.current = false;
+      stickToBottomRef.current = false;
+      setActiveSearchKeyword(keyword);
+      setHighlightedMessageId(response.targetMessageId);
+      setChat((current) => {
+        const messages = new Map();
+        current.concat(response.data || []).forEach((messageItem) => {
+          messages.set(messageItem._id?.toString(), messageItem);
+        });
+        return Array.from(messages.values()).sort((first, second) => {
+          const timeDifference =
+            new Date(first.createdAt) - new Date(second.createdAt);
+          return (
+            timeDifference ||
+            String(first._id).localeCompare(String(second._id))
+          );
+        });
+      });
+    } catch {
+      toast.error("Không thể mở tin nhắn này. Vui lòng thử lại.");
+    }
+  };
+
+  const scrollToLatestMessage = useCallback((behavior = "smooth") => {
+    const canvas = messageCanvasRef.current;
+    if (!canvas) return;
+    canvas.scrollTo({ top: canvas.scrollHeight, behavior });
+    isNearBottomRef.current = true;
+    stickToBottomRef.current = true;
+    setNewMessageCount(0);
+  }, []);
+
+  const handleMessageCanvasScroll = () => {
+    const canvas = messageCanvasRef.current;
+    if (!canvas) return;
+    const distanceFromBottom =
+      canvas.scrollHeight - canvas.scrollTop - canvas.clientHeight;
+    const isNearBottom = distanceFromBottom < 120;
+    isNearBottomRef.current = isNearBottom;
+    stickToBottomRef.current = isNearBottom;
+    if (isNearBottom) setNewMessageCount(0);
+  };
+
+  const handleMessageMediaLoad = () => {
+    if (stickToBottomRef.current) scrollToLatestMessage("auto");
+  };
 
   const updateOutgoingStatus = (clientMessageId, deliveryStatus) => {
     setChat((previous) =>
@@ -263,28 +355,32 @@ export default function ChatDetail() {
     const currentAttempt = entry.attempt;
     updateOutgoingStatus(entry.clientMessageId, "pending");
 
-    socket.timeout(MESSAGE_ACK_TIMEOUT_MS).emit(
-      "CLIENT_SEND_MESSAGE",
-      entry.payload,
-      (timeoutError, acknowledgement) => {
-        const queuedEntry = messageOutboxRef.current.get(entry.clientMessageId);
-        if (!queuedEntry || queuedEntry.attempt !== currentAttempt) return;
+    socket
+      .timeout(MESSAGE_ACK_TIMEOUT_MS)
+      .emit(
+        "CLIENT_SEND_MESSAGE",
+        entry.payload,
+        (timeoutError, acknowledgement) => {
+          const queuedEntry = messageOutboxRef.current.get(
+            entry.clientMessageId,
+          );
+          if (!queuedEntry || queuedEntry.attempt !== currentAttempt) return;
 
-        queuedEntry.inFlight = false;
-        if (timeoutError && !socket.connected) {
-          updateOutgoingStatus(entry.clientMessageId, "queued");
-          return;
-        }
+          queuedEntry.inFlight = false;
+          if (timeoutError && !socket.connected) {
+            updateOutgoingStatus(entry.clientMessageId, "queued");
+            return;
+          }
 
-        messageOutboxRef.current.delete(entry.clientMessageId);
-        const delivered = !timeoutError && acknowledgement?.success === true;
-        updateOutgoingStatus(
-          entry.clientMessageId,
-          delivered ? "sent" : "failed",
-        );
-        if (!delivered) toast.error("Không thể gửi tin nhắn");
-      },
-    );
+          messageOutboxRef.current.delete(entry.clientMessageId);
+          const delivered = !timeoutError && acknowledgement?.success === true;
+          updateOutgoingStatus(
+            entry.clientMessageId,
+            delivered ? "sent" : "failed",
+          );
+          if (!delivered) toast.error("Không thể gửi tin nhắn");
+        },
+      );
   };
 
   const emitChatMessage = (payload, { optimistic = true } = {}) => {
@@ -468,7 +564,6 @@ export default function ChatDetail() {
 
   //render message
 
-
   //typing input
   const resetTyping = () => {
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -589,6 +684,13 @@ export default function ChatDetail() {
     syncCursorRef.current = null;
     pendingScrollRestoreRef.current = null;
     shouldScrollToBottomRef.current = true;
+    isNearBottomRef.current = true;
+    stickToBottomRef.current = true;
+    initialRoomScrollRef.current = true;
+    setNewMessageCount(0);
+    setMessageSearchOpen(false);
+    setActiveSearchKeyword("");
+    setHighlightedMessageId(null);
     setIsLoadingOlder(false);
     setMessagePagination({ nextCursor: null, hasMore: false, limit: 30 });
     setChat([]);
@@ -770,7 +872,22 @@ export default function ChatDetail() {
         createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
       };
 
-      shouldScrollToBottomRef.current = true;
+      const senderId =
+        typeof data.user_id === "object" ? data.user_id?._id : data.user_id;
+      const isCurrentRoom =
+        data.roomChatId?.toString() === activeRoomIdRef.current?.toString();
+      if (
+        isCurrentRoom &&
+        (senderId === state._id || isNearBottomRef.current)
+      ) {
+        shouldScrollToBottomRef.current = true;
+        stickToBottomRef.current = true;
+        setNewMessageCount(0);
+      } else if (isCurrentRoom) {
+        stickToBottomRef.current = false;
+        setNewMessageCount((count) => count + 1);
+      }
+
       setChat((prev) => {
         const pendingIndex = prev.findIndex(
           (item) =>
@@ -786,8 +903,6 @@ export default function ChatDetail() {
         return next;
       });
 
-      const senderId =
-        typeof data.user_id === "object" ? data.user_id?._id : data.user_id;
       if (
         data.syncCursor &&
         data.roomChatId?.toString() === activeRoomIdRef.current?.toString()
@@ -931,7 +1046,10 @@ export default function ChatDetail() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       const latestIncomingMessage = latestIncomingMessageRef.current;
-      if (document.visibilityState !== "visible" || !latestIncomingMessage?._id) {
+      if (
+        document.visibilityState !== "visible" ||
+        !latestIncomingMessage?._id
+      ) {
         return;
       }
       socket.emit("CLIENT_READ_ROOM", {
@@ -960,11 +1078,38 @@ export default function ChatDetail() {
       return;
     }
 
-    if (shouldScrollToBottomRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (shouldScrollToBottomRef.current && chat.length > 0) {
+      scrollToLatestMessage(initialRoomScrollRef.current ? "auto" : "smooth");
       shouldScrollToBottomRef.current = false;
+      initialRoomScrollRef.current = false;
     }
-  }, [chat]);
+  }, [chat, scrollToLatestMessage]);
+
+  useLayoutEffect(() => {
+    if (!highlightedMessageId) return;
+    const target = messageCanvasRef.current?.querySelector(
+      `[data-message-id="${highlightedMessageId}"]`,
+    );
+    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [chat, highlightedMessageId]);
+
+  useEffect(() => {
+    const canvas = messageCanvasRef.current;
+    if (!canvas || typeof ResizeObserver === "undefined") return undefined;
+    let frameId;
+    const observer = new ResizeObserver(() => {
+      if (!stickToBottomRef.current) return;
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => scrollToLatestMessage("auto"));
+    });
+    canvas
+      .querySelectorAll(".message-bubble")
+      .forEach((element) => observer.observe(element));
+    return () => {
+      cancelAnimationFrame(frameId);
+      observer.disconnect();
+    };
+  }, [chat, scrollToLatestMessage]);
 
   useEffect(() => {
     const canvas = messageCanvasRef.current;
@@ -973,9 +1118,9 @@ export default function ChatDetail() {
     const distanceFromBottom =
       canvas.scrollHeight - canvas.scrollTop - canvas.clientHeight;
     if (distanceFromBottom < 120) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      scrollToLatestMessage("smooth");
     }
-  }, [typing]);
+  }, [typing, scrollToLatestMessage]);
 
   //button info chat
   const handleClickInfoChat = () => {
@@ -1101,13 +1246,16 @@ export default function ChatDetail() {
 
   const handleSendLink = async () => {
     if (socket) {
-      emitChatMessage({
-        images: "",
-        file: "",
-        roomChatId: formSend.listRoom,
-        message: inviteUrl,
-        type: "invite",
-      }, { optimistic: false });
+      emitChatMessage(
+        {
+          images: "",
+          file: "",
+          roomChatId: formSend.listRoom,
+          message: inviteUrl,
+          type: "invite",
+        },
+        { optimistic: false },
+      );
       setFormSend({
         listRoom: [],
       });
@@ -1387,6 +1535,17 @@ export default function ChatDetail() {
                   </Tooltip>
                 </>
               )}
+              <Tooltip title="Tìm tin nhắn">
+                <button
+                  className={`chat-header-action !hidden md:!flex ${messageSearchOpen ? "is-active" : ""}`}
+                  onClick={() =>
+                    setMessageSearchOpen((openSearch) => !openSearch)
+                  }
+                  aria-label="Tìm tin nhắn"
+                >
+                  <GrSearch />
+                </button>
+              </Tooltip>
               <Tooltip title="Thông tin hội thoại">
                 <button
                   className={`chat-header-action ${buttonActive ? "is-active" : ""}`}
@@ -1398,165 +1557,185 @@ export default function ChatDetail() {
               </Tooltip>
             </div>
           </div>
-          <div
-            ref={messageCanvasRef}
-            className={`message-canvas flex-1 px-5 ${
-              theme === "dark" ? "bg-[#16191d]" : "bg-blue-50"
-            } flex flex-col gap-2 overflow-y-auto pt-2`}
-            style={{
-              backgroundRepeat: "no-repeat",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
+          {messageSearchOpen && (
+            <MessageSearchPanel
+              roomId={roomChatId}
+              onClose={handleCloseMessageSearch}
+              onSelect={handleSelectSearchResult}
+            />
+          )}
+          <div className="relative min-h-0 flex-1">
+            <div
+              ref={messageCanvasRef}
+              onScroll={handleMessageCanvasScroll}
+              className={`message-canvas h-full px-5 ${
+                theme === "dark" ? "bg-[#16191d]" : "bg-blue-50"
+              } flex flex-col gap-2 overflow-y-auto pt-2`}
+              style={{
+                backgroundRepeat: "no-repeat",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
 
-              //  CHỈ hiện avatar khi switch = true
-              backgroundImage:
-                useAvatarBg && state.avatar ? `url(${state.avatar})` : "none",
+                //  CHỈ hiện avatar khi switch = true
+                backgroundImage:
+                  useAvatarBg && state.avatar ? `url(${state.avatar})` : "none",
 
-              //  fallback màu nền
-              backgroundColor: theme === "dark" ? "#16191d" : "#eff6ff",
-            }}
-          >
-            {messagePagination.hasMore && (
-              <div className="flex justify-center py-2">
-                <button
-                  type="button"
-                  onClick={handleLoadOlderMessages}
-                  disabled={isLoadingOlder}
-                  className="rounded-full bg-white px-4 py-2 text-sm text-blue-600 shadow disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {isLoadingOlder ? "Đang tải..." : "Tải tin nhắn cũ"}
-                </button>
-              </div>
-            )}
-            {chat.map((item, index) => {
-              if (item.type === "system") {
-                return (
-                  <div key={item._id} className="flex justify-center my-3">
-                    <span className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
-                      {formatSystemMessage(item, state._id)}
-                    </span>
-                  </div>
-                );
-              }
-              const isMe = item.user_id._id === state._id;
-
-              return (
-                <div
-                  key={index}
-                  className={`flex ${isMe ? "justify-end" : "gap-2"} mb-2`}
-                >
-                  {!isMe && (
-                    <img
-                      src={
-                        item.user_id.avatar ||
-                        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
-                      }
-                      className="w-6 h-6 md:w-8 md:h-8 rounded-full"
-                    />
-                  )}
-
-                  <div
-                    className={`message-bubble group relative ${
-                      item?.files?.length > 0 ? "has-files" : ""
-                    } ${
-                      isMe
-                        ? `${
-                            theme === "dark" ? "bg-[#1f344d]" : "bg-blue-100"
-                          } rounded-xl rounded-br-none`
-                        : `${
-                            theme === "dark" ? "bg-[#262b30]" : "bg-white"
-                          }  rounded-xl rounded-bl-none`
-                    } p-2 max-w-[60%]`}
+                //  fallback màu nền
+                backgroundColor: theme === "dark" ? "#16191d" : "#eff6ff",
+              }}
+            >
+              {messagePagination.hasMore && (
+                <div className="flex justify-center py-2">
+                  <button
+                    type="button"
+                    onClick={handleLoadOlderMessages}
+                    disabled={isLoadingOlder}
+                    className="rounded-full bg-white px-4 py-2 text-sm text-blue-600 shadow disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {/* Nội dung text */}
+                    {isLoadingOlder ? "Đang tải..." : "Tải tin nhắn cũ"}
+                  </button>
+                </div>
+              )}
+              {chat.map((item, index) => {
+                if (item.type === "system") {
+                  return (
+                    <div key={item._id} className="flex justify-center my-3">
+                      <span className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
+                        {formatSystemMessage(item, state._id)}
+                      </span>
+                    </div>
+                  );
+                }
+                const isMe = item.user_id._id === state._id;
 
-                    {item.deleted ? (
-                      <i className="text-gray-400">Tin nhắn đã bị xóa</i>
-                    ) : (
-                      <>
-                        {item.type === "emoji" ? (
-                          <div className="text-4xl">
-                            <AiFillLike className="text-yellow-500" />
-                          </div>
-                        ) : (
-                          <div
-                            className={`${
-                              theme === "dark" ? "text-white" : "text-gray-600"
-                            } mb-1`}
-                          >
-                            {item.type === "invite" ? (
-                              <div className="p-3 rounded-lg border">
-                                <QRCode value={item.content} size={120} />
-                                <Button onClick={handleEnterGroup}>
-                                  Tham gia nhóm
-                                </Button>
-                              </div>
-                            ) : (
-                              item.content
-                            )}
-                          </div>
-                        )}
-
-                        {/* HIỂN THỊ ẢNH */}
-                        {item.images?.length > 0 && (
-                          <div
-                            className={`message-gallery mt-2 ${
-                              item.images.length === 1 ? "is-single" : ""
-                            }`}
-                          >
-                            <PhotoProvider>
-                              {item.images.map((img, i) => (
-                                <PhotoView key={i} src={img.url}>
-                                  <img
-                                    src={img.url}
-                                    alt={`Ảnh đã gửi ${i + 1}`}
-                                    loading="lazy"
-                                    className="message-gallery-image"
-                                  />
-                                </PhotoView>
-                              ))}
-                            </PhotoProvider>
-                          </div>
-                        )}
-                        {/* Hiển thị File */}
-
-                        {/* Hiển thị file đã gửi (item.files) */}
-                        {item?.files?.length > 0 && (
-                          <div className="mt-2 flex flex-col gap-2">
-                            {item.files.map((f, i) => (
-                              <a
-                                key={i}
-                                href={f.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className={`message-file-card ${theme === "dark" ? "is-dark" : ""}`}
-                              >
-                                <span className="message-file-icon">
-                                  <FiFileText />
-                                </span>
-                                <span className="min-w-0 flex-1">
-                                  <span className="block truncate text-sm font-medium text-slate-700">
-                                    {f.name}
-                                  </span>
-                                  <span className="mt-0.5 block text-xs text-slate-400">
-                                    {f.size >= 1048576
-                                      ? `${(f.size / 1048576).toFixed(1)} MB`
-                                      : `${(f.size / 1024).toFixed(1)} KB`}
-                                  </span>
-                                </span>
-                                <span className="message-file-download">
-                                  <FiDownload />
-                                </span>
-                              </a>
-                            ))}
-                          </div>
-                        )}
-                      </>
+                return (
+                  <div
+                    key={item._id || item.clientMessageId || index}
+                    data-message-id={item._id}
+                    className={`flex rounded-lg transition-shadow ${
+                      highlightedMessageId?.toString() === item._id?.toString()
+                        ? "ring-2 ring-yellow-400 ring-offset-2"
+                        : ""
+                    } ${isMe ? "justify-end" : "gap-2"} mb-2`}
+                  >
+                    {!isMe && (
+                      <img
+                        src={
+                          item.user_id.avatar ||
+                          "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
+                        }
+                        className="w-6 h-6 md:w-8 md:h-8 rounded-full"
+                      />
                     )}
 
-                    <Tooltip title="Xem thêm" placement="bottom-start">
-                      <div
-                        className={`
+                    <div
+                      className={`message-bubble group relative ${
+                        item?.files?.length > 0 ? "has-files" : ""
+                      } ${
+                        isMe
+                          ? `${
+                              theme === "dark" ? "bg-[#1f344d]" : "bg-blue-100"
+                            } rounded-xl rounded-br-none`
+                          : `${
+                              theme === "dark" ? "bg-[#262b30]" : "bg-white"
+                            }  rounded-xl rounded-bl-none`
+                      } p-2 max-w-[60%]`}
+                    >
+                      {/* Nội dung text */}
+
+                      {item.deleted ? (
+                        <i className="text-gray-400">Tin nhắn đã bị xóa</i>
+                      ) : (
+                        <>
+                          {item.type === "emoji" ? (
+                            <div className="text-4xl">
+                              <AiFillLike className="text-yellow-500" />
+                            </div>
+                          ) : (
+                            <div
+                              className={`${
+                                theme === "dark"
+                                  ? "text-white"
+                                  : "text-gray-600"
+                              } mb-1`}
+                            >
+                              {item.type === "invite" ? (
+                                <div className="p-3 rounded-lg border">
+                                  <QRCode value={item.content} size={120} />
+                                  <Button onClick={handleEnterGroup}>
+                                    Tham gia nhóm
+                                  </Button>
+                                </div>
+                              ) : (
+                                renderHighlightedText(
+                                  item.content,
+                                  activeSearchKeyword,
+                                )
+                              )}
+                            </div>
+                          )}
+
+                          {/* HIỂN THỊ ẢNH */}
+                          {item.images?.length > 0 && (
+                            <div
+                              className={`message-gallery mt-2 ${
+                                item.images.length === 1 ? "is-single" : ""
+                              }`}
+                            >
+                              <PhotoProvider>
+                                {item.images.map((img, i) => (
+                                  <PhotoView key={i} src={img.url}>
+                                    <img
+                                      src={img.url}
+                                      alt={`Ảnh đã gửi ${i + 1}`}
+                                      loading="lazy"
+                                      onLoad={handleMessageMediaLoad}
+                                      className="message-gallery-image"
+                                    />
+                                  </PhotoView>
+                                ))}
+                              </PhotoProvider>
+                            </div>
+                          )}
+                          {/* Hiển thị File */}
+
+                          {/* Hiển thị file đã gửi (item.files) */}
+                          {item?.files?.length > 0 && (
+                            <div className="mt-2 flex flex-col gap-2">
+                              {item.files.map((f, i) => (
+                                <a
+                                  key={i}
+                                  href={f.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`message-file-card ${theme === "dark" ? "is-dark" : ""}`}
+                                >
+                                  <span className="message-file-icon">
+                                    <FiFileText />
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-sm font-medium text-slate-700">
+                                      {f.name}
+                                    </span>
+                                    <span className="mt-0.5 block text-xs text-slate-400">
+                                      {f.size >= 1048576
+                                        ? `${(f.size / 1048576).toFixed(1)} MB`
+                                        : `${(f.size / 1024).toFixed(1)} KB`}
+                                    </span>
+                                  </span>
+                                  <span className="message-file-download">
+                                    <FiDownload />
+                                  </span>
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      <Tooltip title="Xem thêm" placement="bottom-start">
+                        <div
+                          className={`
                       absolute top-1/2 -translate-y-1/2
                       ${isMe ? "-left-10 " : "-right-10"}
                       opacity-0 group-hover:opacity-100
@@ -1567,138 +1746,156 @@ export default function ChatDetail() {
                           : "bg-white border-gray-200"
                       } p-1  
                     `}
-                        aria-controls={open ? "fade-menu" : undefined}
-                        aria-haspopup="true"
-                        aria-expanded={open ? "true" : undefined}
-                        onClick={() => {
-                          handleClick(item._id, item);
-                          setOpenMenu(openMenu === item._id ? null : item._id);
-                        }}
-                      >
-                        <BsThreeDots />
-                      </div>
-                    </Tooltip>
-
-                    <div className="relative">
-                      {openMenu === item._id && !item.deleted && (
-                        <div
-                          ref={menuRef}
-                          className={`absolute bottom-0 w-44 rounded-lg bg-white shadow-lg border z-50 ${
-                            isMe ? "right-full mr-2" : "left-full ml-2"
-                          }`}
+                          aria-controls={open ? "fade-menu" : undefined}
+                          aria-haspopup="true"
+                          aria-expanded={open ? "true" : undefined}
+                          onClick={() => {
+                            handleClick(item._id, item);
+                            setOpenMenu(
+                              openMenu === item._id ? null : item._id,
+                            );
+                          }}
                         >
-                          {!item.files?.length && item.type !== "invite" && (
-                            <button
-                              onClick={handleCopy}
-                              className="flex w-full items-center gap-3 px-4 py-2 hover:bg-gray-100 text-blue-500"
-                            >
-                              <MdOutlineContentCopy />
-                              Sao chép
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setOpenInvite(true)}
-                            className="flex w-full items-center gap-3 px-4 py-2 hover:bg-gray-100 text-green-600"
-                          >
-                            <FiSend />
-                            Gửi
-                          </button>
-                          {isMe && (
-                            <button
-                              onClick={handleDeleteMessage}
-                              className="flex w-full items-center gap-3 px-4 py-2 hover:bg-gray-100 text-red-600"
-                            >
-                              <FiDelete />
-                              Xóa tin nhắn
-                            </button>
-                          )}
+                          <BsThreeDots />
                         </div>
-                      )}
-                    </div>
-                    {/* Thời gian */}
-                    <div className="text-[11px] text-gray-500 mt-1 text-right">
-                      {new Date(item.createdAt).toLocaleTimeString("vi-VN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                      {isMe && item.deliveryStatus && (
-                        <span className="ml-1">
-                          {item.deliveryStatus === "queued" && "· Đang chờ mạng"}
-                          {item.deliveryStatus === "pending" && "· Đang gửi"}
-                          {item.deliveryStatus === "sent" && "· Đã gửi"}
-                          {item.deliveryStatus === "delivered" && "· Đã nhận"}
-                          {item.deliveryStatus === "read" && "· Đã xem"}
-                          {item.deliveryStatus === "failed" && "· Gửi lỗi"}
-                        </span>
-                      )}
+                      </Tooltip>
+
+                      <div className="relative">
+                        {openMenu === item._id && !item.deleted && (
+                          <div
+                            ref={menuRef}
+                            className={`absolute bottom-0 w-44 rounded-lg bg-white shadow-lg border z-50 ${
+                              isMe ? "right-full mr-2" : "left-full ml-2"
+                            }`}
+                          >
+                            {!item.files?.length && item.type !== "invite" && (
+                              <button
+                                onClick={handleCopy}
+                                className="flex w-full items-center gap-3 px-4 py-2 hover:bg-gray-100 text-blue-500"
+                              >
+                                <MdOutlineContentCopy />
+                                Sao chép
+                              </button>
+                            )}
+                            <button
+                              onClick={() => setOpenInvite(true)}
+                              className="flex w-full items-center gap-3 px-4 py-2 hover:bg-gray-100 text-green-600"
+                            >
+                              <FiSend />
+                              Gửi
+                            </button>
+                            {isMe && (
+                              <button
+                                onClick={handleDeleteMessage}
+                                className="flex w-full items-center gap-3 px-4 py-2 hover:bg-gray-100 text-red-600"
+                              >
+                                <FiDelete />
+                                Xóa tin nhắn
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      {/* Thời gian */}
+                      <div className="text-[11px] text-gray-500 mt-1 text-right">
+                        {new Date(item.createdAt).toLocaleTimeString("vi-VN", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                        {isMe && item.deliveryStatus && (
+                          <span className="ml-1">
+                            {item.deliveryStatus === "queued" &&
+                              "· Đang chờ mạng"}
+                            {item.deliveryStatus === "pending" && "· Đang gửi"}
+                            {item.deliveryStatus === "sent" && "· Đã gửi"}
+                            {item.deliveryStatus === "delivered" && "· Đã nhận"}
+                            {item.deliveryStatus === "read" && "· Đã xem"}
+                            {item.deliveryStatus === "failed" && "· Gửi lỗi"}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-            {/* Hiển thị file đang upload */}
-            {uploadingFiles.map((file) => (
-              <div className="flex justify-end">
-                <div
-                  key={file.id}
-                  className={`flex items-center gap-2 p-2 rounded  ${
-                    theme ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
-                  } transition-colors cursor-pointer`}
-                >
-                  <MdAttachFile className="text-gray-500" />
-                  <span className="text-sm text-gray-700 break-all">
-                    {file.name}
-                  </span>
+                );
+              })}
+              {/* Hiển thị file đang upload */}
+              {uploadingFiles.map((file) => (
+                <div className="flex justify-end">
+                  <div
+                    key={file.id}
+                    className={`flex items-center gap-2 p-2 rounded  ${
+                      theme ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
+                    } transition-colors cursor-pointer`}
+                  >
+                    <MdAttachFile className="text-gray-500" />
+                    <span className="text-sm text-gray-700 break-all">
+                      {file.name}
+                    </span>
 
-                  {/* Chỉ hiện spinner nếu đang upload */}
-                  {file.status === "uploading" && (
-                    <svg
-                      className="animate-spin h-4 w-4 text-gray-500 ml-1"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                      />
-                    </svg>
-                  )}
+                    {/* Chỉ hiện spinner nếu đang upload */}
+                    {file.status === "uploading" && (
+                      <svg
+                        className="animate-spin h-4 w-4 text-gray-500 ml-1"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        />
+                      </svg>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-            {/* typing ui */}
-            {typing.type == true && (
-              <div className=" flex gap-1 mt-auto items-center">
-                <div className="flex gap-2">
-                  <img
-                    src={
-                      typing.avatar ||
-                      "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
-                    }
-                    alt="avatar"
-                    className="w-5 h-5 rounded-full"
-                  />
-                  <div className="text-[13px] text-gray-700">Đang soạn tin</div>
+              ))}
+              {/* typing ui */}
+              {typing.type == true && (
+                <div className=" flex gap-1 mt-auto items-center">
+                  <div className="flex gap-2">
+                    <img
+                      src={
+                        typing.avatar ||
+                        "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSsGuNeeq7R_EoWkiZPOvfRF5B0ZSbLCwRAnA&s"
+                      }
+                      alt="avatar"
+                      className="w-5 h-5 rounded-full"
+                    />
+                    <div className="text-[13px] text-gray-700">
+                      Đang soạn tin
+                    </div>
+                  </div>
+                  <div className=" dot-typing">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </div>
                 </div>
-                <div className=" dot-typing">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-              </div>
+              )}
+
+              {/* điểm cuộn đến */}
+              <div ref={bottomRef}></div>
+            </div>
+            {newMessageCount > 0 && (
+              <button
+                type="button"
+                onClick={() => scrollToLatestMessage("smooth")}
+                className="absolute bottom-4 right-4 z-10 flex items-center gap-1 rounded-full bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              >
+                <IoChevronDown />
+                {newMessageCount === 1
+                  ? "Có tin nhắn mới"
+                  : `${newMessageCount} tin nhắn mới`}
+              </button>
             )}
-
-            {/* điểm cuộn đến */}
-            <div ref={bottomRef}></div>
           </div>
 
           <div className="composer flex flex-col border-t h-[116px]">
@@ -1728,12 +1925,7 @@ export default function ChatDetail() {
                 maxNumber={maxNumber}
                 dataURLKey="data_url"
               >
-                {({
-                  imageList,
-                  onImageUpload,
-                  onImageRemove,
-                  dragProps,
-                }) => (
+                {({ imageList, onImageUpload, onImageRemove, dragProps }) => (
                   <div className="upload__image-wrapper">
                     {/* ICON chọn ảnh */}
                     <GrImage
@@ -1804,7 +1996,9 @@ export default function ChatDetail() {
               {message.trim() !== "" || images.length > 0 ? (
                 <IoSend
                   className={`text-blue-600 text-[23px] ${
-                    isUploadingImages ? "opacity-50 pointer-events-none" : "cursor-pointer"
+                    isUploadingImages
+                      ? "opacity-50 pointer-events-none"
+                      : "cursor-pointer"
                   }`}
                   onClick={handleMessage}
                 />
@@ -1962,6 +2156,15 @@ export default function ChatDetail() {
                 Thông tin hội thoại
               </div>
 
+              <button
+                type="button"
+                onClick={handleOpenMobileMessageSearch}
+                className="flex w-full items-center gap-3 border-b px-5 py-4 text-left text-sm hover:bg-gray-100 md:hidden"
+              >
+                <GrSearch className="text-lg" />
+                Tìm kiếm tin nhắn
+              </button>
+
               <div className="flex flex-col items-center gap-3  py-5 border-b-8">
                 <img
                   src={
@@ -2090,6 +2293,14 @@ export default function ChatDetail() {
                 Thông tin hội thoại
                 <div></div>
               </div>
+              <button
+                type="button"
+                onClick={handleOpenMobileMessageSearch}
+                className="flex w-full items-center gap-3 border-b px-5 py-4 text-left text-sm hover:bg-gray-100 md:hidden"
+              >
+                <GrSearch className="text-lg" />
+                Tìm kiếm tin nhắn
+              </button>
               {roomInfo.typeRoom === "group" ? (
                 <>
                   <div className="flex flex-col items-center gap-3  py-5 border-b-8">
@@ -2516,35 +2727,37 @@ export default function ChatDetail() {
                 <div className="flex justify-center py-8">
                   <CircularProgress size={26} />
                 </div>
-              ) : filteredRooms.map((item) => (
-                <div
-                  key={item._id}
-                  className={`share-room-item flex items-center gap-3 rounded-lg px-2 py-2 cursor-pointer ${formSend.listRoom.includes(item._id) ? "is-selected" : ""}`}
-                  onClick={() => handleTickSend(item)}
-                >
-                  <Checkbox
-                    size="small"
-                    checked={formSend.listRoom.includes(item._id)}
-                    onChange={() => handleTickSend(item)}
-                    onClick={(event) => event.stopPropagation()}
-                    sx={{
-                      color: "#98a2b3",
-                      "&.Mui-checked": { color: "#0068ff" },
-                    }}
-                  />
+              ) : (
+                filteredRooms.map((item) => (
+                  <div
+                    key={item._id}
+                    className={`share-room-item flex items-center gap-3 rounded-lg px-2 py-2 cursor-pointer ${formSend.listRoom.includes(item._id) ? "is-selected" : ""}`}
+                    onClick={() => handleTickSend(item)}
+                  >
+                    <Checkbox
+                      size="small"
+                      checked={formSend.listRoom.includes(item._id)}
+                      onChange={() => handleTickSend(item)}
+                      onClick={(event) => event.stopPropagation()}
+                      sx={{
+                        color: "#98a2b3",
+                        "&.Mui-checked": { color: "#0068ff" },
+                      }}
+                    />
 
-                  <Avatar src={item.avatar} sx={{ width: 42, height: 42 }} />
+                    <Avatar src={item.avatar} sx={{ width: 42, height: 42 }} />
 
-                  <div className="flex flex-col">
-                    <span className="text-sm font-medium text-slate-700">
-                      {item.typeRoom === "friend"
-                        ? item.users.find((u) => u.user_id?._id !== state._id)
-                            ?.user_id?.name
-                        : item.title}
-                    </span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium text-slate-700">
+                        {item.typeRoom === "friend"
+                          ? item.users.find((u) => u.user_id?._id !== state._id)
+                              ?.user_id?.name
+                          : item.title}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </DialogContent>

@@ -326,14 +326,15 @@ export default function Setting({ open, onClose }) {
         onClose={onClose}
         PaperProps={{
           sx: {
-            width: "750px",
-            height: "500px",
+            width: "900px",
+            height: "600px",
             maxWidth: "90vw",
+            overflow: "hidden",
           },
         }}
       >
-        <div className="flex h-full rounded-lg">
-          <div className="w-[0] md:w-[30%] border-r">
+        <div className="flex h-full w-full min-w-0 overflow-hidden rounded-lg">
+          <div className="w-0 shrink-0 overflow-hidden border-r md:w-[30%]">
             <div className="py-3 px-4 text-[17px] font-[500]">Cài đặt</div>
             <div
               onClick={() => setActive(1)}
@@ -384,8 +385,8 @@ export default function Setting({ open, onClose }) {
               <span>Đăng xuất</span>
             </div>
           </div>
-          <div className="flex-1 flex flex-col bg-gray-100">
-            <div className=" flex items-center justify-between  md:justify-end ">
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-gray-100">
+            <div className="flex min-w-0 items-center justify-between md:justify-end">
               <div
                 aria-controls={openMenu ? "demo-positioned-menu" : undefined}
                 aria-haspopup="true"
@@ -491,14 +492,14 @@ export default function Setting({ open, onClose }) {
               </Button>
             </div>
             <Divider />
-            <div className="overflow-y-auto px-4 py-6">
+            <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-6">
               {active == 1 && (
                 <>
                   <div className="text-[14px] font-[500] text-gray-700 mb-3">
                     Đổi mật khẩu
                   </div>
-                  <div className="w-full h-auto rounded-lg bg-white p-3 flex flex-col gap-3 shadow-md">
-                    <div className="text-[13px] italic">
+                  <div className="flex h-auto w-full min-w-0 flex-col gap-3 overflow-hidden rounded-lg bg-white p-3 shadow-md">
+                    <div className="break-words text-[13px] italic">
                       Ghi chú: Mật khẩu phải ≥ 8 ký tự, gồm 1 chữ hoa, 1 số và 1
                       ký tự đặc biệt
                     </div>
@@ -578,7 +579,7 @@ export default function Setting({ open, onClose }) {
               {active == 2 && (
                 <>
                   <PushNotificationSetting switchComponent={IOSSwitch} />
-                  <div className="text-[14px] font-[500] text-gray-700 mb-3">
+                  <div className="text-[14px] font-[500] text-gray-700 mb-3 mt-5">
                     Cá nhân
                   </div>
                   <div className="w-full h-auto rounded-lg bg-white p-3 flex flex-col gap-1 shadow-md">

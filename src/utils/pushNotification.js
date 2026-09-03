@@ -3,10 +3,25 @@ import { deleteData, postData } from "./api";
 const DEVICE_ID_STORAGE_KEY = "pushDeviceId";
 const SUBSCRIPTION_ID_STORAGE_KEY = "pushSubscriptionId";
 
+export class PushNotificationError extends Error {
+  constructor(code, userMessage) {
+    super(code);
+    this.name = "PushNotificationError";
+    this.code = code;
+    this.userMessage = userMessage;
+  }
+}
+
+const pushError = (code, userMessage, developerMessage) => {
+  console.error(`[Web Push] ${developerMessage}`);
+  return new PushNotificationError(code, userMessage);
+};
+
 export const getStoredPushSubscriptionId = () =>
   localStorage.getItem(SUBSCRIPTION_ID_STORAGE_KEY);
 
 export const isPushNotificationSupported = () =>
+  window.isSecureContext &&
   "serviceWorker" in navigator &&
   "PushManager" in window &&
   "Notification" in window;
@@ -41,33 +56,64 @@ export const getPushNotificationState = async () => {
 
 export const enablePushNotifications = async () => {
   if (!isPushNotificationSupported()) {
-    throw new Error("Trình duyệt không hỗ trợ thông báo đẩy");
+    throw pushError(
+      "PUSH_UNSUPPORTED",
+      "Trình duyệt hoặc kết nối hiện tại không hỗ trợ thông báo.",
+      "Web Push requires a secure context, Service Worker, PushManager and Notification APIs.",
+    );
   }
   const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-  if (!vapidPublicKey) throw new Error("Thiếu cấu hình VAPID public key");
+  if (!vapidPublicKey) {
+    throw pushError(
+      "PUSH_NOT_CONFIGURED",
+      "Thông báo hiện chưa được cấu hình. Vui lòng thử lại sau.",
+      "VITE_VAPID_PUBLIC_KEY is missing. Restart Vite after configuring it.",
+    );
+  }
 
   const permission = await Notification.requestPermission();
   if (permission !== "granted") {
-    throw new Error("Bạn chưa cấp quyền thông báo cho ứng dụng");
+    throw new PushNotificationError(
+      "PUSH_PERMISSION_DENIED",
+      "Bạn đã từ chối quyền thông báo. Hãy bật lại trong cài đặt trình duyệt.",
+    );
   }
 
   const registration = await getRegistration();
   let subscription = await registration.pushManager.getSubscription();
+  let createdSubscription = false;
   if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: base64UrlToUint8Array(vapidPublicKey),
-    });
+    try {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: base64UrlToUint8Array(vapidPublicKey),
+      });
+      createdSubscription = true;
+    } catch (error) {
+      console.error("[Web Push] Browser subscription failed.", error);
+      throw new PushNotificationError(
+        "PUSH_SUBSCRIBE_FAILED",
+        "Không thể bật thông báo trên trình duyệt này.",
+      );
+    }
   }
 
-  const response = await postData("/auth/push-subscriptions", {
-    deviceId: getOrCreateDeviceId(),
-    subscription: subscription.toJSON(),
-  });
-  localStorage.setItem(
-    SUBSCRIPTION_ID_STORAGE_KEY,
-    response.data.subscriptionId,
-  );
+  try {
+    const response = await postData("/auth/push-subscriptions", {
+      deviceId: getOrCreateDeviceId(),
+      subscription: subscription.toJSON(),
+    });
+    const subscriptionId = response.data?.subscriptionId;
+    if (!subscriptionId) throw new Error("Missing subscription id");
+    localStorage.setItem(SUBSCRIPTION_ID_STORAGE_KEY, subscriptionId);
+  } catch (error) {
+    if (createdSubscription) await subscription.unsubscribe().catch(() => {});
+    console.error("[Web Push] Server registration failed.", error);
+    throw new PushNotificationError(
+      "PUSH_SERVER_SYNC_FAILED",
+      "Không thể lưu cài đặt thông báo. Vui lòng thử lại sau.",
+    );
+  }
 };
 
 export const disablePushNotifications = async () => {
@@ -76,11 +122,19 @@ export const disablePushNotifications = async () => {
   const subscription = await registration.pushManager.getSubscription();
   const subscriptionId = localStorage.getItem(SUBSCRIPTION_ID_STORAGE_KEY);
 
-  if (subscriptionId) {
-    await deleteData(`/auth/push-subscriptions/${subscriptionId}`);
+  let serverSynced = true;
+  try {
+    if (subscriptionId) {
+      await deleteData(`/auth/push-subscriptions/${subscriptionId}`);
+    }
+  } catch (error) {
+    serverSynced = false;
+    console.error("[Web Push] Server unsubscribe failed.", error);
+  } finally {
+    if (subscription) await subscription.unsubscribe();
+    localStorage.removeItem(SUBSCRIPTION_ID_STORAGE_KEY);
   }
-  if (subscription) await subscription.unsubscribe();
-  localStorage.removeItem(SUBSCRIPTION_ID_STORAGE_KEY);
+  return { serverSynced };
 };
 
 export const clearLocalPushSubscription = async () => {
