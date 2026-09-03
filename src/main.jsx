@@ -6,14 +6,17 @@ import process from "process";
 import { BrowserRouter } from "react-router-dom";
 import { Provider } from "react-redux";
 import { store } from "./redux/store.js";
+import AppErrorBoundary from "./Components/AppErrorBoundary";
 
 window.Buffer = Buffer;
 window.process = process;
 
 createRoot(document.getElementById("root")).render(
-  <Provider store={store}>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  </Provider>,
+  <AppErrorBoundary>
+    <Provider store={store}>
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </Provider>
+  </AppErrorBoundary>,
 );

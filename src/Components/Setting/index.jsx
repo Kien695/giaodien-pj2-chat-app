@@ -46,6 +46,12 @@ import {
 } from "@simplewebauthn/browser";
 import { FaRegCheckCircle } from "react-icons/fa";
 import { useEffect } from "react";
+import PushNotificationSetting from "../PushNotificationSetting";
+import DeviceSessionSetting from "../DeviceSessionSetting";
+import {
+  clearLocalPushSubscription,
+  getStoredPushSubscriptionId,
+} from "../../utils/pushNotification";
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
     padding: theme.spacing(2),
@@ -198,8 +204,11 @@ export default function Setting({ open, onClose }) {
   //logout
   const handleLogout = async () => {
     try {
-      const resLogout = await postData("/auth/logout");
+      const resLogout = await postData("/auth/logout", {
+        pushSubscriptionId: getStoredPushSubscriptionId(),
+      });
       if (resLogout.success) {
+        await clearLocalPushSubscription().catch(() => {});
         socket.disconnect();
         toast.success("Đăng xuất thành công");
         localStorage.removeItem("accessToken");
@@ -482,7 +491,7 @@ export default function Setting({ open, onClose }) {
               </Button>
             </div>
             <Divider />
-            <div className="px-4 py-6">
+            <div className="overflow-y-auto px-4 py-6">
               {active == 1 && (
                 <>
                   <div className="text-[14px] font-[500] text-gray-700 mb-3">
@@ -563,10 +572,12 @@ export default function Setting({ open, onClose }) {
                       </Button>
                     </div>
                   </div>
+                  <DeviceSessionSetting enabled={open && active == 1} />
                 </>
               )}
               {active == 2 && (
                 <>
+                  <PushNotificationSetting switchComponent={IOSSwitch} />
                   <div className="text-[14px] font-[500] text-gray-700 mb-3">
                     Cá nhân
                   </div>

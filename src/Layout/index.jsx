@@ -9,17 +9,20 @@ export default function Layout() {
 
   const isChatDetail = useMatch("/chat/:id");
 
-  // 1️ connect socket
-  useEffect(() => {
-    socket.connect();
-    return () => socket.disconnect();
-  }, []);
-
-  // 2️ join / leave room
+  // Join the active room now and again after every authenticated reconnect.
   useEffect(() => {
     if (!roomChatId) return;
 
-    socket.emit("JOIN_ROOM", { roomChatId });
+    const joinActiveRoom = () => {
+      socket.emit("JOIN_ROOM", { roomChatId });
+    };
+
+    if (socket.connected) joinActiveRoom();
+    socket.on("connect", joinActiveRoom);
+
+    return () => {
+      socket.off("connect", joinActiveRoom);
+    };
   }, [roomChatId]);
 
   return (

@@ -38,6 +38,8 @@ function App() {
   const currentRoomId = useSelector((state) => state.user.currentRoomId);
   const currentRoomIdRef = useRef(currentRoomId);
   const userIdRef = useRef(userId);
+  const accountSyncInFlightRef = useRef(false);
+  const reconnectPendingRef = useRef(false);
 
   useEffect(() => {
     currentRoomIdRef.current = currentRoomId;
@@ -50,30 +52,40 @@ function App() {
   useEffect(() => {
     // 1️ Fetch initial data
     const fetchData = async () => {
+      if (accountSyncInFlightRef.current) return;
       const token = localStorage.getItem("accessToken");
       if (!token) return;
-      socket.auth = { token };
-      socket.connect();
-      const [userResult, friendResult, requestResult, groupResult] =
-        await Promise.allSettled([
-          getData("/auth/getUser"),
-          getData("/auth/friendList"),
-          getData("/auth/getAcceptFriend"),
-          getData("/auth/getRoom"),
-        ]);
+      accountSyncInFlightRef.current = true;
+      try {
+        socket.auth = { token };
+        socket.connect();
+        const [userResult, friendResult, requestResult, groupResult] =
+          await Promise.allSettled([
+            getData("/auth/getUser"),
+            getData("/auth/friendList"),
+            getData("/auth/getAcceptFriend"),
+            getData("/auth/getRoom"),
+          ]);
 
-      if (userResult.status === "fulfilled" && userResult.value.success) {
-        dispatch(setUser(userResult.value.data));
-      }
-      if (friendResult.status === "fulfilled" && friendResult.value.success) {
-        dispatch(setListFriend(friendResult.value.data));
-        dispatch(setCountFriend(friendResult.value.count));
-      }
-      if (requestResult.status === "fulfilled" && requestResult.value.success) {
-        dispatch(setListAddFriend(requestResult.value.data));
-      }
-      if (groupResult.status === "fulfilled" && groupResult.value.success) {
-        dispatch(setListGroup(groupResult.value.data));
+        if (userResult.status === "fulfilled" && userResult.value.success) {
+          dispatch(setUser(userResult.value.data));
+        }
+        if (friendResult.status === "fulfilled" && friendResult.value.success) {
+          dispatch(setListFriend(friendResult.value.data));
+          dispatch(setCountFriend(friendResult.value.count));
+        }
+        if (requestResult.status === "fulfilled" && requestResult.value.success) {
+          dispatch(setListAddFriend(requestResult.value.data));
+        }
+        if (groupResult.status === "fulfilled" && groupResult.value.success) {
+          dispatch(setListGroup(groupResult.value.data));
+        }
+      } finally {
+        accountSyncInFlightRef.current = false;
+        if (reconnectPendingRef.current && socket.connected) {
+          reconnectPendingRef.current = false;
+          fetchData();
+        }
       }
     };
 
@@ -117,6 +129,15 @@ function App() {
     const handleUserOffline = ({ userId, lastActive }) => {
       dispatch(setUserOffline({ userId, lastActive }));
     };
+    const handleDisconnect = () => {
+      reconnectPendingRef.current = true;
+    };
+    const handleConnect = () => {
+      if (!reconnectPendingRef.current) return;
+      if (accountSyncInFlightRef.current) return;
+      reconnectPendingRef.current = false;
+      fetchData();
+    };
     socket.on("SERVER_RETURN_INFO_A", handleAdd);
     socket.on("SERVER_DELETE_INFO_A", handleDelete);
     socket.on("SERVER_RETURN_LIST_FRIEND", handleAcceptfriend);
@@ -127,16 +148,21 @@ function App() {
     socket.on("SERVER_ONLINE_USERS", handleOnlineUsers);
     socket.on("SERVER_USER_ONLINE", handleUserOnline);
     socket.on("SERVER_USER_OFFLINE", handleUserOffline);
+    socket.on("disconnect", handleDisconnect);
+    socket.on("connect", handleConnect);
 
     return () => {
       socket.off("SERVER_UNFRIEND_SUCCESS", handleUnfriend);
       socket.off("SERVER_LEAVE_ROOM_PERSON", handleLeaveGroup);
       socket.off("SERVER_ROOM_UPDATED_SIDEBAR", handleRoomUpdateSideBar);
+      socket.off("SERVER_RETURN_LIST_FRIEND", handleAcceptfriend);
       socket.off("SERVER_ONLINE_USERS", handleOnlineUsers);
       socket.off("SERVER_USER_ONLINE", handleUserOnline);
       socket.off("SERVER_USER_OFFLINE", handleUserOffline);
       socket.off("SERVER_RETURN_INFO_A", handleAdd);
       socket.off("SERVER_DELETE_INFO_A", handleDelete);
+      socket.off("disconnect", handleDisconnect);
+      socket.off("connect", handleConnect);
     };
   }, [dispatch, isLogin]);
 

@@ -97,7 +97,10 @@ import {
 import { filterChatRooms } from "../../utils/filterChatRooms";
 import { formatLastActive } from "../../utils/formatLastActive";
 import { formatSystemMessage } from "../../utils/formatSystemMessage";
-import { prependUniqueMessages } from "../../utils/mergeMessagePages";
+import {
+  appendUniqueMessages,
+  prependUniqueMessages,
+} from "../../utils/mergeMessagePages";
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   "& .MuiDialogContent-root": {
@@ -107,6 +110,10 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
     padding: theme.spacing(1),
   },
 }));
+
+const MAX_MESSAGE_OUTBOX_SIZE = 100;
+const MEDIA_OUTBOX_TTL_MS = 10 * 60 * 1000;
+const MESSAGE_ACK_TIMEOUT_MS = 10 * 1000;
 
 export default function ChatDetail() {
   const menuRef = useRef(null);
@@ -205,6 +212,11 @@ export default function ChatDetail() {
   const pendingScrollRestoreRef = useRef(null);
   const shouldScrollToBottomRef = useRef(true);
   const activeRoomIdRef = useRef(roomChatId);
+  const latestIncomingMessageRef = useRef(null);
+  const syncCursorRef = useRef(null);
+  const syncInFlightRef = useRef(false);
+  const messageOutboxRef = useRef(new Map());
+  const sendOutboxEntryRef = useRef(null);
   const [dataUser, setDataUser] = useState([]);
   const [message, setMessage] = useState("");
   const [showPicker, setShowPicker] = useState(false);
@@ -226,7 +238,61 @@ export default function ChatDetail() {
   const maxNumber = 5;
   const typingTimeoutRef = useRef(null);
 
+  const updateOutgoingStatus = (clientMessageId, deliveryStatus) => {
+    setChat((previous) =>
+      previous.map((item) =>
+        item.clientMessageId === clientMessageId
+          ? { ...item, deliveryStatus }
+          : item,
+      ),
+    );
+  };
+
+  sendOutboxEntryRef.current = (entry) => {
+    if (!entry || entry.inFlight || !socket.connected) return;
+
+    if (entry.expiresAt && Date.now() >= entry.expiresAt) {
+      messageOutboxRef.current.delete(entry.clientMessageId);
+      updateOutgoingStatus(entry.clientMessageId, "failed");
+      toast.error("Tệp đính kèm đã hết thời gian gửi lại");
+      return;
+    }
+
+    entry.inFlight = true;
+    entry.attempt += 1;
+    const currentAttempt = entry.attempt;
+    updateOutgoingStatus(entry.clientMessageId, "pending");
+
+    socket.timeout(MESSAGE_ACK_TIMEOUT_MS).emit(
+      "CLIENT_SEND_MESSAGE",
+      entry.payload,
+      (timeoutError, acknowledgement) => {
+        const queuedEntry = messageOutboxRef.current.get(entry.clientMessageId);
+        if (!queuedEntry || queuedEntry.attempt !== currentAttempt) return;
+
+        queuedEntry.inFlight = false;
+        if (timeoutError && !socket.connected) {
+          updateOutgoingStatus(entry.clientMessageId, "queued");
+          return;
+        }
+
+        messageOutboxRef.current.delete(entry.clientMessageId);
+        const delivered = !timeoutError && acknowledgement?.success === true;
+        updateOutgoingStatus(
+          entry.clientMessageId,
+          delivered ? "sent" : "failed",
+        );
+        if (!delivered) toast.error("Không thể gửi tin nhắn");
+      },
+    );
+  };
+
   const emitChatMessage = (payload, { optimistic = true } = {}) => {
+    if (messageOutboxRef.current.size >= MAX_MESSAGE_OUTBOX_SIZE) {
+      toast.error("Hàng đợi gửi tin đã đầy, vui lòng chờ kết nối");
+      return null;
+    }
+
     const clientMessageId = window.crypto.randomUUID();
     const isCurrentRoom =
       !Array.isArray(payload.roomChatId) &&
@@ -246,34 +312,48 @@ export default function ChatDetail() {
           type: payload.type,
           createdAt: new Date(),
           deleted: false,
-          deliveryStatus: "pending",
+          deliveryStatus: socket.connected ? "pending" : "queued",
         },
       ]);
     }
 
-    socket.emit(
-      "CLIENT_SEND_MESSAGE",
-      { ...payload, clientMessageId },
-      (acknowledgement) => {
-        const delivered = acknowledgement?.success === true;
-        setChat((previous) =>
-          previous.map((item) =>
-            item.clientMessageId === clientMessageId
-              ? {
-                  ...item,
-                  deliveryStatus: delivered ? "sent" : "failed",
-                }
-              : item,
-          ),
-        );
-        if (!delivered) {
-          toast.error("Không thể gửi tin nhắn");
-        }
-      },
-    );
+    const hasMedia =
+      (Array.isArray(payload.images) && payload.images.length > 0) ||
+      (Array.isArray(payload.file) && payload.file.length > 0);
+    const entry = {
+      clientMessageId,
+      payload: { ...payload, clientMessageId },
+      inFlight: false,
+      attempt: 0,
+      expiresAt: hasMedia ? Date.now() + MEDIA_OUTBOX_TTL_MS : null,
+    };
+    messageOutboxRef.current.set(clientMessageId, entry);
+    sendOutboxEntryRef.current(entry);
 
     return clientMessageId;
   };
+
+  useEffect(() => {
+    const flushMessageOutbox = () => {
+      messageOutboxRef.current.forEach((entry) => {
+        sendOutboxEntryRef.current(entry);
+      });
+    };
+    const queueInFlightMessages = () => {
+      messageOutboxRef.current.forEach((entry) => {
+        entry.attempt += 1;
+        entry.inFlight = false;
+        updateOutgoingStatus(entry.clientMessageId, "queued");
+      });
+    };
+
+    socket.on("connect", flushMessageOutbox);
+    socket.on("disconnect", queueInFlightMessages);
+    return () => {
+      socket.off("connect", flushMessageOutbox);
+      socket.off("disconnect", queueInFlightMessages);
+    };
+  }, []);
 
   const onEmojiClick = (emojiData) => {
     setMessage((prev) => prev + emojiData.emoji);
@@ -505,6 +585,8 @@ export default function ChatDetail() {
   useEffect(() => {
     let active = true;
     activeRoomIdRef.current = roomChatId;
+    latestIncomingMessageRef.current = null;
+    syncCursorRef.current = null;
     pendingScrollRestoreRef.current = null;
     shouldScrollToBottomRef.current = true;
     setIsLoadingOlder(false);
@@ -519,9 +601,31 @@ export default function ChatDetail() {
           setMessagePagination(
             res.pagination || { nextCursor: null, hasMore: false, limit: 30 },
           );
+          syncCursorRef.current = res.pagination?.syncCursor || null;
           setDataUser(res.users);
           setRoomInfo(res.room);
           setCommonGroupCount(res.commonGroupCount);
+
+          const latestIncomingMessage = [...res.data]
+            .reverse()
+            .find(
+              (item) =>
+                item.type !== "system" &&
+                (typeof item.user_id === "object"
+                  ? item.user_id?._id
+                  : item.user_id) !== state._id,
+            );
+          if (latestIncomingMessage?._id) {
+            latestIncomingMessageRef.current = latestIncomingMessage;
+            const receiptEvent =
+              document.visibilityState === "visible"
+                ? "CLIENT_READ_ROOM"
+                : "CLIENT_MESSAGE_DELIVERED";
+            socket.emit(receiptEvent, {
+              roomChatId,
+              messageId: latestIncomingMessage._id,
+            });
+          }
         }
       } catch (error) {
         if (active && error.response?.data?.link) {
@@ -534,7 +638,7 @@ export default function ChatDetail() {
     return () => {
       active = false;
     };
-  }, [navigate, roomChatId]);
+  }, [navigate, roomChatId, state._id]);
 
   const handleLoadOlderMessages = async () => {
     if (
@@ -681,6 +785,63 @@ export default function ChatDetail() {
         next[pendingIndex] = { ...formatted, deliveryStatus: "sent" };
         return next;
       });
+
+      const senderId =
+        typeof data.user_id === "object" ? data.user_id?._id : data.user_id;
+      if (
+        data.syncCursor &&
+        data.roomChatId?.toString() === activeRoomIdRef.current?.toString()
+      ) {
+        syncCursorRef.current = data.syncCursor;
+      }
+      if (
+        senderId !== state._id &&
+        data.roomChatId?.toString() === activeRoomIdRef.current?.toString()
+      ) {
+        latestIncomingMessageRef.current = data;
+        const receiptEvent =
+          document.visibilityState === "visible"
+            ? "CLIENT_READ_ROOM"
+            : "CLIENT_MESSAGE_DELIVERED";
+        socket.emit(receiptEvent, {
+          roomChatId: data.roomChatId,
+          messageId: data._id,
+        });
+      }
+    };
+
+    const handleMessageReceipt = (receipt) => {
+      if (
+        !["delivered", "read"].includes(receipt?.status) ||
+        receipt.roomChatId?.toString() !== activeRoomIdRef.current?.toString()
+      ) {
+        return;
+      }
+
+      setChat((previous) =>
+        previous.map((item) => {
+          if (item._id?.toString() !== receipt.messageId?.toString()) {
+            return item;
+          }
+          const deliveredBy = Array.from(
+            new Set([...(item.deliveredBy || []), receipt.userId]),
+          );
+          if (receipt.status === "read") {
+            const readBy = Array.from(
+              new Set([...(item.readBy || []), receipt.userId]),
+            );
+            return {
+              ...item,
+              deliveryStatus: "read",
+              deliveredBy,
+              readBy,
+            };
+          }
+          return item.deliveryStatus === "read"
+            ? { ...item, deliveredBy }
+            : { ...item, deliveryStatus: "delivered", deliveredBy };
+        }),
+      );
     };
 
     const handleTyping = (data) => {
@@ -696,10 +857,92 @@ export default function ChatDetail() {
     socket.on("SERVER_RETURN_MASSAGE", handleMessage);
     socket.on("SERVER_RETURN_TYPING", handleTyping);
     socket.on("SERVER_MESSAGE_DELETED", handleRemoveMeassage);
+    socket.on("SERVER_MESSAGE_RECEIPT", handleMessageReceipt);
     return () => {
       socket.off("SERVER_RETURN_MASSAGE", handleMessage);
       socket.off("SERVER_RETURN_TYPING", handleTyping);
       socket.off("SERVER_MESSAGE_DELETED", handleRemoveMeassage);
+      socket.off("SERVER_MESSAGE_RECEIPT", handleMessageReceipt);
+    };
+  }, [state._id]);
+
+  useEffect(() => {
+    const syncMissedMessages = async () => {
+      const requestedRoomId = activeRoomIdRef.current;
+      let cursor = syncCursorRef.current;
+      if (!requestedRoomId || !cursor || syncInFlightRef.current) return;
+
+      syncInFlightRef.current = true;
+      try {
+        for (let page = 0; page < 20; page += 1) {
+          const response = await getData(
+            `/chat/${requestedRoomId}/sync?limit=50&cursor=${encodeURIComponent(cursor)}`,
+          );
+          if (
+            activeRoomIdRef.current !== requestedRoomId ||
+            !response.success
+          ) {
+            return;
+          }
+
+          setChat((current) => appendUniqueMessages(current, response.data));
+          cursor = response.pagination.nextCursor;
+          syncCursorRef.current = cursor;
+
+          const latestIncomingMessage = [...response.data]
+            .reverse()
+            .find(
+              (item) =>
+                item.type !== "system" &&
+                (typeof item.user_id === "object"
+                  ? item.user_id?._id
+                  : item.user_id) !== state._id,
+            );
+          if (latestIncomingMessage) {
+            latestIncomingMessageRef.current = latestIncomingMessage;
+          }
+          if (!response.pagination.hasMore) break;
+        }
+
+        const latestIncomingMessage = latestIncomingMessageRef.current;
+        if (latestIncomingMessage?._id) {
+          const receiptEvent =
+            document.visibilityState === "visible"
+              ? "CLIENT_READ_ROOM"
+              : "CLIENT_MESSAGE_DELIVERED";
+          socket.emit(receiptEvent, {
+            roomChatId: requestedRoomId,
+            messageId: latestIncomingMessage._id,
+          });
+        }
+      } catch {
+        // Keep the last successful cursor so the next reconnect can retry safely.
+      } finally {
+        syncInFlightRef.current = false;
+      }
+    };
+
+    socket.on("connect", syncMissedMessages);
+    return () => {
+      socket.off("connect", syncMissedMessages);
+    };
+  }, [state._id]);
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const latestIncomingMessage = latestIncomingMessageRef.current;
+      if (document.visibilityState !== "visible" || !latestIncomingMessage?._id) {
+        return;
+      }
+      socket.emit("CLIENT_READ_ROOM", {
+        roomChatId: activeRoomIdRef.current,
+        messageId: latestIncomingMessage._id,
+      });
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -1378,6 +1621,16 @@ export default function ChatDetail() {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
+                      {isMe && item.deliveryStatus && (
+                        <span className="ml-1">
+                          {item.deliveryStatus === "queued" && "· Đang chờ mạng"}
+                          {item.deliveryStatus === "pending" && "· Đang gửi"}
+                          {item.deliveryStatus === "sent" && "· Đã gửi"}
+                          {item.deliveryStatus === "delivered" && "· Đã nhận"}
+                          {item.deliveryStatus === "read" && "· Đã xem"}
+                          {item.deliveryStatus === "failed" && "· Gửi lỗi"}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

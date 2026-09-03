@@ -14,6 +14,10 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import { socket } from "../../socket";
 import useIsMobile from "../IsMobile";
 import { LuClapperboard } from "react-icons/lu";
+import {
+  clearLocalPushSubscription,
+  getStoredPushSubscriptionId,
+} from "../../utils/pushNotification";
 export default function SideBarUser({ hideBottomNav }) {
   const isMobile = useIsMobile();
   const documentId = localStorage.getItem("documentId") || "";
@@ -35,8 +39,11 @@ export default function SideBarUser({ hideBottomNav }) {
   };
   const handleLogout = async () => {
     try {
-      const resLogout = await postData("/auth/logout");
+      const resLogout = await postData("/auth/logout", {
+        pushSubscriptionId: getStoredPushSubscriptionId(),
+      });
       if (resLogout.success) {
+        await clearLocalPushSubscription().catch(() => {});
         socket.disconnect();
         toast.success("Đăng xuất thành công");
         localStorage.removeItem("accessToken");

@@ -38,6 +38,7 @@ function SideBar() {
   const { roomChatId } = useParams();
 
   const currentRoomIdRef = useRef(roomChatId); // init luôn với roomChatId
+  const roomSyncInFlightRef = useRef(false);
 
   useEffect(() => {
     currentRoomIdRef.current = roomChatId; // cập nhật ref
@@ -82,20 +83,37 @@ function SideBar() {
     };
   }, []);
 
-  //get all room chat
-  useEffect(() => {
-    const fetchRoomChat = async () => {
-      try {
-        const response = await getData("/auth/getAllRoomChat");
-        if (response.success) {
-          setRooms(response.data);
+  const fetchRoomChat = useCallback(async () => {
+    if (roomSyncInFlightRef.current) return;
+    roomSyncInFlightRef.current = true;
+    try {
+      const response = await getData("/auth/getAllRoomChat");
+      if (response.success) {
+        setRooms(response.data);
+        if (
+          currentRoomIdRef.current &&
+          !response.data.some(
+            (room) =>
+              room._id?.toString() === currentRoomIdRef.current?.toString(),
+          )
+        ) {
+          navigate("/chat");
         }
-      } catch (error) {
-        console.error("Lỗi khi lấy danh sách phòng chat:", error);
       }
-    };
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách phòng chat:", error);
+    } finally {
+      roomSyncInFlightRef.current = false;
+    }
+  }, [navigate]);
+
+  useEffect(() => {
     fetchRoomChat();
-  }, []);
+    socket.on("connect", fetchRoomChat);
+    return () => {
+      socket.off("connect", fetchRoomChat);
+    };
+  }, [fetchRoomChat]);
   //server return all room
   const navigateRef = useRef();
   useEffect(() => {
@@ -445,25 +463,6 @@ function SideBar() {
                   <div
                     key={index}
                     onClick={() => {
-                      //  ROOM CHAT THẬT
-                      setRooms((prev) =>
-                        prev.map((room) =>
-                          room._id === item._id
-                            ? {
-                                ...room,
-                                unreadCount: {
-                                  ...room.unreadCount,
-                                  [state._id]: 0,
-                                },
-                              }
-                            : room,
-                        ),
-                      );
-
-                      socket.emit("CLIENT_READ_ROOM", {
-                        roomChatId: item._id,
-                      });
-
                       navigate(`/chat/${item._id}`);
                     }}
                   >

@@ -17,3 +17,24 @@ export const prependUniqueMessages = (currentMessages, olderMessages) => {
 
   return [...uniqueOlder, ...currentMessages];
 };
+
+export const appendUniqueMessages = (currentMessages, newerMessages) => {
+  const merged = [...currentMessages];
+
+  for (const message of newerMessages) {
+    const existingIndex = merged.findIndex(
+      (current) =>
+        (current?._id && message?._id && current._id === message._id) ||
+        (current?.clientMessageId &&
+          message?.clientMessageId &&
+          current.clientMessageId === message.clientMessageId),
+    );
+    if (existingIndex === -1) {
+      merged.push(message);
+    } else {
+      merged[existingIndex] = message;
+    }
+  }
+
+  return merged;
+};
