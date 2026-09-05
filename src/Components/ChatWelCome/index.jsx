@@ -2,9 +2,9 @@ import React from "react";
 
 export default function ChatWelcome() {
   return (
-    <div className="w-full">
+    <div className="app-page w-full">
       <div
-        className="w-full min-h-screen bg-cover bg-center  flex flex-col gap-2 items-center justify-center"
+        className="flex min-h-screen w-full flex-col items-center justify-center gap-2 bg-cover bg-center dark:bg-blend-multiply"
         style={{
           backgroundImage:
             "url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ2Vy2WLJn5Qc1yFBHxIP23xrPAI4kLAwEpbA&s')",
@@ -17,7 +17,7 @@ export default function ChatWelcome() {
           className="rounded-full"
         />
 
-        <div className="text-[#ff5252] text-[18px]">
+        <div className="text-[18px] text-[var(--danger)]">
           Hãy bắt đầu cuộc trò chuyện với mợi người ngay đi nào !
         </div>
       </div>

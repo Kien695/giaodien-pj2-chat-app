@@ -178,11 +178,11 @@ export default function InfoUser({ open, onClose, user, type }) {
           <div className="text-[16px] font-[500]">Thông tin tài khoản</div>
           <Button
             sx={{
-              color: "black",
+              color: "text.primary",
               transition: "all 0.3s ease-in-out",
               "&:hover": {
-                backgroundColor: "#ff5252",
-                color: "white",
+                backgroundColor: "action.hover",
+                color: "error.main",
                 transform: "scale(1.05)",
               },
             }}
@@ -318,7 +318,7 @@ export default function InfoUser({ open, onClose, user, type }) {
           <div className="text-[16px] py-1 font-[500]">Thông tin cá nhân</div>
           <div className="flex flex-col">
             <div className="flex items-center py-1">
-              <div className="w-[100px] text-[15px] text-gray-700">
+              <div className="w-[100px] text-[15px] text-[var(--text-secondary)]">
                 Giới tính:
               </div>
               <div className="text-[15px]">
@@ -330,7 +330,7 @@ export default function InfoUser({ open, onClose, user, type }) {
               </div>
             </div>
             <div className="flex items-center py-1">
-              <div className="w-[100px] text-[15px] text-gray-700">
+              <div className="w-[100px] text-[15px] text-[var(--text-secondary)]">
                 Ngày sinh:
               </div>
               <div className="text-[15px]">
@@ -340,7 +340,7 @@ export default function InfoUser({ open, onClose, user, type }) {
               </div>
             </div>
             <div className="flex items-center py-1">
-              <div className="w-[100px] text-[15px] text-gray-700">
+              <div className="w-[100px] text-[15px] text-[var(--text-secondary)]">
                 Điện thoại:
               </div>
               <div className="text-[15px]">
@@ -359,11 +359,11 @@ export default function InfoUser({ open, onClose, user, type }) {
                 display: "flex",
                 gap: 1,
 
-                color: "black",
+                color: "text.primary",
                 transition: "all 0.3s ease-in-out",
                 "&:hover": {
-                  backgroundColor: "#ff5252",
-                  color: "white",
+                  backgroundColor: "action.hover",
+                  color: "error.main",
                 },
               }}
               onClick={handleOpenEdit}
@@ -406,11 +406,11 @@ export default function InfoUser({ open, onClose, user, type }) {
               </div>
               <Button
                 sx={{
-                  color: "black",
+                  color: "text.primary",
                   transition: "all 0.3s ease-in-out",
                   "&:hover": {
-                    backgroundColor: "#ff5252",
-                    color: "white",
+                    backgroundColor: "action.hover",
+                    color: "error.main",
                     transform: "scale(1.05)",
                   },
                 }}
@@ -437,7 +437,7 @@ export default function InfoUser({ open, onClose, user, type }) {
               <div className="text-[16px] py-1 font-[500]">Thông tin chung</div>
               <div className="flex flex-col">
                 <div className="flex items-center py-1">
-                  <div className="w-[100px] text-[15px] text-gray-700">
+                  <div className="w-[100px] text-[15px] text-[var(--text-secondary)]">
                     Giới tính:
                   </div>
                   <FormControl>
@@ -464,18 +464,19 @@ export default function InfoUser({ open, onClose, user, type }) {
                   </FormControl>
                 </div>
                 <div className="flex items-center py-1">
-                  <div className="w-[100px] text-[15px] text-gray-700">
+                  <div className="w-[100px] text-[15px] text-[var(--text-secondary)]">
                     Ngày sinh:
                   </div>
                   <input
                     type="date"
+                    className="app-input rounded-md border px-2 py-1"
                     name="date_of_birth"
                     value={formData.date_of_birth}
                     onChange={handleInput}
                   />
                 </div>
                 <div className="flex items-center py-3">
-                  <div className="w-[100px] text-[15px] text-gray-700">
+                  <div className="w-[100px] text-[15px] text-[var(--text-secondary)]">
                     Điện thoại:
                   </div>
                   <TextField

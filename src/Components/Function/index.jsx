@@ -14,7 +14,6 @@ import { useEffect } from "react";
 import { getData } from "../../utils/api";
 import AddGroup from "../AddGroup";
 import AddFriend from "../AddFriend";
-import { useSelector } from "react-redux";
 import useIsMobile from "../IsMobile";
 import { CiSettings } from "react-icons/ci";
 import Setting from "../Setting";
@@ -63,32 +62,19 @@ export default function Function({ setSearchText, setUser }) {
       active = false;
     };
   }, [debouncedKeyword, setUser]);
-  //dark/mode
-  const theme = useSelector((state) => state.theme.mode);
   return (
-    <div className="sidebar-search flex h-[72px] items-center justify-between px-3 gap-2 border-b border-slate-100">
+    <div className="sidebar-search app-panel app-divider flex h-[72px] items-center justify-between gap-2 border-b px-3">
       <TextField
         variant="outlined"
         placeholder="Tìm kiếm..."
         name="keyword"
         onChange={handleInputChange}
-        className={`border-white ${
-          theme === "dark" ? "bg-[#22262b] text-white " : "bg-white text-black "
-        }`}
         sx={{
           // 1. Độ rộng: Trên Mobile (xs) chiếm 100% full width, trên PC (md) để cố định (ví dụ 300px) hoặc tự do
           width: { xs: "70%", md: "300px" },
 
           "& .MuiOutlinedInput-root": {
-            backgroundColor: theme === "dark" ? "#22262b" : "#fff",
-            color: theme === "dark" ? "#fff" : "#000",
             borderRadius: "8px",
-            "&:hover fieldset": {
-              borderColor: theme === "dark" ? "#555" : "#ccc",
-            },
-            "&.Mui-focused fieldset": {
-              borderColor: theme === "dark" ? "#fff" : "#000",
-            },
           },
           "& .MuiInputBase-input": {
             // 2. Độ cao / Padding: Mobile padding "12px 14px" (to hơn), PC padding "8px 12px"
@@ -97,21 +83,13 @@ export default function Function({ setSearchText, setUser }) {
             // 3. Kích thước chữ: Mobile 16px (tránh bị zoom tự động trên iOS), PC 14px
             fontSize: { xs: "16px", md: "12px" },
 
-            color: theme === "dark" ? "#fff" : "#000",
-          },
-          "& .MuiOutlinedInput-notchedOutline": {
-            borderColor: theme === "dark" ? "#555" : "#ccc",
           },
         }}
         slotProps={{
           input: {
             startAdornment: (
               <InputAdornment position="start">
-                <IoSearch
-                  className={`${
-                    theme == "dark" ? "!text-white" : ""
-                  } cursor-pointer`}
-                />
+                <IoSearch className="cursor-pointer text-[var(--muted)]" />
               </InputAdornment>
             ),
           },

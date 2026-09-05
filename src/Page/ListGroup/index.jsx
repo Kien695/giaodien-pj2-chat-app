@@ -39,14 +39,8 @@ export default function ListGroup() {
       }
     }
   };
-  //dark/mode
-  const theme = useSelector((state) => state.theme.mode);
   return (
-    <div
-      className={`w-full h-screen flex flex-col px-5 ${
-        theme == "dark" ? "bg-[#16191d] text-[#c2c5cd]" : "text-[#4f5c6f]"
-      }`}
-    >
+    <div className="app-page flex h-screen w-full flex-col px-5">
       <div className="flex h-[8%] items-center   py-1 border-b flex-shrink-0">
         <div className="flex gap-3">
           <MdOutlineKeyboardArrowLeft
@@ -62,16 +56,10 @@ export default function ListGroup() {
       <div className="text-[14px] font-[500] py-4">
         Hiện có ({room.length}) nhóm
       </div>
-      <div
-        className={`${
-          theme == "dark" ? "bg-[#22262b]" : "bg-gray-50"
-        } rounded-md shadow-md `}
-      >
+      <div className="app-card overflow-hidden rounded-md border shadow-md">
         {room.map((item, index) => (
           <div
-            className={`flex items-center border-1 border-b justify-between gap-3 cursor-pointer ${
-              theme == "dark" ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
-            }  px-3 py-3`}
+            className="app-divider app-hover flex cursor-pointer items-center justify-between gap-3 border-b px-3 py-3"
             key={index}
           >
             <div
@@ -116,20 +104,7 @@ export default function ListGroup() {
                 sx={{
                   fontSize: "14px",
                   padding: "5px 10px",
-                  backgroundColor: "#ff5252",
-                  color: "#fff",
-                  "&:hover": {
-                    backgroundColor: "red",
-                  },
-                  "&.Mui-focusVisible": {
-                    backgroundColor: "#ff5252",
-                  },
-                  "&.MuiMenuItem-root.Mui-selected": {
-                    backgroundColor: "#ff5252",
-                  },
-                  "&.MuiMenuItem-root.Mui-selected:hover": {
-                    backgroundColor: "#ff5252",
-                  },
+                  color: "error.main",
                 }}
               >
                 Rời nhóm

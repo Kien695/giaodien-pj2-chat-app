@@ -486,9 +486,9 @@ const CallDialog = ({
 
   return createPortal(
     reciveCall && !callAccepted ? (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--overlay)] p-4 backdrop-blur-sm">
         <div
-          className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
+          className="app-card w-full max-w-md rounded-lg border p-6 shadow-lg"
           role="dialog"
           aria-modal="true"
           aria-label={`Cuộc gọi đến từ ${callerName}`}
@@ -504,9 +504,9 @@ const CallDialog = ({
               className="h-20 w-20 rounded-full border-4 border-green-500 object-cover"
             />
             <h3 className="mt-3 text-lg font-bold">{callerName}</h3>
-            <p className="text-sm text-gray-500">{caller?.email}</p>
+            <p className="app-muted text-sm">{caller?.email}</p>
             {mediaError && (
-              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-center text-sm text-red-600">
+              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-center text-sm text-red-600 dark:bg-red-950/60 dark:text-red-300">
                 {mediaError}
               </p>
             )}
@@ -531,9 +531,9 @@ const CallDialog = ({
         </div>
       </div>
     ) : callRejectedPopUp ? (
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/30 p-4 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--overlay)] p-4 backdrop-blur-sm">
         <div
-          className="w-full max-w-md rounded-lg bg-white p-6 shadow-lg"
+          className="app-card w-full max-w-md rounded-lg border p-6 shadow-lg"
           role="dialog"
           aria-modal="true"
           aria-label={`Cuộc gọi bị ${rejectorData?.name || "người nhận"} từ chối`}

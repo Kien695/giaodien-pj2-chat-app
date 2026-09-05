@@ -131,11 +131,11 @@ export default function AddMember({ open, onClose, roomChatId, dataUser }) {
           <div className="text-[16px] font-[500]">Thêm thành viên</div>
           <Button
             sx={{
-              color: "black",
+              color: "text.primary",
               transition: "all 0.3s ease-in-out",
               "&:hover": {
-                backgroundColor: "#ff5252",
-                color: "white",
+                backgroundColor: "action.hover",
+                color: "error.main",
                 transform: "scale(1.05)",
               },
             }}
@@ -174,7 +174,7 @@ export default function AddMember({ open, onClose, roomChatId, dataUser }) {
                 }}
               />
               {searchText && (
-                <div className=" absolute bg-gray-100  top-10 border  p-2 w-full rounded-lg shadow-md">
+                <div className="app-card absolute top-10 w-full rounded-lg border p-2 shadow-md">
                   {user != null ? (
                     <FormGroup>
                       <FormControlLabel
@@ -213,7 +213,7 @@ export default function AddMember({ open, onClose, roomChatId, dataUser }) {
                   ) : (
                     <div className="flex-1 flex  items-center justify-center gap-3">
                       <FcSearch className="text-[30px]" />{" "}
-                      <div className="text-[18px] text-gray-500">
+                      <div className="app-muted text-[18px]">
                         Không tìm thấy kết quả
                       </div>
                     </div>
@@ -271,10 +271,10 @@ export default function AddMember({ open, onClose, roomChatId, dataUser }) {
 
               {/* Cột phải */}
               {memberUI.length > 0 && (
-                <div className="w-[35%] border border-gray-300 mt-3 p-2">
+                <div className="app-divider mt-3 w-[35%] border p-2">
                   <div className="text-[13px] gap-5">
                     Đã chọn:
-                    <span className="w-3 h-5 rounded-lg bg-blue-100 p-1 text-blue-600 ml-1">
+                    <span className="ml-1 h-5 w-3 rounded-lg bg-[var(--surface-selected)] p-1 text-[var(--primary)]">
                       {memberUI.length}/100
                     </span>
                   </div>
@@ -313,23 +313,14 @@ export default function AddMember({ open, onClose, roomChatId, dataUser }) {
         </DialogContent>
         <div className="py-2 px-4 flex justify-end gap-2">
           <Button
-            variant="contained"
-            sx={{
-              textTransform: "none",
-              backgroundColor: "gray",
-              color: "#fff",
-            }}
+            variant="outlined"
             onClick={onClose}
           >
             Hủy
           </Button>
           <Button
             variant="contained"
-            sx={{
-              backgroundColor: "#ff5252",
-              textTransform: "none",
-              color: "#fff",
-            }}
+            color="primary"
             disabled={formData.members.length > 0 ? false : true}
             onClick={handleAddMember}
           >

@@ -10,7 +10,7 @@ const highlightKeyword = (content, keyword) => {
   const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return String(content).split(new RegExp(`(${escaped})`, "gi")).map((part, index) =>
     part.localeCompare(keyword, undefined, { sensitivity: "accent" }) === 0 ? (
-      <mark className="rounded bg-yellow-200 px-0.5" key={`${part}-${index}`}>{part}</mark>
+      <mark className="rounded bg-yellow-200 px-0.5 text-yellow-950 dark:bg-yellow-700 dark:text-yellow-50" key={`${part}-${index}`}>{part}</mark>
     ) : part,
   );
 };
@@ -97,27 +97,27 @@ export default function MessageSearchPanel({ roomId, onClose, onSelect }) {
   };
 
   return (
-    <section className="border-b bg-white px-3 py-2 shadow-sm" aria-label="Tìm kiếm tin nhắn">
+    <section className="app-panel app-divider border-b px-3 py-2 shadow-sm" aria-label="Tìm kiếm tin nhắn">
       <div className="flex items-center gap-2">
-        <IoSearch className="shrink-0 text-gray-500" />
+        <IoSearch className="app-muted shrink-0" />
         <input
           autoFocus
           value={keyword}
           onChange={(event) => setKeyword(event.target.value)}
           placeholder="Tìm tin nhắn"
-          className="min-w-0 flex-1 rounded-md border px-3 py-1.5 text-sm outline-none focus:border-blue-500"
+          className="app-input min-w-0 flex-1 rounded-md border px-3 py-1.5 text-sm"
         />
-        <button type="button" onClick={goPrevious} disabled={!results.length} aria-label="Kết quả trước" className="p-1 disabled:opacity-40">
+        <button type="button" onClick={goPrevious} disabled={!results.length} aria-label="Kết quả trước" className="settings-interactive rounded p-1 disabled:opacity-60">
           <IoChevronBack />
         </button>
-        <button type="button" onClick={goNext} disabled={!results.length} aria-label="Kết quả tiếp theo" className="p-1 disabled:opacity-40">
+        <button type="button" onClick={goNext} disabled={!results.length} aria-label="Kết quả tiếp theo" className="settings-interactive rounded p-1 disabled:opacity-60">
           <IoChevronForward />
         </button>
-        <button type="button" onClick={onClose} aria-label="Đóng tìm kiếm" className="p-1">
+        <button type="button" onClick={onClose} aria-label="Đóng tìm kiếm" className="settings-interactive rounded p-1">
           <IoClose />
         </button>
       </div>
-      <div className="mt-2 text-xs text-gray-500">
+      <div className="app-muted mt-2 text-xs">
         {status === "idle" && "Nhập ít nhất 2 ký tự"}
         {(status === "loading" || status === "loadingMore") && <span className="flex items-center gap-2"><CircularProgress size={14} /> Đang tìm...</span>}
         {status === "empty" && "Không có kết quả"}
@@ -125,16 +125,16 @@ export default function MessageSearchPanel({ roomId, onClose, onSelect }) {
         {status === "ready" && `${activeIndex + 1}/${total} kết quả`}
       </div>
       {results.length > 0 && (
-        <div className="mt-2 max-h-40 overflow-y-auto rounded-md border">
+        <div className="app-divider mt-2 max-h-40 overflow-y-auto rounded-md border">
           {results.map((result, index) => (
             <button
               type="button"
               key={result._id}
               onClick={() => selectResult(index)}
-              className={`block w-full border-b px-3 py-2 text-left text-sm last:border-b-0 ${index === activeIndex ? "bg-blue-50" : "hover:bg-gray-50"}`}
+              className={`app-divider block w-full border-b px-3 py-2 text-left text-sm last:border-b-0 ${index === activeIndex ? "app-selected" : "app-hover"}`}
             >
               <span className="block truncate">{highlightKeyword(result.content, keyword.trim())}</span>
-              <time className="mt-1 block text-xs text-gray-400">{new Date(result.createdAt).toLocaleString("vi-VN")}</time>
+              <time className="app-muted mt-1 block text-xs">{new Date(result.createdAt).toLocaleString("vi-VN")}</time>
             </button>
           ))}
         </div>

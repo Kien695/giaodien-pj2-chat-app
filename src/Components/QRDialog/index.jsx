@@ -105,7 +105,6 @@ export default function QRDialog() {
 
           localStorage.setItem("accessToken", accessToken);
           localStorage.setItem("documentId", documentId);
-          localStorage.setItem("theme", "light");
 
           socket.disconnect();
           socket.auth = { token: accessToken };
@@ -160,7 +159,7 @@ export default function QRDialog() {
   return (
     <>
       <div
-        className="flex gap-1.5 items-center text-[13px] cursor-pointer font-semibold text-slate-600 transition hover:text-red-500 hover:scale-105"
+        className="flex cursor-pointer items-center gap-1.5 text-[13px] font-semibold text-[var(--text-secondary)] transition hover:scale-105 hover:text-[var(--primary)]"
         onClick={handleCreateQr}
       >
         <span>Quét QR</span>
@@ -175,7 +174,7 @@ export default function QRDialog() {
             borderRadius: 24,
             padding: "8px",
             boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
-            background: "linear-gradient(145deg, #ffffff, #f8fafc)",
+            backgroundColor: "var(--surface-raised)",
           },
         }}
       >
@@ -183,7 +182,7 @@ export default function QRDialog() {
           {/* Header text */}
           <Typography
             variant="h6"
-            className="font-bold text-slate-800 text-center mb-1"
+            className="mb-1 text-center font-bold text-[var(--text-primary)]"
             sx={{ fontSize: "1.1rem" }}
           >
             {qrStatus === "scanned"
@@ -195,7 +194,7 @@ export default function QRDialog() {
 
           <Typography
             variant="caption"
-            className="text-slate-500 text-center mb-5 block max-w-[260px]"
+            className="app-muted mb-5 block max-w-[260px] text-center"
           >
             {qrStatus === "scanned"
               ? "Vui lòng kiểm tra điện thoại và nhấn 'Đăng nhập' để xác nhận."
@@ -214,7 +213,7 @@ export default function QRDialog() {
               borderRadius: "20px",
               overflow: "hidden",
               boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
-              border: "1px solid #e2e8f0",
+              border: "1px solid var(--border)",
             }}
           >
             {/* Scanned state overlay */}

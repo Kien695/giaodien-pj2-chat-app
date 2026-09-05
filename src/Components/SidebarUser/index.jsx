@@ -49,7 +49,6 @@ export default function SideBarUser({ hideBottomNav }) {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("documentId");
-        localStorage.removeItem("theme");
         localStorage.removeItem("useAvatarBg");
         dispatch(logout());
         navigate("/auth");
@@ -195,12 +194,12 @@ export default function SideBarUser({ hideBottomNav }) {
 
       {/* Mobile */}
       {isMobile && !hideBottomNav && (
-        <nav className="mobile-nav fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 flex items-center z-50">
+        <nav className="mobile-nav app-panel app-divider fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center border-t">
           <NavLink
             to="/chat"
             className={({ isActive }) =>
               `mobile-nav-item flex flex-col items-center ${
-                isActive ? "text-blue-600" : "text-gray-800"
+                isActive ? "text-[var(--primary)]" : "text-[var(--text-secondary)]"
               }`
             }
           >
@@ -212,7 +211,7 @@ export default function SideBarUser({ hideBottomNav }) {
             to="/friend"
             className={({ isActive }) =>
               `mobile-nav-item flex flex-col items-center relative ${
-                isActive ? "text-blue-600" : "text-gray-800"
+                isActive ? "text-[var(--primary)]" : "text-[var(--text-secondary)]"
               }`
             }
           >
@@ -228,7 +227,7 @@ export default function SideBarUser({ hideBottomNav }) {
           <NavLink
             to="/video"
             className={({ isActive }) =>
-              `mobile-nav-item flex flex-col items-center ${isActive ? "text-blue-600" : "text-gray-800"}`
+              `mobile-nav-item flex flex-col items-center ${isActive ? "text-[var(--primary)]" : "text-[var(--text-secondary)]"}`
             }
           >
             <LuClapperboard size={22} />
@@ -249,7 +248,7 @@ export default function SideBarUser({ hideBottomNav }) {
               className="w-6 h-6 rounded-full"
             />
 
-            <span className="text-[10px] text-gray-800 mt-1">Cá nhân</span>
+            <span className="mt-1 text-[10px] text-[var(--text-secondary)]">Cá nhân</span>
           </button>
         </nav>
       )}

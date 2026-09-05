@@ -85,7 +85,7 @@ export default function DeviceSessionSetting({ enabled }) {
   return (
     <div className="mt-5 w-full min-w-0 overflow-hidden">
       <div className="mb-3 flex min-w-0 flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-[14px] font-[500] text-gray-700">
+        <div className="settings-section-title flex min-w-0 items-center gap-2">
           <MdDevices className="text-lg" /> Thiết bị đã đăng nhập
         </div>
         {otherSessions.length > 0 && (
@@ -101,27 +101,27 @@ export default function DeviceSessionSetting({ enabled }) {
         )}
       </div>
 
-      <div className="rounded-lg bg-white p-3 shadow-md">
+      <div className="settings-card rounded-lg p-3">
         {loading ? (
           <div className="flex justify-center py-5">
             <CircularProgress size={24} />
           </div>
         ) : upgradeRequired ? (
-          <div className="text-sm text-gray-600">
+          <div className="settings-muted text-sm">
             Hãy đăng xuất và đăng nhập lại để bắt đầu quản lý thiết bị.
           </div>
         ) : sessions.length === 0 ? (
-          <div className="text-sm text-gray-500">
+          <div className="settings-muted text-sm">
             Không có phiên đăng nhập đang hoạt động.
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="settings-divider-list divide-y">
             {sessions.map((session) => (
               <div
                 key={session.sessionId}
                 className="flex w-full min-w-0 items-center gap-2 py-3 first:pt-0 last:pb-0 sm:gap-3"
               >
-                <MdOutlineComputer className="shrink-0 text-2xl text-gray-500" />
+                <MdOutlineComputer className="settings-muted shrink-0 text-2xl" />
                 <div className="min-w-0 flex-1 overflow-hidden">
                   <div
                     className="block w-full truncate text-sm font-medium"
@@ -130,14 +130,14 @@ export default function DeviceSessionSetting({ enabled }) {
                     {session.deviceInfo || "Thiết bị không xác định"}
                   </div>
                   <div
-                    className="mt-1 w-full truncate text-xs text-gray-500"
+                    className="settings-muted mt-1 w-full truncate text-xs"
                     title={`Hoạt động: ${formatDate(session.lastUsedAt)} · ${session.loginMethod || "legacy"}`}
                   >
                     Hoạt động: {formatDate(session.lastUsedAt)} ·{" "}
                     {session.loginMethod || "legacy"}
                   </div>
                   {session.current && (
-                    <div className="mt-1 text-xs font-medium text-green-600">
+                    <div className="mt-1 text-xs font-medium text-green-600 dark:text-green-400">
                       Thiết bị này
                     </div>
                   )}

@@ -48,14 +48,10 @@ function Friend() {
       socket.off("SERVER_FRIEND_STATUS", handleStatus);
     };
   }, []);
-  //dark/mode
-  const theme = useSelector((state) => state.theme.mode);
   return (
     <div className="friend-layout flex min-w-0">
       <div
-        className={`friend-sidebar w-full md:w-[340px] md:shrink-0 ${id ? "hidden md:block" : "block"} ${
-          theme == "dark" ? "bg-[#22262b] text-[#c2c5cd]" : "bg-white "
-        } border-r border-slate-200 h-screen`}
+        className={`friend-sidebar app-panel app-divider h-screen w-full border-r md:w-[340px] md:shrink-0 ${id ? "hidden md:block" : "block"}`}
       >
         <Function setSearchText={setSearchText} setUser={setUser} />
         {searchText !== "" ? (
@@ -74,9 +70,7 @@ function Friend() {
                     return (
                       <div
                         key={index}
-                        className={`flex  gap-3 mx-3 rounded-md  items-center cursor-pointer  ${
-                          theme == "dark" ? "bg-[#16191d]" : "bg-gray-100 "
-                        } border px-3 py-4 w-full h-[70px]`}
+                        className="app-card mx-3 flex h-[70px] w-full cursor-pointer items-center gap-3 rounded-md border px-3 py-4"
                       >
                         <img
                           src={
@@ -205,7 +199,7 @@ function Friend() {
             ) : (
               <div className="h-[89%] flex  items-center justify-center">
                 <FcSearch className="text-[60px]" />{" "}
-                <div className="text-[18px] text-gray-500">
+                <div className="app-muted text-[18px]">
                   Không tìm thấy kết quả
                 </div>
               </div>
@@ -216,13 +210,7 @@ function Friend() {
             <NavLink
               to="/friend/1"
               className={({ isActive }) =>
-                `cursor-pointer flex gap-4 ${
-                  theme == "dark" ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
-                }  font-[500] px-4 py-4 items-center  ${
-                  isActive
-                    ? `${theme == "dark" ? "bg-[#1f344d]" : "bg-gray-200"}`
-                    : ""
-                }`
+                `app-hover flex cursor-pointer items-center gap-4 px-4 py-4 font-[500] ${isActive ? "app-selected" : ""}`
               }
             >
               <LuUserRoundCheck className="text-[22px]" />
@@ -231,13 +219,7 @@ function Friend() {
             <NavLink
               to="/friend/2"
               className={({ isActive }) =>
-                `cursor-pointer flex gap-4  ${
-                  theme == "dark" ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
-                }  font-[500] px-4 py-4 items-center  ${
-                  isActive
-                    ? `${theme == "dark" ? "bg-[#1f344d]" : "bg-gray-200"}`
-                    : ""
-                }`
+                `app-hover flex cursor-pointer items-center gap-4 px-4 py-4 font-[500] ${isActive ? "app-selected" : ""}`
               }
             >
               <FiUsers className="text-[22px]" />
@@ -246,13 +228,7 @@ function Friend() {
             <NavLink
               to="/friend/3"
               className={({ isActive }) =>
-                `cursor-pointer flex gap-4  ${
-                  theme == "dark" ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
-                }  font-[500] px-4 py-4 items-center  ${
-                  isActive
-                    ? `${theme == "dark" ? "bg-[#1f344d]" : "bg-gray-200"}`
-                    : ""
-                }`
+                `app-hover flex cursor-pointer items-center gap-4 px-4 py-4 font-[500] ${isActive ? "app-selected" : ""}`
               }
               onClick={() => {
                 dispatch(resetAcceptFriends());
@@ -286,13 +262,7 @@ function Friend() {
             <NavLink
               to="/friend/4"
               className={({ isActive }) =>
-                `cursor-pointer flex gap-4  ${
-                  theme == "dark" ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
-                }  font-[500] px-4 py-4 items-center  ${
-                  isActive
-                    ? `${theme == "dark" ? "bg-[#1f344d]" : "bg-gray-200"}`
-                    : ""
-                }`
+                `app-hover flex cursor-pointer items-center gap-4 px-4 py-4 font-[500] ${isActive ? "app-selected" : ""}`
               }
             >
               <AiOutlineUsergroupAdd className="text-[22px] " />

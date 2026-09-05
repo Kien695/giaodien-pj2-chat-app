@@ -1,4 +1,5 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { ThemeProvider } from "@mui/material/styles";
 import { socket } from "./socket.js";
 
 //toastyfy
@@ -30,16 +31,26 @@ import {
   setUserOffline,
   setUserOnline,
 } from "./redux/socketSlice";
+import { createAppTheme } from "./theme/appTheme";
 
 function App() {
   const userId = useSelector((state) => state.user._id);
   const isLogin = useSelector((state) => state.user.isLogin);
+  const theme = useSelector((state) => state.theme.mode);
   const dispatch = useDispatch();
   const currentRoomId = useSelector((state) => state.user.currentRoomId);
   const currentRoomIdRef = useRef(currentRoomId);
   const userIdRef = useRef(userId);
   const accountSyncInFlightRef = useRef(false);
   const reconnectPendingRef = useRef(false);
+  const muiTheme = useMemo(() => createAppTheme(theme), [theme]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("dark", theme === "dark");
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme;
+  }, [theme]);
 
   useEffect(() => {
     currentRoomIdRef.current = currentRoomId;
@@ -167,15 +178,16 @@ function App() {
   }, [dispatch, isLogin]);
 
   return (
-    <>
+    <ThemeProvider theme={muiTheme}>
       <AllRouter />
       <ToastContainer
+        theme={theme}
         position="top-right"
         autoClose={3000}
         closeButton={true}
         hideProgressBar={false}
       />
-    </>
+    </ThemeProvider>
   );
 }
 

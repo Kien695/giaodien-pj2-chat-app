@@ -91,7 +91,7 @@ export default function OtpInputs({ length = 6, onComplete }) {
           onChange={(e) => handleChange(e, i)}
           onKeyDown={(e) => handleKeyDown(e, i)}
           onPaste={(e) => handlePaste(e, i)}
-          className="w-12 h-12 text-center rounded-md border border-gray-300 focus:border-[#ff5252] focus:outline-none text-lg"
+          className="app-input h-12 w-12 rounded-md border text-center text-lg"
           aria-label={`OTP digit ${i + 1}`}
           autoComplete={i === 0 ? "one-time-code" : "off"}
         />

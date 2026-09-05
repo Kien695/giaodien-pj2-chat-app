@@ -122,7 +122,7 @@ const renderHighlightedText = (content, keyword) => {
     .map((part, index) =>
       index % 2 === 1 ? (
         <mark
-          className="rounded bg-yellow-200 px-0.5 text-inherit"
+          className="rounded bg-yellow-200 px-0.5 text-yellow-950 dark:bg-yellow-700 dark:text-yellow-50"
           key={`${part}-${index}`}
         >
           {part}
@@ -1267,11 +1267,7 @@ export default function ChatDetail() {
 
   return (
     <React.Fragment>
-      <div
-        className={`chat-detail w-full h-screen flex min-w-0 ${
-          theme == "dark" ? "bg-[#22262b] text-[#cbced3]" : ""
-        } `}
-      >
+      <div className="chat-detail app-panel flex h-screen min-w-0 w-full">
         <div
           className={`flex  flex-col h-full border-r ${
             buttonActive || showMember ? "hidden md:flex md:w-2/3" : "w-full"
@@ -1284,7 +1280,7 @@ export default function ChatDetail() {
                   {isMobile ? (
                     <button
                       onClick={() => navigate("/chat")}
-                      className="p-1 rounded-full hover:bg-gray-200"
+                      className="app-hover rounded-full p-1"
                     >
                       <IoArrowBack size={26} />
                     </button>
@@ -1319,7 +1315,7 @@ export default function ChatDetail() {
                         </div>
                         <Divider sx={{ my: 0.2 }} />
                         <div className="px-6 pb-4 py-5">
-                          <div className="text-[15px] text-gray-700 text-center mb-3">
+                          <div className="mb-3 text-center text-[15px] text-[var(--text-secondary)]">
                             Bạn chắc muốn sửa thông tin nhóm chứ? Thông tin sau
                             khi chỉnh sửa sẽ được hiển thị với tất cả thành
                             viên.
@@ -1335,7 +1331,7 @@ export default function ChatDetail() {
                             onChange={handleInputChangeRoom}
                           />
                           <div className="flex gap-4 items-center  py-4">
-                            <div className="text-[15px] text-gray-600">
+                            <div className="text-[15px] text-[var(--text-secondary)]">
                               Ảnh đại diện nhóm:
                             </div>
                             <div className="relative">
@@ -1389,9 +1385,7 @@ export default function ChatDetail() {
                     </div>
 
                     <div
-                      className={`text-[14px] ${
-                        theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                      } flex gap-1 cursor-pointer items-center hover:text-blue-500`}
+                      className="app-muted flex cursor-pointer items-center gap-1 text-[14px] hover:text-[var(--primary)]"
                       onClick={handleShowMember}
                     >
                       <FaRegUser />
@@ -1411,7 +1405,7 @@ export default function ChatDetail() {
                         {isMobile ? (
                           <button
                             onClick={() => navigate("/chat")}
-                            className="p-1 rounded-full hover:bg-gray-200"
+                            className="app-hover rounded-full p-1"
                           >
                             <IoArrowBack size={26} />
                           </button>
@@ -1445,21 +1439,13 @@ export default function ChatDetail() {
 
                           {isOnline ? (
                             <div
-                              className={`text-[14px] ${
-                                theme == "dark"
-                                  ? "text-[#8b96a5]"
-                                  : "text-gray-700"
-                              }`}
+                              className="app-muted text-[14px]"
                             >
                               Đang hoạt động
                             </div>
                           ) : (
                             <div
-                              className={`text-[14px] ${
-                                theme == "dark"
-                                  ? "text-[#8b96a5]"
-                                  : "text-gray-700"
-                              }`}
+                              className="app-muted text-[14px]"
                             >
                               {lastActive
                                 ? formatLastActive(lastActive)
@@ -1480,7 +1466,7 @@ export default function ChatDetail() {
                   {isMobile ? (
                     <button
                       onClick={() => navigate("/chat")}
-                      className="p-1 rounded-full hover:bg-gray-200"
+                      className="app-hover rounded-full p-1"
                     >
                       <IoArrowBack size={26} />
                     </button>
@@ -1501,9 +1487,7 @@ export default function ChatDetail() {
                     </div>
 
                     <div
-                      className={`text-[14px] ${
-                        theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                      } flex gap-1 cursor-pointer items-center `}
+                      className="app-muted flex cursor-pointer items-center gap-1 text-[14px]"
                     >
                       Dành cho công việc riêng
                     </div>
@@ -1568,9 +1552,7 @@ export default function ChatDetail() {
             <div
               ref={messageCanvasRef}
               onScroll={handleMessageCanvasScroll}
-              className={`message-canvas h-full px-5 ${
-                theme === "dark" ? "bg-[#16191d]" : "bg-blue-50"
-              } flex flex-col gap-2 overflow-y-auto pt-2`}
+              className="message-canvas flex h-full flex-col gap-2 overflow-y-auto px-5 pt-2"
               style={{
                 backgroundRepeat: "no-repeat",
                 backgroundSize: "cover",
@@ -1581,7 +1563,7 @@ export default function ChatDetail() {
                   useAvatarBg && state.avatar ? `url(${state.avatar})` : "none",
 
                 //  fallback màu nền
-                backgroundColor: theme === "dark" ? "#16191d" : "#eff6ff",
+                backgroundColor: "var(--chat-canvas)",
               }}
             >
               {messagePagination.hasMore && (
@@ -1590,7 +1572,7 @@ export default function ChatDetail() {
                     type="button"
                     onClick={handleLoadOlderMessages}
                     disabled={isLoadingOlder}
-                    className="rounded-full bg-white px-4 py-2 text-sm text-blue-600 shadow disabled:cursor-not-allowed disabled:opacity-60"
+                    className="settings-interactive app-card rounded-full border px-4 py-2 text-sm text-[var(--primary)] shadow disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isLoadingOlder ? "Đang tải..." : "Tải tin nhắn cũ"}
                   </button>
@@ -1600,7 +1582,7 @@ export default function ChatDetail() {
                 if (item.type === "system") {
                   return (
                     <div key={item._id} className="flex justify-center my-3">
-                      <span className="bg-gray-200 text-gray-600 text-xs px-3 py-1 rounded-full">
+                      <span className="rounded-full bg-[var(--disabled-surface)] px-3 py-1 text-xs text-[var(--text-secondary)]">
                         {formatSystemMessage(item, state._id)}
                       </span>
                     </div>
@@ -1633,18 +1615,14 @@ export default function ChatDetail() {
                         item?.files?.length > 0 ? "has-files" : ""
                       } ${
                         isMe
-                          ? `${
-                              theme === "dark" ? "bg-[#1f344d]" : "bg-blue-100"
-                            } rounded-xl rounded-br-none`
-                          : `${
-                              theme === "dark" ? "bg-[#262b30]" : "bg-white"
-                            }  rounded-xl rounded-bl-none`
+                          ? "rounded-xl rounded-br-none bg-[var(--surface-selected)]"
+                          : "rounded-xl rounded-bl-none bg-[var(--surface-raised)]"
                       } p-2 max-w-[60%]`}
                     >
                       {/* Nội dung text */}
 
                       {item.deleted ? (
-                        <i className="text-gray-400">Tin nhắn đã bị xóa</i>
+                        <i className="app-muted">Tin nhắn đã bị xóa</i>
                       ) : (
                         <>
                           {item.type === "emoji" ? (
@@ -1653,11 +1631,7 @@ export default function ChatDetail() {
                             </div>
                           ) : (
                             <div
-                              className={`${
-                                theme === "dark"
-                                  ? "text-white"
-                                  : "text-gray-600"
-                              } mb-1`}
+                              className="mb-1 text-[var(--text-primary)]"
                             >
                               {item.type === "invite" ? (
                                 <div className="p-3 rounded-lg border">
@@ -1714,10 +1688,10 @@ export default function ChatDetail() {
                                     <FiFileText />
                                   </span>
                                   <span className="min-w-0 flex-1">
-                                    <span className="block truncate text-sm font-medium text-slate-700">
+                                    <span className="block truncate text-sm font-medium text-[var(--text-primary)]">
                                       {f.name}
                                     </span>
-                                    <span className="mt-0.5 block text-xs text-slate-400">
+                                    <span className="app-muted mt-0.5 block text-xs">
                                       {f.size >= 1048576
                                         ? `${(f.size / 1048576).toFixed(1)} MB`
                                         : `${(f.size / 1024).toFixed(1)} KB`}
@@ -1740,11 +1714,7 @@ export default function ChatDetail() {
                       ${isMe ? "-left-10 " : "-right-10"}
                       opacity-0 group-hover:opacity-100
                       transition-opacity cursor-pointer
-                      rounded-full  border ${
-                        theme == "dark"
-                          ? "bg-[#2e3034] border-gray-700"
-                          : "bg-white border-gray-200"
-                      } p-1  
+                          app-card rounded-full border p-1
                     `}
                           aria-controls={open ? "fade-menu" : undefined}
                           aria-haspopup="true"
@@ -1764,14 +1734,14 @@ export default function ChatDetail() {
                         {openMenu === item._id && !item.deleted && (
                           <div
                             ref={menuRef}
-                            className={`absolute bottom-0 w-44 rounded-lg bg-white shadow-lg border z-50 ${
+                            className={`app-card absolute bottom-0 z-50 w-44 rounded-lg border shadow-lg ${
                               isMe ? "right-full mr-2" : "left-full ml-2"
                             }`}
                           >
                             {!item.files?.length && item.type !== "invite" && (
                               <button
                                 onClick={handleCopy}
-                                className="flex w-full items-center gap-3 px-4 py-2 hover:bg-gray-100 text-blue-500"
+                                className="app-hover flex w-full items-center gap-3 px-4 py-2 text-blue-500"
                               >
                                 <MdOutlineContentCopy />
                                 Sao chép
@@ -1779,7 +1749,7 @@ export default function ChatDetail() {
                             )}
                             <button
                               onClick={() => setOpenInvite(true)}
-                              className="flex w-full items-center gap-3 px-4 py-2 hover:bg-gray-100 text-green-600"
+                              className="app-hover flex w-full items-center gap-3 px-4 py-2 text-green-600 dark:text-green-400"
                             >
                               <FiSend />
                               Gửi
@@ -1787,7 +1757,7 @@ export default function ChatDetail() {
                             {isMe && (
                               <button
                                 onClick={handleDeleteMessage}
-                                className="flex w-full items-center gap-3 px-4 py-2 hover:bg-gray-100 text-red-600"
+                                className="app-hover flex w-full items-center gap-3 px-4 py-2 text-red-600 dark:text-red-400"
                               >
                                 <FiDelete />
                                 Xóa tin nhắn
@@ -1797,7 +1767,7 @@ export default function ChatDetail() {
                         )}
                       </div>
                       {/* Thời gian */}
-                      <div className="text-[11px] text-gray-500 mt-1 text-right">
+                      <div className="app-muted mt-1 text-right text-[11px]">
                         {new Date(item.createdAt).toLocaleTimeString("vi-VN", {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -1823,19 +1793,17 @@ export default function ChatDetail() {
                 <div className="flex justify-end">
                   <div
                     key={file.id}
-                    className={`flex items-center gap-2 p-2 rounded  ${
-                      theme ? "hover:bg-[#2d3136]" : "hover:bg-gray-100"
-                    } transition-colors cursor-pointer`}
+                    className="app-hover flex cursor-pointer items-center gap-2 rounded p-2"
                   >
-                    <MdAttachFile className="text-gray-500" />
-                    <span className="text-sm text-gray-700 break-all">
+                    <MdAttachFile className="app-muted" />
+                    <span className="break-all text-sm text-[var(--text-primary)]">
                       {file.name}
                     </span>
 
                     {/* Chỉ hiện spinner nếu đang upload */}
                     {file.status === "uploading" && (
                       <svg
-                        className="animate-spin h-4 w-4 text-gray-500 ml-1"
+                        className="app-muted ml-1 h-4 w-4 animate-spin"
                         viewBox="0 0 24 24"
                       >
                         <circle
@@ -1869,7 +1837,7 @@ export default function ChatDetail() {
                       alt="avatar"
                       className="w-5 h-5 rounded-full"
                     />
-                    <div className="text-[13px] text-gray-700">
+                    <div className="text-[13px] text-[var(--text-secondary)]">
                       Đang soạn tin
                     </div>
                   </div>
@@ -1937,7 +1905,7 @@ export default function ChatDetail() {
                       <>
                         {" "}
                         {/* Hiển thị preview ảnh */}
-                        <div className="flex gap-2 mt-3 left-4 flex-wrap absolute top-[-100px] bg-gray-300 py-2 px-4 rounded-md">
+                        <div className="app-card absolute left-4 top-[-100px] mt-3 flex flex-wrap gap-2 rounded-md border px-4 py-2">
                           {imageList.map((image, index) => (
                             <div key={index} className="relative">
                               <img
@@ -1978,11 +1946,7 @@ export default function ChatDetail() {
 
             <div className="flex items-center gap-2  px-3 h-12">
               <input
-                className={`flex-1 px-3 py-1 rounded outline-none ${
-                  theme === "dark"
-                    ? "bg-[#22262b] text-white "
-                    : "bg-white text-black "
-                }`}
+                className="app-input min-w-0 flex-1 rounded border px-3 py-1"
                 onPaste={handlePaste}
                 type="text"
                 placeholder="Nhập tin nhắn"
@@ -2021,11 +1985,7 @@ export default function ChatDetail() {
                     setShowMember(!showMember);
                   }}
                 />
-                <div
-                  className={`font-[500] text-[17px] ${
-                    theme == "dark" ? "text-white" : "text-gray-700"
-                  } `}
-                >
+                <div className="text-[17px] font-[500] text-[var(--text-primary)]">
                   Thành viên nhóm
                 </div>
               </div>
@@ -2051,11 +2011,7 @@ export default function ChatDetail() {
                   roomChatId={roomChatId}
                   dataUser={dataUser}
                 />
-                <div
-                  className={`text-[15px] py-5  ${
-                    theme == "dark" ? "text-white" : "text-gray-700"
-                  }`}
-                >
+                <div className="py-5 text-[15px] text-[var(--text-primary)]">
                   Danh sách thành viên ({dataUser.length})
                 </div>
                 <div className="overflow-y-auto ">
@@ -2080,7 +2036,7 @@ export default function ChatDetail() {
                             {isMyself ? "Bạn" : item.user_id.name}
                           </span>
                           {item.role === "admin" && (
-                            <span className="text-[13px] text-gray-500">
+                            <span className="app-muted text-[13px]">
                               Trưởng nhóm
                             </span>
                           )}
@@ -2089,10 +2045,10 @@ export default function ChatDetail() {
                         {/* NÚT 3 CHẤM */}
                         {(isMyself || isCurrentUserAdmin) && (
                           <div
-                            className="
+                            className="app-card
             absolute right-2 top-1/2 -translate-y-1/2
             opacity-0 group-hover:opacity-100
-            cursor-pointer rounded-full bg-white p-1 border
+            cursor-pointer rounded-full border p-1
           "
                             onClick={(e) => {
                               e.stopPropagation();
@@ -2107,16 +2063,16 @@ export default function ChatDetail() {
                         {/* MENU */}
                         {openMenuId == item.user_id._id && openMenu && (
                           <div
-                            className="
+                            className="app-card
             absolute right-2 top-6 mt-2 z-50
-            bg-white border rounded-md shadow-md
+            border rounded-md shadow-md
             min-w-[140px]
           "
                           >
                             {/* RỜI NHÓM: chỉ cho chính mình */}
                             {isMyself && (
                               <div
-                                className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-[14px]"
+                                className="app-hover cursor-pointer px-3 py-1 text-[14px]"
                                 onClick={() => {
                                   setOpenMenuId(null);
                                   handleLeaveGroup(item);
@@ -2129,7 +2085,7 @@ export default function ChatDetail() {
                             {/* XÓA KHỎI NHÓM: chỉ admin & không xóa chính mình */}
                             {isCurrentUserAdmin && !isMyself && (
                               <div
-                                className="px-3 py-1 hover:bg-gray-100 cursor-pointer text-[14px] text-red-500"
+                                className="app-hover cursor-pointer px-3 py-1 text-[14px] text-red-500 dark:text-red-400"
                                 onClick={() => {
                                   setOpenMenuId(null);
                                   handleRemoveUser(item);
@@ -2148,18 +2104,14 @@ export default function ChatDetail() {
             </div>
           ) : roomInfo.typeRoom === "system" ? (
             <div className="w-full md:block md:w-1/3 h-full overflow-y-auto">
-              <div
-                className={`flex h-[11%] items-center justify-center px-5 py-1 border-b font-[500] text-[17px] ${
-                  theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                }`}
-              >
+              <div className="app-divider flex h-[11%] items-center justify-center border-b px-5 py-1 text-[17px] font-[500] text-[var(--text-secondary)]">
                 Thông tin hội thoại
               </div>
 
               <button
                 type="button"
                 onClick={handleOpenMobileMessageSearch}
-                className="flex w-full items-center gap-3 border-b px-5 py-4 text-left text-sm hover:bg-gray-100 md:hidden"
+                className="app-divider app-hover flex w-full items-center gap-3 border-b px-5 py-4 text-left text-sm md:hidden"
               >
                 <GrSearch className="text-lg" />
                 Tìm kiếm tin nhắn
@@ -2183,11 +2135,7 @@ export default function ChatDetail() {
                   className="flex items-center justify-between cursor-pointer select-none"
                   onClick={() => setOpenImages(!openImages)}
                 >
-                  <span
-                    className={`${
-                      theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                    }font-medium`}
-                  >
+                  <span className="font-medium text-[var(--text-secondary)]">
                     Ảnh
                   </span>
                   <IoChevronDownSharp
@@ -2218,11 +2166,7 @@ export default function ChatDetail() {
                   </div>
                 )}
               </div>
-              <div
-                className={`px-5 py-4  border-b-8 ${
-                  theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                }`}
-              >
+              <div className="app-divider border-b-8 px-5 py-4 text-[var(--text-secondary)]">
                 <div
                   className="flex items-center justify-between cursor-pointer select-none"
                   onClick={() => setOpenFiles(!openFiles)}
@@ -2254,10 +2198,10 @@ export default function ChatDetail() {
                                       <FiFileText />
                                     </span>
                                     <span className="min-w-0 flex-1">
-                                      <span className="block truncate text-sm font-medium text-slate-700">
+                                      <span className="block truncate text-sm font-medium text-[var(--text-primary)]">
                                         {f.name}
                                       </span>
-                                      <span className="mt-0.5 block text-xs text-slate-400">
+                                      <span className="app-muted mt-0.5 block text-xs">
                                         {f.size >= 1048576
                                           ? `${(f.size / 1048576).toFixed(1)} MB`
                                           : `${(f.size / 1024).toFixed(1)} KB`}
@@ -2279,11 +2223,7 @@ export default function ChatDetail() {
             </div>
           ) : (
             <div className="w-full md:block md:w-1/3 h-full overflow-y-auto">
-              <div
-                className={`flex h-[11%] items-center justify-between   px-5 py-1 border-b font-[500] text-[17px] ${
-                  theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                }`}
-              >
+              <div className="app-divider flex h-[11%] items-center justify-between border-b px-5 py-1 text-[17px] font-[500] text-[var(--text-secondary)]">
                 <MdOutlineKeyboardArrowLeft
                   className="text-[30px] cursor-pointer"
                   onClick={() => {
@@ -2296,7 +2236,7 @@ export default function ChatDetail() {
               <button
                 type="button"
                 onClick={handleOpenMobileMessageSearch}
-                className="flex w-full items-center gap-3 border-b px-5 py-4 text-left text-sm hover:bg-gray-100 md:hidden"
+                className="app-divider app-hover flex w-full items-center gap-3 border-b px-5 py-4 text-left text-sm md:hidden"
               >
                 <GrSearch className="text-lg" />
                 Tìm kiếm tin nhắn
@@ -2329,21 +2269,11 @@ export default function ChatDetail() {
                       />
                     </div>
                   </div>
-                  <div
-                    className={`${
-                      theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                    } border-b-8 pt-2`}
-                  >
+                  <div className="app-divider border-b-8 pt-2 text-[var(--text-secondary)]">
                     <span className="text-[15px] font-[500] px-4  py-2 my-2">
                       Thành viên nhóm
                     </span>
-                    <div
-                      className={`flex gap-3 text-[14px] ${
-                        theme == "dark"
-                          ? "hover:bg-[#2d3136]"
-                          : "hover:bg-gray-100"
-                      } cursor-pointer p-3`}
-                    >
+                    <div className="app-hover flex cursor-pointer gap-3 p-3 text-[14px]">
                       <HiOutlineUserGroup className="text-[22px]" />
                       <div onClick={handleShowMember}>
                         {dataUser.length} thành viên
@@ -2355,11 +2285,7 @@ export default function ChatDetail() {
                       className="flex items-center justify-between cursor-pointer select-none"
                       onClick={() => setOpenImages(!openImages)}
                     >
-                      <span
-                        className={`${
-                          theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                        }font-medium`}
-                      >
+                      <span className="font-medium text-[var(--text-secondary)]">
                         Ảnh
                       </span>
                       <IoChevronDownSharp
@@ -2390,11 +2316,7 @@ export default function ChatDetail() {
                       </div>
                     )}
                   </div>
-                  <div
-                    className={`px-5 py-4  border-b-8 ${
-                      theme == "dark" ? "text-[#8b96a5]" : "text-gray-700"
-                    }`}
-                  >
+                  <div className="app-divider border-b-8 px-5 py-4 text-[var(--text-secondary)]">
                     <div
                       className="flex items-center justify-between cursor-pointer select-none"
                       onClick={() => setOpenFiles(!openFiles)}
@@ -2426,10 +2348,10 @@ export default function ChatDetail() {
                                           <FiFileText />
                                         </span>
                                         <span className="min-w-0 flex-1">
-                                          <span className="block truncate text-sm font-medium text-slate-700">
+                                          <span className="block truncate text-sm font-medium text-[var(--text-primary)]">
                                             {f.name}
                                           </span>
-                                          <span className="mt-0.5 block text-xs text-slate-400">
+                                          <span className="app-muted mt-0.5 block text-xs">
                                             {f.size >= 1048576
                                               ? `${(f.size / 1048576).toFixed(1)} MB`
                                               : `${(f.size / 1024).toFixed(1)} KB`}
@@ -2459,13 +2381,7 @@ export default function ChatDetail() {
                       <span>Link nhóm</span>
                     </div>
 
-                    <div
-                      className={`rounded-lg border p-3 break-all text-sm ${
-                        theme === "dark"
-                          ? "bg-[#2d3136] border-[#3d434b] text-white"
-                          : "bg-gray-50 border-gray-200 text-gray-700"
-                      }`}
-                    >
+                    <div className="app-card break-all rounded-lg border p-3 text-sm">
                       {inviteUrl}
                     </div>
 
@@ -2480,7 +2396,7 @@ export default function ChatDetail() {
 
                       <button
                         onClick={() => setOpenInvite(true)}
-                        className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-[#2d3136] transition"
+                        className="app-hover app-divider flex flex-1 items-center justify-center gap-2 rounded-lg border py-2 transition"
                       >
                         <FaShareAlt />
                         Chia sẻ
@@ -2548,7 +2464,7 @@ export default function ChatDetail() {
                         </div>
                       </div>
                       {commonGroupCount > 0 && (
-                        <div className="flex item-center gap-2 px-5 py-4 text-gray-700 border-b-8">
+                        <div className="app-divider flex items-center gap-2 border-b-8 px-5 py-4 text-[var(--text-secondary)]">
                           <HiOutlineUserGroup className="text-[22px]" />
                           <span className="text-[15px]">
                             {commonGroupCount} nhóm chung
@@ -2556,7 +2472,7 @@ export default function ChatDetail() {
                         </div>
                       )}
 
-                      <div className="px-5 py-4 text-gray-700 border-b-8">
+                      <div className="app-divider border-b-8 px-5 py-4 text-[var(--text-secondary)]">
                         <div
                           className="flex items-center justify-between cursor-pointer select-none"
                           onClick={() => setOpenImages(!openImages)}
@@ -2590,7 +2506,7 @@ export default function ChatDetail() {
                           </div>
                         )}
                       </div>
-                      <div className="px-5 py-4 text-gray-700 border-b-8">
+                      <div className="app-divider border-b-8 px-5 py-4 text-[var(--text-secondary)]">
                         <div
                           className="flex items-center justify-between cursor-pointer select-none"
                           onClick={() => setOpenFiles(!openFiles)}
@@ -2622,10 +2538,10 @@ export default function ChatDetail() {
                                               <FiFileText />
                                             </span>
                                             <span className="min-w-0 flex-1">
-                                              <span className="block truncate text-sm font-medium text-slate-700">
+                                              <span className="block truncate text-sm font-medium text-[var(--text-primary)]">
                                                 {f.name}
                                               </span>
-                                              <span className="mt-0.5 block text-xs text-slate-400">
+                                              <span className="app-muted mt-0.5 block text-xs">
                                                 {f.size >= 1048576
                                                   ? `${(f.size / 1048576).toFixed(1)} MB`
                                                   : `${(f.size / 1024).toFixed(1)} KB`}
@@ -2670,18 +2586,18 @@ export default function ChatDetail() {
           },
         }}
       >
-        <div className="flex h-14 items-center justify-between border-b border-slate-200 px-5">
+        <div className="app-divider flex h-14 items-center justify-between border-b px-5">
           <div>
-            <div className="text-base font-semibold text-slate-800">
+            <div className="text-base font-semibold text-[var(--text-primary)]">
               Chia sẻ
             </div>
-            <div className="text-xs text-slate-500">
+            <div className="app-muted text-xs">
               Chọn cuộc trò chuyện để gửi
             </div>
           </div>
           <IconButton
             size="small"
-            sx={{ color: "#667085", "&:hover": { backgroundColor: "#f2f4f7" } }}
+            sx={{ color: "text.secondary" }}
             onClick={() => setOpenInvite(false)}
             aria-label="Đóng"
           >
@@ -2699,7 +2615,7 @@ export default function ChatDetail() {
                 startAdornment: (
                   <IoSearchCircleOutline
                     fontSize="small"
-                    className="mr-2 text-gray-500"
+                    className="app-muted mr-2"
                   />
                 ),
               }}
@@ -2707,7 +2623,7 @@ export default function ChatDetail() {
           </div>
 
           {/* Tabs */}
-          <div className="border-b border-slate-200 px-3">
+          <div className="app-divider border-b px-3">
             <Tabs
               value={tab}
               onChange={(e, value) => setTab(value)}
@@ -2739,16 +2655,13 @@ export default function ChatDetail() {
                       checked={formSend.listRoom.includes(item._id)}
                       onChange={() => handleTickSend(item)}
                       onClick={(event) => event.stopPropagation()}
-                      sx={{
-                        color: "#98a2b3",
-                        "&.Mui-checked": { color: "#0068ff" },
-                      }}
+                      sx={{ color: "text.secondary" }}
                     />
 
                     <Avatar src={item.avatar} sx={{ width: 42, height: 42 }} />
 
                     <div className="flex flex-col">
-                      <span className="text-sm font-medium text-slate-700">
+                      <span className="text-sm font-medium text-[var(--text-primary)]">
                         {item.typeRoom === "friend"
                           ? item.users.find((u) => u.user_id?._id !== state._id)
                               ?.user_id?.name
@@ -2761,8 +2674,8 @@ export default function ChatDetail() {
             </div>
           </div>
         </DialogContent>
-        <div className="flex min-h-16 items-center justify-between gap-3 border-t border-slate-200 px-4 py-3">
-          <span className="text-xs text-slate-500">
+        <div className="app-divider flex min-h-16 items-center justify-between gap-3 border-t px-4 py-3">
+          <span className="app-muted text-xs">
             {formSend.listRoom.length > 0
               ? `Đã chọn ${formSend.listRoom.length} cuộc trò chuyện`
               : "Chưa chọn cuộc trò chuyện"}
@@ -2770,14 +2683,14 @@ export default function ChatDetail() {
           <div className="flex gap-2">
             <Button
               variant="text"
-              sx={{ color: "#475467", px: 2 }}
+              sx={{ color: "text.secondary", px: 2 }}
               onClick={() => setOpenInvite(false)}
             >
               Hủy
             </Button>
             <Button
               variant="contained"
-              sx={{ backgroundColor: "#0068ff", px: 2.5 }}
+              sx={{ px: 2.5 }}
               disabled={formSend.listRoom.length > 0 ? false : true}
               onClick={handleSendLink}
             >

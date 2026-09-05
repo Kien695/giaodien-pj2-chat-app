@@ -62,8 +62,8 @@ export default function Verify() {
   };
 
   return (
-    <div className="w-[100vw] h-[100vh] flex flex-col gap-4 items-center justify-center bg-gray-100">
-      <div className="w-[500px] bg-white mx-auto rounded-md">
+    <div className="app-page flex h-screen w-screen flex-col items-center justify-center gap-4 px-4">
+      <div className="app-card mx-auto w-full max-w-[500px] rounded-md border shadow-xl">
         <div className="flex flex-col items-center p-5 gap-2 ">
           <div className="img">
             <img src={logo} alt="" className="w-[120px] " />
@@ -71,7 +71,7 @@ export default function Verify() {
           <div className="text-[20px] font-[600]">Mã OTP xác minh</div>
           <div className="text-[15px] mb-3">
             OTP gửi đến{" "}
-            <span className="text-[#ff5252] font-[500]">
+            <span className="font-[500] text-[var(--danger)]">
               {localStorage.getItem("userEmail") || "***"}
             </span>
           </div>
@@ -80,16 +80,7 @@ export default function Verify() {
             <Button
               variant="contained"
               type="submit"
-              sx={{
-                background: "#ff5252",
-                width: "328px",
-
-                marginTop: "10px",
-                "&:hover": {
-                  backgroundColor: "black",
-                  color: "#f1f1f1",
-                },
-              }}
+              sx={{ width: "328px", maxWidth: "100%", marginTop: "10px" }}
             >
               Xác minh OTP
             </Button>

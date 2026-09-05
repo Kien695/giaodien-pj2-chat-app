@@ -72,22 +72,19 @@ const IOSSwitch = styled((props) => (
     transitionDuration: "300ms",
     "&.Mui-checked": {
       transform: "translateX(16px)",
-      color: "#fff",
+      color: theme.palette.primary.contrastText,
       "& + .MuiSwitch-track": {
-        backgroundColor: "#005AE0",
+        backgroundColor: theme.palette.primary.main,
         opacity: 1,
         border: 0,
-        ...theme.applyStyles("dark", {
-          backgroundColor: "#2ECA45",
-        }),
       },
       "&.Mui-disabled + .MuiSwitch-track": {
         opacity: 0.5,
       },
     },
     "&.Mui-focusVisible .MuiSwitch-thumb": {
-      color: "#33cf4d",
-      border: "6px solid #fff",
+      color: theme.palette.primary.main,
+      border: `6px solid ${theme.palette.background.paper}`,
     },
     "&.Mui-disabled .MuiSwitch-thumb": {
       color: theme.palette.grey[100],
@@ -109,13 +106,10 @@ const IOSSwitch = styled((props) => (
   },
   "& .MuiSwitch-track": {
     borderRadius: 26 / 2,
-    backgroundColor: "#E9E9EA",
+    backgroundColor: theme.palette.action.disabledBackground,
     opacity: 1,
     transition: theme.transitions.create(["background-color"], {
       duration: 500,
-    }),
-    ...theme.applyStyles("dark", {
-      backgroundColor: "#39393D",
     }),
   },
 }));
@@ -214,7 +208,6 @@ export default function Setting({ open, onClose }) {
         localStorage.removeItem("accessToken");
 
         localStorage.removeItem("documentId");
-        localStorage.removeItem("theme");
         localStorage.removeItem("useAvatarBg");
         dispatch(logout());
         navigate("/auth");
@@ -326,21 +319,25 @@ export default function Setting({ open, onClose }) {
         onClose={onClose}
         PaperProps={{
           sx: {
-            width: "900px",
-            height: "600px",
-            maxWidth: "90vw",
+            width: { xs: "100%", md: "900px" },
+            height: { xs: "100%", sm: "min(600px, 90vh)" },
+            maxWidth: { xs: "100vw", sm: "90vw" },
+            margin: { xs: 0, sm: 4 },
+            borderRadius: { xs: 0, sm: "12px" },
             overflow: "hidden",
           },
         }}
       >
-        <div className="flex h-full w-full min-w-0 overflow-hidden rounded-lg">
-          <div className="w-0 shrink-0 overflow-hidden border-r md:w-[30%]">
+        <div className="flex h-full w-full min-w-0 overflow-hidden bg-[var(--surface)] text-[var(--text-primary)] sm:rounded-lg">
+          <div className="w-0 shrink-0 overflow-hidden border-r border-[var(--border)] bg-[var(--surface)] md:w-[30%]">
             <div className="py-3 px-4 text-[17px] font-[500]">Cài đặt</div>
             <div
               onClick={() => setActive(1)}
               className={` py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px] ${
-                active == 1 ? "text-[#ff5252]" : "text-black"
-              } hover:bg-gray-200`}
+                 active == 1
+                   ? "bg-[var(--surface-active)] text-[var(--primary)]"
+                   : "text-[var(--text-secondary)]"
+               } hover:bg-[var(--surface-hover)]`}
             >
               <AiOutlineSecurityScan />
               <span>Tài khoản và bảo mật</span>
@@ -348,8 +345,10 @@ export default function Setting({ open, onClose }) {
             <div
               onClick={() => setActive(2)}
               className={` py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px] ${
-                active == 2 ? "text-[#ff5252]" : "text-black"
-              } hover:bg-gray-200`}
+                 active == 2
+                   ? "bg-[var(--surface-active)] text-[var(--primary)]"
+                   : "text-[var(--text-secondary)]"
+               } hover:bg-[var(--surface-hover)]`}
             >
               <MdLockOpen />
               <span>Quyền riêng tư</span>
@@ -357,36 +356,39 @@ export default function Setting({ open, onClose }) {
             <div
               onClick={() => setActive(3)}
               className={` py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px] ${
-                active == 3 ? "text-[#ff5252]" : "text-black"
-              } hover:bg-gray-200`}
+                 active == 3
+                   ? "bg-[var(--surface-active)] text-[var(--primary)]"
+                   : "text-[var(--text-secondary)]"
+               } hover:bg-[var(--surface-hover)]`}
             >
               <MdOutlineCleaningServices />
               <span>Giao diện</span>
             </div>
-            <div
+            <button
+              type="button"
               onClick={() => {
                 (setActive(4), setOpenPasskeyModal(true));
               }}
-              className={` py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px] ${
-                active == 4 ? "text-[#ff5252]" : "text-black"
-              } hover:bg-gray-200`}
+              className={`settings-interactive flex w-full items-center gap-2 px-4 py-2 text-left text-[15px] font-[500] ${
+                 active == 4
+                   ? "bg-[var(--surface-active)] text-[var(--primary)]"
+                   : "text-[var(--text-secondary)]"
+               }`}
               disabled={loading || !supportsPasskey}
             >
               <MdFingerprint />
               <span>Thiết lập passkey</span>
-            </div>
+            </button>
             <div
-              className=" py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px]
-              text-black
-               hover:bg-gray-200"
+              className="flex cursor-pointer items-center gap-2 px-4 py-2 text-[15px] font-[500] text-red-500 hover:bg-[var(--surface-hover)]"
               onClick={handleLogout}
             >
               <TbLogout2 />
               <span>Đăng xuất</span>
             </div>
           </div>
-          <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-gray-100">
-            <div className="flex min-w-0 items-center justify-between md:justify-end">
+          <div className="flex min-w-0 flex-1 flex-col overflow-hidden bg-[var(--canvas)]">
+            <div className="flex min-h-12 min-w-0 items-center justify-between bg-[var(--surface)] md:justify-end">
               <div
                 aria-controls={openMenu ? "demo-positioned-menu" : undefined}
                 aria-haspopup="true"
@@ -415,8 +417,10 @@ export default function Setting({ open, onClose }) {
                     (setActive(1), handleClose());
                   }}
                   className={` py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px] ${
-                    active == 1 ? "text-[#ff5252]" : "text-black"
-                  } hover:bg-gray-200`}
+                    active == 1
+                      ? "bg-[var(--surface-active)] text-[var(--primary)]"
+                      : "text-[var(--text-secondary)]"
+                  } hover:bg-[var(--surface-hover)]`}
                 >
                   <AiOutlineSecurityScan />
                   <span>Tài khoản và bảo mật</span>
@@ -427,8 +431,10 @@ export default function Setting({ open, onClose }) {
                     (setActive(2), handleClose());
                   }}
                   className={` py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px] ${
-                    active == 2 ? "text-[#ff5252]" : "text-black"
-                  } hover:bg-gray-200`}
+                    active == 2
+                      ? "bg-[var(--surface-active)] text-[var(--primary)]"
+                      : "text-[var(--text-secondary)]"
+                  } hover:bg-[var(--surface-hover)]`}
                 >
                   <MdLockOpen />
                   <span>Quyền riêng tư</span>
@@ -439,27 +445,31 @@ export default function Setting({ open, onClose }) {
                     (setActive(3), handleClose());
                   }}
                   className={` py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px] ${
-                    active == 3 ? "text-[#ff5252]" : "text-black"
-                  } hover:bg-gray-200`}
+                    active == 3
+                      ? "bg-[var(--surface-active)] text-[var(--primary)]"
+                      : "text-[var(--text-secondary)]"
+                  } hover:bg-[var(--surface-hover)]`}
                 >
                   <MdOutlineCleaningServices />
                   <span>Giao diện</span>
                 </div>
-                <div
+                <button
+                  type="button"
                   onClick={() => {
                     (setActive(4), handleClose());
                   }}
-                  className={` py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px] ${
-                    active == 4 ? "text-[#ff5252]" : "text-black"
-                  } hover:bg-gray-200`}
+                  className={`settings-interactive flex w-full items-center gap-2 px-4 py-2 text-left text-[15px] font-[500] ${
+                    active == 4
+                      ? "bg-[var(--surface-active)] text-[var(--primary)]"
+                      : "text-[var(--text-secondary)]"
+                  }`}
+                  disabled={loading || !supportsPasskey}
                 >
-                  <MdOutlineCleaningServices />
+                  <MdFingerprint />
                   <span>Thiết lập passkey</span>
-                </div>
+                </button>
                 <div
-                  className=" py-2 px-4 cursor-pointer flex gap-2 items-center font-[500] text-[15px]
-              text-black
-               hover:bg-gray-200"
+                  className="flex cursor-pointer items-center gap-2 px-4 py-2 text-[15px] font-[500] text-red-500 hover:bg-[var(--surface-hover)]"
                   onClick={handleLogout}
                 >
                   <TbLogout2 />
@@ -479,11 +489,11 @@ export default function Setting({ open, onClose }) {
               </div>
               <Button
                 sx={{
-                  color: "black",
+                  color: "var(--text-primary)",
                   transition: "all 0.3s ease-in-out",
                   "&:hover": {
-                    backgroundColor: "#ff5252",
-                    color: "white",
+                    backgroundColor: "var(--surface-hover)",
+                    color: "error.main",
                   },
                 }}
                 onClick={onClose}
@@ -495,11 +505,11 @@ export default function Setting({ open, onClose }) {
             <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto px-4 py-6">
               {active == 1 && (
                 <>
-                  <div className="text-[14px] font-[500] text-gray-700 mb-3">
+                  <div className="settings-section-title mb-3">
                     Đổi mật khẩu
                   </div>
-                  <div className="flex h-auto w-full min-w-0 flex-col gap-3 overflow-hidden rounded-lg bg-white p-3 shadow-md">
-                    <div className="break-words text-[13px] italic">
+                  <div className="settings-card flex h-auto w-full min-w-0 flex-col gap-3 overflow-hidden rounded-lg p-3">
+                    <div className="settings-muted break-words text-[13px] italic">
                       Ghi chú: Mật khẩu phải ≥ 8 ký tự, gồm 1 chữ hoa, 1 số và 1
                       ký tự đặc biệt
                     </div>
@@ -543,12 +553,8 @@ export default function Setting({ open, onClose }) {
                     </div>
                     <div className="py-2 px-4 flex justify-end gap-2">
                       <Button
-                        variant="contained"
-                        sx={{
-                          textTransform: "none",
-                          backgroundColor: "gray",
-                          color: "#fff",
-                        }}
+                        variant="outlined"
+                        sx={{ textTransform: "none" }}
                       >
                         Hủy
                       </Button>
@@ -556,9 +562,7 @@ export default function Setting({ open, onClose }) {
                         variant="contained"
                         disabled={loading}
                         sx={{
-                          backgroundColor: "#ff5252",
                           textTransform: "none",
-                          color: "#fff",
                         }}
                         onClick={handleChangePassword}
                       >
@@ -579,10 +583,10 @@ export default function Setting({ open, onClose }) {
               {active == 2 && (
                 <>
                   <PushNotificationSetting switchComponent={IOSSwitch} />
-                  <div className="text-[14px] font-[500] text-gray-700 mb-3 mt-5">
+                  <div className="settings-section-title mb-3 mt-5">
                     Cá nhân
                   </div>
-                  <div className="w-full h-auto rounded-lg bg-white p-3 flex flex-col gap-1 shadow-md">
+                  <div className="settings-card flex h-auto w-full flex-col gap-1 rounded-lg p-3">
                     <div className="flex items-center justify-between">
                       <div className="text-[14px]">Hiện thị ngày sinh: </div>
                       <FormControlLabel
@@ -610,10 +614,10 @@ export default function Setting({ open, onClose }) {
                       />
                     </div>
                   </div>
-                  <div className="text-[14px] font-[500] text-gray-700 mb-3 mt-5">
+                  <div className="settings-section-title mb-3 mt-5">
                     Nguồn tìm kiếm
                   </div>
-                  <div className="w-full h-auto rounded-lg bg-white p-3 flex flex-col gap-1 shadow-md">
+                  <div className="settings-card flex h-auto w-full flex-col gap-1 rounded-lg p-3">
                     <div className="flex items-center justify-between">
                       <div className="text-[14px]">
                         Cho phép người lạ tìm kiếm qua số điện thoại:
@@ -627,20 +631,18 @@ export default function Setting({ open, onClose }) {
               )}
               {active == 3 && (
                 <>
-                  <div className="text-[14px] font-[500] text-gray-700 mb-3">
+                  <div className="settings-section-title mb-3">
                     Giao diện hiển thị
                   </div>
-                  <div className="w-full h-auto rounded-lg bg-white p-3 flex flex-col gap-1 shadow-md">
+                  <div className="settings-card flex h-auto w-full flex-col gap-1 rounded-lg p-3">
                     <div className="flex items-center justify-between">
                       <FormControl>
                         <RadioGroup
                           value={theme}
                           row
                           sx={{ gap: 4 }}
-                          onClick={() =>
-                            dispatch(
-                              setTheme(theme === "light" ? "dark" : "light"),
-                            )
+                          onChange={(event) =>
+                            dispatch(setTheme(event.target.value))
                           }
                         >
                           <FormControlLabel
@@ -654,14 +656,14 @@ export default function Setting({ open, onClose }) {
                             value="light"
                             control={<Radio />}
                             label={
-                              <div className="w-[50px] h-[50px] bg-gray-100 border-2 border-blue-800 rounded-2xl"></div>
+                              <div className="h-[50px] w-[50px] rounded-2xl border-2 border-blue-700 bg-gray-100"></div>
                             }
                           />
                         </RadioGroup>
                       </FormControl>
                     </div>
                   </div>
-                  <div className="w-full h-auto rounded-lg bg-white p-3 mt-5 shadow-md">
+                  <div className="settings-card mt-5 h-auto w-full rounded-lg p-3">
                     <div className="flex items-center justify-between">
                       <div className="text-[14px]">
                         Cho phép dùng avatar làm ảnh nền khung chat:
@@ -683,41 +685,41 @@ export default function Setting({ open, onClose }) {
               )}
               {active == 4 && (
                 <>
-                  <div className="text-[15px] font-semibold text-gray-800 mb-3">
+                  <div className="settings-section-title mb-3 text-[15px]">
                     Thiết lập Passkey
                   </div>
 
-                  <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5">
+                  <div className="settings-card rounded-2xl p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex gap-4">
                         <div
                           className={`w-12 h-12 rounded-xl flex items-center justify-center ${
                             hasPasskey
-                              ? "bg-green-100 text-green-600"
-                              : "bg-blue-100 text-blue-600"
+                              ? "bg-green-100 text-green-600 dark:bg-green-950 dark:text-green-300"
+                              : "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-300"
                           }`}
                         >
                           <MdFingerprint size={26} />
                         </div>
 
                         <div>
-                          <h3 className="font-semibold text-gray-800">
+                          <h3 className="font-semibold text-[var(--text-primary)]">
                             Đăng nhập bằng Passkey
                           </h3>
 
-                          <p className="text-sm text-gray-500 mt-1 max-w-md">
+                          <p className="settings-muted mt-1 max-w-md text-sm">
                             Đăng nhập nhanh bằng vân tay, Face ID hoặc Windows
                             Hello mà không cần nhập mật khẩu.
                           </p>
 
                           <div className="mt-3">
                             {hasPasskey ? (
-                              <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700">
+                              <span className="inline-flex items-center gap-2 rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-700 dark:bg-green-950 dark:text-green-300">
                                 <FaRegCheckCircle size={16} />
                                 Đã bật Passkey
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-600">
+                              <span className="inline-flex items-center gap-2 rounded-full bg-[var(--disabled-surface)] px-3 py-1 text-sm font-medium text-[var(--muted)]">
                                 Chưa thiết lập
                               </span>
                             )}
@@ -756,18 +758,18 @@ export default function Setting({ open, onClose }) {
 
                     {hasPasskey && (
                       <>
-                        <div className="mt-6 flex flex-col gap-3 items-center justify-between rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+                        <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 dark:border-green-800 dark:bg-green-950/60">
                           <div>
-                            <div className="font-medium text-green-700">
+                            <div className="font-medium text-green-700 dark:text-green-300">
                               Passkey đang hoạt động
                             </div>
-                            <div className="text-sm text-green-600">
+                            <div className="text-sm text-green-600 dark:text-green-400">
                               Bạn có thể đăng nhập bằng Face ID, vân tay hoặc
                               Windows Hello.
                             </div>
                           </div>
 
-                          <div className="flex gap-3">
+                          <div className="flex flex-wrap justify-end gap-3">
                             <Button
                               variant="outlined"
                               color="error"
@@ -810,9 +812,9 @@ export default function Setting({ open, onClose }) {
                               </DialogTitle>
 
                               <DialogContent dividers>
-                                <div className="space-y-5 text-sm text-gray-700">
-                                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3">
-                                    <p className="font-medium text-yellow-800">
+                                <div className="space-y-5 text-sm text-[var(--text-secondary)]">
+                                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-950/60">
+                                    <p className="font-medium text-yellow-800 dark:text-yellow-300">
                                       Sau khi tắt Passkey
                                     </p>
 
@@ -848,7 +850,7 @@ export default function Setting({ open, onClose }) {
                                   </div>
 
                                   <ul>
-                                    <li className="rounded-lg flex gap-2 bg-blue-50 p-3 text-blue-700">
+                                    <li className="flex gap-2 rounded-lg bg-blue-50 p-3 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300">
                                       <FaRegLightbulb className="w-7 items-center justify-between text-yellow-500" />
                                       Nếu bạn không đăng ký lại Passkey thì
                                       không cần xóa Passkey trên thiết bị.
@@ -872,18 +874,18 @@ export default function Setting({ open, onClose }) {
                         </div>
 
                         {/* Hướng dẫn */}
-                        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/60">
                           <div className="flex items-start gap-3">
-                            <div className="mt-0.5 text-amber-600 text-xl">
+                            <div className="mt-0.5 text-xl text-amber-600 dark:text-amber-400">
                               <FaBoltLightning />
                             </div>
 
                             <div>
-                              <h4 className="font-semibold text-amber-800">
+                              <h4 className="font-semibold text-amber-800 dark:text-amber-300">
                                 Lưu ý khi tắt Passkey
                               </h4>
 
-                              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-700">
+                              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-700 dark:text-amber-400">
                                 <li>
                                   Passkey sẽ bị gỡ khỏi tài khoản của bạn và
                                   không thể dùng để đăng nhập nữa.

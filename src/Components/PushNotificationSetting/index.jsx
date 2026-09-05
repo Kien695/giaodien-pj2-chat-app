@@ -61,11 +61,11 @@ export default function PushNotificationSetting({ switchComponent }) {
 
   return (
     <div className="mt-5">
-      <div className="mb-3 text-[14px] font-[500] text-gray-700">Thông báo</div>
-      <div className="flex items-center justify-between rounded-lg bg-white p-3 shadow-md">
-        <div>
+      <div className="settings-section-title mb-3">Thông báo</div>
+      <div className="settings-card flex items-center justify-between gap-4 rounded-lg p-3">
+        <div className="min-w-0">
           <div className="text-[14px]">Thông báo trên thiết bị này</div>
-          <div className="mt-1 text-xs text-gray-500">{description}</div>
+          <div className="settings-muted mt-1 text-xs">{description}</div>
         </div>
         {status === "loading" || updating ? (
           <CircularProgress size={22} />

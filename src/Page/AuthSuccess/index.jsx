@@ -28,7 +28,6 @@ export default function AuthSuccess() {
         const { accessToken, documentId } = response.data;
         localStorage.setItem("accessToken", accessToken);
         localStorage.setItem("documentId", documentId);
-        localStorage.setItem("theme", "light");
         socket.auth = { token: accessToken };
         socket.connect();
         dispatch(setLogin(true));
@@ -43,5 +42,9 @@ export default function AuthSuccess() {
     exchangeCode();
   }, [dispatch, navigate]);
 
-  return <div>Đang xử lý đăng nhập...</div>;
+  return (
+    <div className="app-page flex min-h-screen items-center justify-center text-[var(--text-secondary)]">
+      Đang xử lý đăng nhập...
+    </div>
+  );
 }

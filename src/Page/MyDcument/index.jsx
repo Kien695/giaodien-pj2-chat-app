@@ -19,13 +19,13 @@ export default function MyDocument() {
     setButtonActive(!buttonActive);
   };
   return (
-    <div className="w-full h-screen flex">
+    <div className="app-panel flex h-screen w-full">
       <div
         className={`flex flex-col h-full ${
           buttonActive ? "w-2/3" : "w-full"
-        } border-r`}
+        } app-divider border-r`}
       >
-        <div className="flex h-[11%] items-center justify-between px-5 py-1 border-b flex-shrink-0">
+        <div className="app-divider flex h-[11%] flex-shrink-0 items-center justify-between border-b px-5 py-1">
           <div className="flex gap-3 relative">
             <img
               src={
@@ -40,7 +40,7 @@ export default function MyDocument() {
               <div className="text-[16px] font-[500] flex gap-2 items-center ">
                 <span className="cursor-pointer">My Documents</span>
               </div>
-              <div className="text-[14px] text-gray-700 flex gap-1 cursor-pointer items-center hover:text-blue-500">
+              <div className="app-muted flex cursor-pointer items-center gap-1 text-[14px] hover:text-[var(--primary)]">
                 Lưu trử thông tin cho riêng cá nhân
               </div>
             </div>
@@ -48,15 +48,15 @@ export default function MyDocument() {
           <Button>
             <MdDevicesFold
               className={`text-[20px] ${
-                buttonActive ? "text-blue-500" : "text-gray-500"
+                buttonActive ? "text-[var(--primary)]" : "text-[var(--muted)]"
               }`}
               onClick={handleClickInfoChat}
             />
           </Button>
         </div>
-        <div className=" flex-1 px-5 bg-blue-50 flex flex-col  gap-2 overflow-y-auto pt-2"></div>
-        <div className="flex flex-col border-t-2 h-[13%]">
-          <div className="p-3 relative border-b-2 flex gap-6">
+        <div className="flex flex-1 flex-col gap-2 overflow-y-auto bg-[var(--canvas)] px-5 pt-2"></div>
+        <div className="app-divider flex h-[13%] flex-col border-t-2">
+          <div className="app-divider relative flex gap-6 border-b-2 p-3">
             <ImageUploading multiple dataURLKey="data_url">
               {({
                 imageList,
@@ -75,7 +75,7 @@ export default function MyDocument() {
                     <>
                       {" "}
                       {/* Hiển thị preview ảnh */}
-                      <div className="flex gap-2 mt-3 left-4 flex-wrap absolute top-[-100px] bg-gray-300 py-2 px-4 rounded-md">
+                      <div className="app-card absolute left-4 top-[-100px] mt-3 flex flex-wrap gap-2 rounded-md border px-4 py-2">
                         {imageList.map((image, index) => (
                           <div key={index} className="relative">
                             <img
@@ -119,7 +119,7 @@ export default function MyDocument() {
             <input
               type="text"
               placeholder="Nhập tin nhắn"
-              className="flex-1  border-none focus:outline-none"
+              className="app-input min-w-0 flex-1 border-none px-2 py-1"
             />
             {message.trim() !== "" || images.length > 0 ? (
               <IoSend className="text-blue-600 text-[23px]" />
@@ -130,8 +130,8 @@ export default function MyDocument() {
         </div>
       </div>
       {buttonActive && (
-        <div className="w-1/3 h-full overflow-y-auto">
-          <div className="flex h-[11%] items-center justify-center  px-5 py-1 border-b font-[500] text-[17px] text-gray-700">
+        <div className="app-panel h-full w-1/3 overflow-y-auto">
+          <div className="app-divider flex h-[11%] items-center justify-center border-b px-5 py-1 text-[17px] font-[500] text-[var(--text-primary)]">
             Thông tin hội thoại
           </div>
           <div className="flex flex-col gap-3 items-center justify-center py-5 border-b-8">
@@ -145,13 +145,13 @@ export default function MyDocument() {
 
             <div className="text-[16px] font-[500]">My documents</div>
           </div>
-          <div className="px-5 py-4 text-gray-700 border-b-8">
+          <div className="app-divider px-5 py-4 text-[var(--text-secondary)] border-b-8">
             <div className="flex items-center justify-between cursor-pointer select-none">
               <span className="font-medium">Ảnh</span>
               <IoChevronDownSharp className="transition-transform duration-200" />
             </div>
           </div>
-          <div className="px-5 py-4 text-gray-700 border-b-8">
+          <div className="app-divider px-5 py-4 text-[var(--text-secondary)] border-b-8">
             <div className="flex items-center justify-between cursor-pointer select-none">
               <span className="font-medium">File</span>
               <IoChevronDownSharp className="transition-transform duration-200" />

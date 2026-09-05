@@ -102,9 +102,9 @@ export default function ResetPassword() {
     }
   };
   return (
-    <div className="w-[100vw] h-[100vh] flex flex-col gap-4 items-center justify-center bg-gray-100">
-      <div className="w-[75vw]  md:w-[80vw] xl:w-[35vw] h-auto px-8 py-10 bg-gray-200 border-2 border-red-100 shadow-2xl rounded-lg">
-        <div className="text-center text-[22px] text-[#ff5252] font-[600] mb-6">
+    <div className="app-page flex h-screen w-screen flex-col items-center justify-center gap-4 px-4">
+      <div className="app-card h-auto w-full max-w-xl rounded-lg border px-8 py-10 shadow-2xl">
+        <div className="mb-6 text-center text-[22px] font-[600] text-[var(--danger)]">
           Đổi mật khẩu
         </div>
 
@@ -133,15 +133,7 @@ export default function ResetPassword() {
             variant="contained"
             type="submit"
             disabled={loading}
-            sx={{
-              background: "#ff5252",
-
-              marginTop: "10px",
-              "&:hover": {
-                backgroundColor: "black",
-                color: "#f1f1f1",
-              },
-            }}
+            sx={{ marginTop: "10px" }}
           >
             {loading ? (
               <div className="flex gap-2">

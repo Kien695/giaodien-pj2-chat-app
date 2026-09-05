@@ -147,7 +147,6 @@ export function Auth() {
 
         socket.connect();
         localStorage.setItem("documentId", res?.data?.documentId);
-        localStorage.setItem("theme", "light");
         setFormLogin({ email: "", password: "" });
         dispatch(setLogin(true));
         navigate("/chat");
@@ -228,7 +227,6 @@ export function Auth() {
 
       socket.connect();
       localStorage.setItem("documentId", verifyResponse?.data?.documentId);
-      localStorage.setItem("theme", "light");
 
       dispatch(setLogin(true));
       navigate("/chat");
@@ -245,7 +243,7 @@ export function Auth() {
   };
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#eef3f9] px-4 ">
+    <main className="app-page relative flex min-h-screen items-center justify-center overflow-hidden px-4">
       {/* Background decoration */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl" />
@@ -253,7 +251,7 @@ export function Auth() {
         <div className="absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500/10 blur-3xl" />
       </div>
 
-      <section className="relative grid w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl lg:grid-cols-2">
+      <section className="app-card relative grid w-full max-w-5xl overflow-hidden rounded-2xl border shadow-xl lg:grid-cols-2">
         {/* Phần giới thiệu */}
         <div className="relative hidden overflow-hidden bg-gradient-to-br from-[#005ae0] via-[#0068ff] to-[#39a0ff] p-8 text-white lg:flex lg:flex-col lg:justify-between">
           <div className="absolute -right-20 -top-20 h-50 w-20 rounded-full bg-white/10" />
@@ -292,17 +290,17 @@ export function Auth() {
         </div>
 
         {/* Form */}
-        <div className="flex min-h-[450] flex-col justify-center bg-white px-6 py-8 sm:px-10 lg:px-12">
+        <div className="app-panel flex min-h-[450px] flex-col justify-center px-6 py-8 sm:px-10 lg:px-12">
           <div className="mb-6">
-            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-xl font-bold text-blue-600 lg:hidden">
+            <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-xl font-bold text-[var(--primary)] lg:hidden">
               CT
             </div>
 
-            <h2 className="text-3xl font-bold text-slate-900">
+            <h2 className="text-3xl font-bold text-[var(--text-primary)]">
               {isLogin ? "Chào mừng trở lại" : "Tạo tài khoản mới"}
             </h2>
 
-            <p className="mt-2 text-sm text-slate-500">
+            <p className="app-muted mt-2 text-sm">
               {isLogin
                 ? "Đăng nhập để tiếp tục cuộc trò chuyện."
                 : "Điền thông tin bên dưới để bắt đầu."}
@@ -310,14 +308,14 @@ export function Auth() {
           </div>
 
           {/* Tab chuyển đổi */}
-          <div className="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
+          <div className="mb-6 grid grid-cols-2 rounded-xl bg-[var(--disabled-surface)] p-1">
             <button
               type="button"
               onClick={() => setIsLogin(true)}
               className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-300 ${
                 isLogin
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-slate-500 hover:text-slate-900"
+                  ? "app-selected shadow-sm"
+                  : "text-[var(--muted)] hover:text-[var(--text-primary)]"
               }`}
             >
               Đăng nhập
@@ -328,8 +326,8 @@ export function Auth() {
               onClick={() => setIsLogin(false)}
               className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition-all duration-300 ${
                 !isLogin
-                  ? "bg-white text-blue-600 shadow-sm"
-                  : "text-slate-500 hover:text-slate-900"
+                  ? "app-selected shadow-sm"
+                  : "text-[var(--muted)] hover:text-[var(--text-primary)]"
               }`}
             >
               Đăng ký
@@ -382,7 +380,7 @@ export function Auth() {
                   <button
                     type="button"
                     onClick={handleClickForgot}
-                    className="text-[13px] font-medium text-slate-500 transition hover:text-blue-600"
+                    className="app-muted text-[13px] font-medium transition hover:text-[var(--primary)]"
                   >
                     Quên mật khẩu?
                   </button>
@@ -399,13 +397,6 @@ export function Auth() {
                     fontWeight: 600,
                     fontSize: "15px",
                     boxShadow: "none",
-                    background:
-                      "linear-gradient(135deg, #ef4444 0%, #f97316 100%)",
-                    "&:hover": {
-                      boxShadow: "0 10px 25px rgba(239, 68, 68, 0.25)",
-                      background:
-                        "linear-gradient(135deg, #dc2626 0%, #ea580c 100%)",
-                    },
                   }}
                 >
                   {loading ? (
@@ -483,13 +474,6 @@ export function Auth() {
                   fontWeight: 600,
                   fontSize: "15px",
                   boxShadow: "none",
-                  background:
-                    "linear-gradient(135deg, #ef4444 0%, #f97316 100%)",
-                  "&:hover": {
-                    boxShadow: "0 10px 25px rgba(239, 68, 68, 0.25)",
-                    background:
-                      "linear-gradient(135deg, #dc2626 0%, #ea580c 100%)",
-                  },
                 }}
               >
                 {loading ? (
@@ -506,11 +490,11 @@ export function Auth() {
 
           {/* Divider */}
           <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-slate-200" />
-            <span className="text-xs font-medium text-slate-400">
+            <div className="h-px flex-1 bg-[var(--border)]" />
+            <span className="app-muted text-xs font-medium">
               HOẶC TIẾP TỤC VỚI
             </span>
-            <div className="h-px flex-1 bg-slate-200" />
+            <div className="h-px flex-1 bg-[var(--border)]" />
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -527,13 +511,13 @@ export function Auth() {
               sx={{
                 minHeight: 44,
                 borderRadius: "12px",
-                borderColor: "#e2e8f0",
-                color: "#334155",
+                borderColor: "var(--border)",
+                color: "var(--text-primary)",
                 textTransform: "none",
                 fontWeight: 600,
                 "&:hover": {
-                  borderColor: "#cbd5e1",
-                  backgroundColor: "#f8fafc",
+                  borderColor: "var(--border-strong)",
+                  backgroundColor: "var(--surface-hover)",
                 },
               }}
             >
@@ -552,13 +536,13 @@ export function Auth() {
               sx={{
                 minHeight: 44,
                 borderRadius: "12px",
-                borderColor: "#e2e8f0",
-                color: "#334155",
+                borderColor: "var(--border)",
+                color: "var(--text-primary)",
                 textTransform: "none",
                 fontWeight: 600,
                 "&:hover": {
-                  borderColor: "#cbd5e1",
-                  backgroundColor: "#f8fafc",
+                  borderColor: "var(--border-strong)",
+                  backgroundColor: "var(--surface-hover)",
                 },
               }}
             >
@@ -569,7 +553,7 @@ export function Auth() {
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  <MdFingerprint className="text-2xl text-blue-600" />
+                  <MdFingerprint className="text-2xl text-[var(--primary)]" />
                   Passkey
                 </span>
               )}
@@ -577,7 +561,7 @@ export function Auth() {
           </div>
 
           {isLogin && (
-            <p className="mt-3 text-center text-xs leading-2 text-slate-400">
+            <p className="app-muted mt-3 text-center text-xs leading-2">
               Passkey sử dụng vân tay, Face ID hoặc mã khóa màn hình trên thiết
               bị của bạn.
             </p>

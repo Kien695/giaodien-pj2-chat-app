@@ -107,11 +107,11 @@ export default function AddFriend({ open, onClose }) {
           <div className="text-[16px] font-[500]">Thêm bạn bè</div>
           <Button
             sx={{
-              color: "black",
+              color: "text.primary",
               transition: "all 0.3s ease-in-out",
               "&:hover": {
-                backgroundColor: "#ff5252",
-                color: "white",
+                backgroundColor: "action.hover",
+                color: "error.main",
                 transform: "scale(1.05)",
               },
             }}
@@ -133,7 +133,7 @@ export default function AddFriend({ open, onClose }) {
               sx={{ marginBottom: 2 }}
             />
             {keyword && searchUser && (
-              <div className="absolute flex item-center justify-between bg-gray-100 top-16 border p-2 w-full rounded-lg shadow-md">
+              <div className="app-card absolute top-16 flex w-full items-center justify-between rounded-lg border p-2 shadow-md">
                 <div className="flex items-center gap-2">
                   <img
                     src={
@@ -172,7 +172,7 @@ export default function AddFriend({ open, onClose }) {
                 {users.map((item, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between p-2 hover:bg-gray-100 rounded-md cursor-pointer"
+                    className="app-hover flex cursor-pointer items-center justify-between rounded-md p-2"
                   >
                     <div className="flex items-center gap-4">
                       <img
@@ -274,23 +274,14 @@ export default function AddFriend({ open, onClose }) {
         </DialogContent>
         <div className="py-2 px-4 flex justify-end gap-2">
           <Button
-            variant="contained"
-            sx={{
-              textTransform: "none",
-              backgroundColor: "gray",
-              color: "#fff",
-            }}
+            variant="outlined"
             onClick={onClose}
           >
             Hủy
           </Button>
           <Button
             variant="contained"
-            sx={{
-              backgroundColor: "#ff5252",
-              textTransform: "none",
-              color: "#fff",
-            }}
+            color="primary"
             onClick={handleClickSearchFriend}
           >
             Tìm kiếm

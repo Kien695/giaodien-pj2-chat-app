@@ -103,7 +103,7 @@ export default function QRScannerModal({ open, onClose }) {
         style: {
           borderRadius: 24,
           overflow: "hidden",
-          background: "#ffffff",
+          backgroundColor: "var(--surface-raised)",
         },
       }}
     >
@@ -111,7 +111,7 @@ export default function QRScannerModal({ open, onClose }) {
         {/* Close Button */}
         <button
           onClick={scannedData ? handleCancelLogin : handleCloseModal}
-          className="absolute top-4 right-4 p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition"
+          className="app-hover app-muted absolute right-4 top-4 rounded-full p-2 transition hover:text-[var(--text-primary)]"
         >
           <MdClose className="text-xl" />
         </button>
@@ -119,8 +119,8 @@ export default function QRScannerModal({ open, onClose }) {
         {!scannedData ? (
           /* STEP 1: SCANNER VIEW */
           <div className="w-full flex flex-col items-center">
-            <h2 className="text-xl font-bold text-slate-800 mb-1">Quét mã QR</h2>
-            <p className="text-xs text-slate-500 mb-4 text-center">
+            <h2 className="mb-1 text-xl font-bold text-[var(--text-primary)]">Quét mã QR</h2>
+            <p className="app-muted mb-4 text-center text-xs">
               Đặt mã QR trên máy tính vào ô vuông bên dưới để quét
             </p>
 
@@ -141,7 +141,7 @@ export default function QRScannerModal({ open, onClose }) {
 
             <button
               onClick={handleCloseModal}
-              className="mt-5 text-sm font-semibold text-slate-500 hover:text-slate-800 transition"
+              className="app-muted mt-5 text-sm font-semibold transition hover:text-[var(--text-primary)]"
             >
               Đóng
             </button>
@@ -154,22 +154,22 @@ export default function QRScannerModal({ open, onClose }) {
               <MdComputer className="text-4xl" />
             </div>
 
-            <h2 className="text-xl font-bold text-slate-900 mb-1 text-center">
+            <h2 className="mb-1 text-center text-xl font-bold text-[var(--text-primary)]">
               Đăng nhập bằng mã QR
             </h2>
-            <p className="text-xs text-slate-500 mb-5 text-center px-4">
+            <p className="app-muted mb-5 px-4 text-center text-xs">
               Bạn vừa quét mã QR yêu cầu đăng nhập tài khoản trên thiết bị máy tính.
             </p>
 
             {/* Device Info Card */}
             <div className="w-full bg-slate-50 rounded-2xl p-4 border border-slate-100 mb-4 flex flex-col gap-2">
-              <div className="flex items-center justify-between text-xs text-slate-500 font-medium">
+              <div className="app-muted flex items-center justify-between text-xs font-medium">
                 <span>Thiết bị yêu cầu:</span>
                 <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-semibold">
                   Mới quét
                 </span>
               </div>
-              <p className="text-base font-bold text-slate-800">
+              <p className="text-base font-bold text-[var(--text-primary)]">
                 {scannedData.deviceInfo}
               </p>
             </div>
@@ -202,7 +202,7 @@ export default function QRScannerModal({ open, onClose }) {
               <button
                 onClick={handleCancelLogin}
                 disabled={loadingConfirm || loadingCancel}
-                className="w-full py-3 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold text-sm transition active:scale-[0.98] disabled:opacity-70 flex items-center justify-center gap-2"
+                className="app-hover app-muted flex w-full items-center justify-center gap-2 rounded-xl border border-[var(--border)] px-4 py-3 text-sm font-semibold transition active:scale-[0.98] disabled:opacity-70"
               >
                 {loadingCancel ? (
                   <>

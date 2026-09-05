@@ -262,16 +262,12 @@ function SideBar() {
   };
   //thêm document vào rooms
 
-  //dark/mode
-  const theme = useSelector((state) => state.theme.mode);
   return (
     <div className="conversation-layout flex min-w-0">
       <div
         className={`conversation-sidebar w-full md:w-[340px] md:max-w-[340px] shrink-0 ${
           roomChatId ? "hidden md:block" : "block"
-        } ${
-          theme == "dark" ? "bg-[#22262b] text-white" : "bg-white "
-        } border-r border-slate-200 h-screen`}
+        } app-panel app-divider h-screen border-r`}
       >
         <Function setSearchText={setSearchText} setUser={setUser} />
 
@@ -291,9 +287,7 @@ function SideBar() {
                     return (
                       <div
                         key={index}
-                        className={`flex  gap-3 mx-3 rounded-md  items-center cursor-pointer  ${
-                          theme == "dark" ? "bg-[#16191d]" : "bg-gray-100 "
-                        } border px-3 py-4 w-full h-[70px]`}
+                        className="app-card mx-3 flex h-[70px] w-full cursor-pointer items-center gap-3 rounded-md border px-3 py-4"
                       >
                         <img
                           src={
@@ -425,7 +419,7 @@ function SideBar() {
             ) : (
               <div className="h-[89%] flex  items-center justify-center">
                 <FcSearch className="text-[60px]" />{" "}
-                <div className="text-[18px] text-gray-500">
+                <div className="app-muted text-[18px]">
                   Không tìm thấy kết quả
                 </div>
               </div>
@@ -437,8 +431,8 @@ function SideBar() {
               <div
                 className={`text-[13px] font-[500] cursor-pointer ${
                   active == 1
-                    ? "text-[#ff5252]"
-                    : `${theme == "dark" ? "text-white" : "text-[#2d3136]"}`
+                    ? "text-[var(--primary)]"
+                    : "text-[var(--text-secondary)]"
                 }`}
                 onClick={() => setActive(1)}
               >
@@ -447,8 +441,8 @@ function SideBar() {
               <div
                 className={`text-[13px] font-[500] cursor-pointer ${
                   active == 2
-                    ? "text-[#ff5252]"
-                    : `${theme == "dark" ? "text-white" : "text-[#2d3136]"}`
+                    ? "text-[var(--primary)]"
+                    : "text-[var(--text-secondary)]"
                 }`}
                 onClick={() => setActive(2)}
               >
@@ -467,19 +461,7 @@ function SideBar() {
                     }}
                   >
                     <div
-                      className={`conversation-item flex gap-3 cursor-pointer px-3 py-3
-                        ${
-                          theme == "dark"
-                            ? "hover:bg-[#2d3136]"
-                            : "hover:bg-gray-100"
-                        }
-                        ${
-                          unread > 0
-                            ? `${
-                                theme == "dark" ? "bg-[#2d3136]" : "bg-blue-50"
-                              }`
-                            : ""
-                        }`}
+                      className={`conversation-item app-hover flex cursor-pointer gap-3 px-3 py-3 ${unread > 0 ? "app-selected" : ""}`}
                     >
                       <img
                         src={
@@ -506,11 +488,7 @@ function SideBar() {
                             className={`text-[13px] truncate${
                               unread > 0
                                 ? "font-semibold"
-                                : `${
-                                    theme == "dark"
-                                      ? "text-[#cccfd4]"
-                                      : "text-gray-600"
-                                  }`
+                                : "app-muted"
                             }`}
                           >
                             {timeAgo(item?.lastMessage?.createdAt)}
@@ -522,11 +500,7 @@ function SideBar() {
                          ${
                            unread > 0
                              ? "font-semibold"
-                             : `${
-                                 theme == "dark"
-                                   ? "text-[#cccfd4]"
-                                   : "text-gray-600"
-                               }`
+                             : "app-muted"
                          }`}
                           >
                             {item?.lastMessage?.files?.length > 0 ? (
@@ -594,7 +568,7 @@ function SideBar() {
                 className="rounded-full"
               />
 
-              <div className="text-[#ff5252] text-[18px]">
+              <div className="text-[18px] text-[var(--danger)]">
                 Hãy bắt đầu cuộc trò chuyện với mợi người ngay đi nào !
               </div>
             </div>
